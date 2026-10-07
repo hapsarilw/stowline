@@ -238,6 +238,54 @@ The JS figure is not the NFR-06 number: that is measured per route when the rout
 | Oct 7, 2026 | Stability model, `computeStability` (`npm run bench`) | sample plan 2,740 containers: mean 1.06 ms, p99 3.51 ms. 10,000 containers: mean 4.06 ms, p99 11.8 ms | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Node 25.9.0, Vitest 5.0.3 |
 | Oct 7, 2026 | Domain coverage (`npm run test:coverage`, 135 tests in 14 files) | lines 99.41%, statements 96.96%, branches 90.69%, functions 99.46% | same | same |
 
+## M2 Workspace panels (Oct 7, 2026)
+
+### What was decided while building
+
+| Topic | Decision |
+| --- | --- |
+| Dependencies | `zustand` 5.0.15, `react-router` 8.4.0, `@tanstack/react-virtual` 3.14.13, `@testing-library/react` 16.3.3, `user-event` 14.6.7, `jest-dom` 7.0.1, `jsdom` 30.1.2, `@axe-core/playwright` 4.13.0. All on the approved list. |
+| Stores | `src/state/plan-store.ts` holds the plan, violations, stability and history. Every change goes through `apply`, which runs the domain command (placement check, inverse) and re-checks only the touched stacks. `undo` and `redo` use the inverse. `src/state/view-store.ts` holds the view: panels, tabs, split ratio, bay, half view, selection, focus, load list query, ticked rows, toast. `src/state/actions.ts` holds Validate, which uses the worker. |
+| Route | `/` goes to `/plans/042W-SGSIN`. Any other plan id shows "Plan not found". The plans list and the API are M6. |
+| Pure view models | What the components draw is worked out in plain functions with their own tests: `bay-view/model.ts` (cells, totals, arrow moves), `inspector/model.ts`, `stability/gauges.ts`, `load-list/query.ts`. Plus domain additions `bayOccupancy`, `stackWeightTenths`, `indexViolations`. |
+| Disabled controls | Controls whose work belongs to a later milestone are shown in the components sheet's disabled state, not left as dead buttons: Save (M6), Import load list (M6), Stability details button (M5), Inspector Unplace, Lock and Swap (M4). Save therefore looks faded next to design 01. |
+| D6 applied | No Switch vessel popup, the rotation is a plain list (`aria-current="step"` on SGSIN), no "1×" control, no Vessel and Port filters. The "/" shortcut focuses the load list search (and opens the panel if collapsed). |
+| D1 applied | A "40ft / Fore 20ft / Aft 20ft" tab control in the bay view header. In the 40ft view a slot with 20ft containers shows two half cells. In the fore and aft views the key is the odd-bay key (290284 for NSPU 318204 6) and a 40ft container shows in both. This control is not in the design: show it to the owner before M4. |
+| D8 applied | Landmarks have readable names ("Load list", "3D view", "Bay view", "Details", "Bay navigator", "Stability"). The load list is one scrolling grid with a sticky header row and `aria-rowcount`/`aria-rowindex` for the virtual rows. It uses `aria-activedescendant`, so there is one tab stop, and arrow keys, Home, End, PageUp, PageDown and Space work. Counts use screen reader text instead of `aria-label` on a `span`. |
+| D9 applied | The focus ring uses `var(--accent)`. |
+| D12 applied | The Inspector shows the reefer set point as in the components sheet (`−18.0 °C`). The loading skeleton text is not used: the placeholder says the 3D view is not built yet. |
+| Filters | POD and Type are chips with a caret that open a list (`role="listbox"`, arrow keys, Enter, Esc). The prototype cycled through values on each click. |
+| Flags sort | The Flags column sorts (change 21): reefer and dangerous goods first when descending. |
+| Initial state | As in design 01: bay 18, NSPU 482913 5 selected, three unplanned rows ticked (the 4th to 6th in list order), so the footer reads "3 selected · 69.6 t". The first 60 rows of the load list are the prototype's, so the same three rows are ticked. |
+| Numbers that differ from the design | The load list shows the first rows by weight: with 928 unplanned rows, not 60, the heaviest are 29.9 t, not 28.9 t. The footer reads "928 shown" where the design had "60 shown". The Inspector, bay 18 cells, stack totals, "161 / 208 slots" and the stability strip match the design exactly. |
+| Key shortcuts | Undo and redo (Ctrl or Cmd + Z, plus Shift) work from anywhere on the page except in a text field. |
+| NFR-13 target size | The design's controls that are 22 px or less were enlarged, with the smallest visual change: the view tabs and "Full bay view" are 24 px (design 22 px), the sort buttons are 24 px high, the row checkbox keeps its 14 px box with a 24 px hit area, the split handle keeps its 6 px bar with a 24 px hit area. Cells of the bay grid are about 14 px high in Split, as designed. The Bay view (cells over 24 px) and the keyboard give the same function, which is the "equivalent" exception of WCAG 2.5.8. |
+| 1280 x 720 | The design only covers 1440 and 1920. Below 1360 px the top bar drops its three dividers and uses tighter gaps, a shorter progress bar and chip padding so every control stays on screen. The Split view is crowded at 720 px high: the Bay tab is the better view there. |
+| Tests | jsdom component tests for cell states, load list filters and sort, gauges, Inspector, bay view, shell and stores. Playwright: screenshots, axe, layout, target size. Component tests give jsdom a size for every element (`src/test/setup.ts`), since TanStack Virtual needs one. |
+
+### Gate result
+
+- **Screens match designs 01 and 03 side by side:** checked by rendering the prototype (`design/Stowline.dc.html` served over HTTP in Chromium) and the app at 1440 x 900 dark and light and 1920 x 1080, and comparing the screenshots by eye. This is a visual check, not a pixel diff: the numbers on screen differ where the data does (see above) and the disabled controls and the added theme button show. Design 03 is the keyboard pick-up state, which is M4: only the cells, legend, totals and layout can be compared now, and they match.
+- **axe reports no critical or serious finding:** `e2e/a11y.spec.ts`, dark and light, with the Split view, the Bay view, the violations tab and both panels collapsed.
+
+### Not done in M2
+
+- The 3D view (M3), drag and the pick-up and place keys (M4), the violations list (M5), save and the plans list (M6).
+- The Components sheet pieces that need those: the drag ghost and the target tooltip are built (`Cell`, `TooltipCard`) but nothing drives them yet. Cells accept `marks` for valid, warning, invalid and origin.
+- The "Request from terminal", "Import file" and empty load list states from the components sheet (M6).
+- CI does not run Playwright. Baseline screenshots are made on one machine.
+
+### M2 measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 7, 2026 | `vite build`, workspace route (React, React Router, Zustand, TanStack Virtual, the app) | JS 428.32 kB (134.62 kB gzip), CSS 27.43 kB (6.74 kB gzip). Worker chunk `validation.worker` 13.22 kB and `client` 4.10 kB (1.84 kB gzip) load on the first Validate | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Node 25.9.0, Vite 8.3.3 |
+| Oct 7, 2026 | Unit and component tests, 245 tests in 24 files | domain lines 99.43% (statements 97.02%, branches 90.63%); whole app lines 98.12% (one-off run) | same | Vitest 5.0.3 |
+| Oct 7, 2026 | End to end, 19 tests | all pass; screenshots at 1440 x 900 and 1920 x 1080, dark and light, and the bay view | same | Chrome for Testing 153.0.8010.12 (Playwright 1.63, headless) |
+| Oct 7, 2026 | Full validation in the worker, 10,000 containers (5 runs) | round trip 24.9 to 31.5 ms, no long task | same | same, Vite dev server |
+
+The bundle figure is for the workspace route only. NFR-06 is measured per route against its limits in M7, when the plans route exists.
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |
