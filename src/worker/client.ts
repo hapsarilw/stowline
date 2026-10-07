@@ -3,7 +3,7 @@ import type { ValidationApi } from './validation-api';
 
 export interface ValidationClient {
   api: Remote<ValidationApi>;
-  terminate(): void;
+  terminate: () => void;
 }
 
 /** Starts the validation worker. Call terminate when it is no longer needed. */
