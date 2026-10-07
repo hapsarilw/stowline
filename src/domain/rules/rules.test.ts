@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { box, customSetup, type Item } from '../testing/fixtures';
-import { revalidate, sortViolations, validateAll, validateStacks } from './validate';
+import {
+  indexViolations,
+  revalidate,
+  sortViolations,
+  validateAll,
+  validateStacks,
+} from './validate';
 
 const run = (items: Item[]) => {
   const { ctx, state } = customSetup(items);
@@ -177,5 +183,24 @@ describe('sorting and incremental checks', () => {
     expect(validateStacks(state, ctx, ['2-1-D']).map((v) => v.slot)).toEqual(['020182']);
     expect(revalidate(all, state, ctx, ['2-1-D'])).toEqual(all);
     expect(revalidate([], state, ctx, ['2-1-D'])).toHaveLength(1);
+  });
+});
+
+describe('violation index', () => {
+  it('finds the worst violation per slot and counts per bay', () => {
+    const v = run([
+      { key: '180282', c: box({ weightT: 5 }) },
+      { key: '180284', c: box({ weightT: 25 }) },
+      { key: '180286', c: box({ pod: 'LKCMB' }) },
+      { key: '180288', c: box({ pod: 'DEHAM', weightT: 25 }) },
+    ]);
+    const idx = indexViolations(v);
+    expect(idx.byBay.get(18)).toBe(v.length);
+    // 180284 is in a heavy over light warning and in overstow errors: the error wins.
+    expect(v.some((x) => x.severity === 'warning' && x.slotKeys.includes('180284'))).toBe(true);
+    expect(idx.bySlot.get('180284')?.severity).toBe('error');
+    expect(idx.bySlot.get('180286')?.severity).toBe('error');
+    expect(idx.bySlot.get('180282')).toBeDefined();
+    expect(indexViolations([]).bySlot.size).toBe(0);
   });
 });

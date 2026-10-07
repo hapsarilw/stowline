@@ -74,3 +74,23 @@ export function revalidate(
   const kept = previous.filter((v) => !ownedBy(v, stacks));
   return sortViolations([...kept, ...validateStacks(s, ctx, stacks)]);
 }
+
+export interface ViolationIndex {
+  /** The worst violation at each slot, errors before warnings. */
+  bySlot: Map<string, Violation>;
+  /** Violation count per 40ft bay. */
+  byBay: Map<number, number>;
+}
+
+export function indexViolations(list: readonly Violation[]): ViolationIndex {
+  const bySlot = new Map<string, Violation>();
+  const byBay = new Map<number, number>();
+  for (const v of list) {
+    byBay.set(v.bay, (byBay.get(v.bay) ?? 0) + 1);
+    for (const key of v.slotKeys) {
+      const old = bySlot.get(key);
+      if (!old || (v.severity === 'error' && old.severity !== 'error')) bySlot.set(key, v);
+    }
+  }
+  return { bySlot, byBay };
+}
