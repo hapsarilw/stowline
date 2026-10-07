@@ -16,6 +16,9 @@ if (typeof window !== 'undefined') {
     get: () => 320,
   });
   window.HTMLElement.prototype.scrollTo = () => undefined;
+  // jsdom has no WebGL: the 3D view shows its fallback in component tests.
+  window.HTMLCanvasElement.prototype.getContext = (() =>
+    null) as typeof HTMLCanvasElement.prototype.getContext;
   window.HTMLElement.prototype.setPointerCapture = () => undefined;
   window.ResizeObserver ??= class {
     observe() {}

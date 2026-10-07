@@ -82,6 +82,14 @@ export default defineConfig(
     extends: [reactHooks.configs.flat.recommended],
   },
   {
+    // React Three Fiber changes three.js objects (camera, meshes, materials) inside useFrame
+    // and effects, outside React renders. That is the intended pattern (CLAUDE.md "3D view"),
+    // but the React Compiler rule reads it as mutating hook values. The app does not use the
+    // React Compiler.
+    files: ['src/features/viewport3d/scene/**/*.{ts,tsx}'],
+    rules: { 'react-hooks/immutability': 'off' },
+  },
+  {
     files: ['src/domain/**/*.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
