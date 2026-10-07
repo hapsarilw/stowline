@@ -58,6 +58,10 @@ export interface Violation {
   id: string; // 'stack:18-4-D', stable for the same rule and slot
   rule: RuleId;
   severity: 'error' | 'warning';
+  /** The slot the violation is shown at: the top of an overweight stack, the blocked container, and so on. */
+  slot: SlotKey;
+  /** The 40ft bay of that slot, for the bay navigator and the camera. */
+  bay: number;
   slotKeys: SlotKey[];
   message: string;
   data?: { restows?: number; overT?: number; port?: string };
