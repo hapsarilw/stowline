@@ -315,6 +315,10 @@ The bundle figure is for the workspace route only. NFR-06 is measured per route 
 - **NFR-01, 55 fps while orbiting with 10,000 containers:** met on this machine, not measured on the target hardware. On the MacBook Pro M2 Pro the view holds 60 fps, the display's refresh cap in this window, at 1x and 2x pixel ratio and at 1920 x 1080. A frame costs about 1.6 to 2.1 ms of GPU time and under 0.6 ms of CPU for the render call, so about 12% of a 60 fps frame. With Chrome's 4x CPU slowdown it still holds 60 fps. **But the M2 Pro is not a mid-range laptop with integrated graphics**: its GPU is several times faster than, for example, an Intel Iris Xe. The headroom suggests the target holds, but that is an estimate, not a measurement.
 - **Next step for NFR-01:** run `npm run build && npm run bench:3d` on a mid-range Windows or Linux laptop with integrated graphics (an Intel Iris Xe or AMD Radeon 680M class) and record the result here. If it falls short, the first levers are the pixel ratio cap (now 2, can drop to 1.5) and the edge shader; both are a few lines.
 
+### Open accessibility finding (needs a decision)
+
+With the 3D toolbar loaded, axe reports one serious finding in the **light theme only**: a pressed toolbar button (camera preset, color mode, hull) draws `--accent` #0B6BD3 on `--accentbg` over white, which is 4.49:1, just under the 4.5:1 that WCAG AA and NFR-11 need for 12 px text. This is the design's own style for pressed buttons, so `e2e/a11y.spec.ts` fails for the light theme until it is decided. Options: (1) pressed toolbar buttons use `--text` for the label on `--accentbg`, as the design's filter chips already do, no token change; (2) darken the light `--accent` slightly, a token change that affects every accent use; (3) make the light `--accentbg` lighter, also a token change. Recommended: (1).
+
 ### Not done in M3
 
 - Drag targets and the ghost in 3D (FR-32, FR-38): M4.

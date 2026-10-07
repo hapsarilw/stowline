@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { openWorkspace } from './helpers';
+import { openWorkspace, wait3D } from './helpers';
 
 // NFR-09: no critical or serious axe findings, in both themes. Gate for M2.
 
@@ -24,12 +24,14 @@ for (const theme of ['dark', 'light'] as const) {
   test(`workspace has no critical or serious axe findings, ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openWorkspace(page, theme);
+    await wait3D(page);
     expect(blocking(await scan(page))).toEqual([]);
   });
 
   test(`bay view, collapsed panels and violations tab, ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openWorkspace(page, theme);
+    await wait3D(page);
     await page.getByRole('tab', { name: 'Bay', exact: true }).click();
     await page.getByRole('tab', { name: /Violations/ }).click();
     expect(blocking(await scan(page))).toEqual([]);

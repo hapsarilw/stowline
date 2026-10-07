@@ -10,3 +10,9 @@ export async function openWorkspace(page: Page, theme: 'dark' | 'light' = 'dark'
   await page.getByRole('heading', { name: 'Load list' }).waitFor();
   await page.evaluate(() => document.fonts.ready);
 }
+
+/** Waits until the 3D view has loaded its scene (dev builds expose a test hook then). */
+export async function wait3D(page: Page) {
+  await page.getByTestId('viewport-canvas').locator('canvas').waitFor();
+  await page.waitForFunction(() => '__stowViewport' in window, null, { timeout: 30_000 });
+}
