@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { slotKeyFor, type Half, type SlotKey } from '@/domain';
 import { defaultQuery, type ListQuery } from '@/features/load-list/query';
+import type { CameraPreset } from '@/features/viewport3d/camera';
+import type { ColorMode } from '@/features/viewport3d/colors';
 import { usePlanStore } from './plan-store';
 
 export type Theme = 'dark' | 'light';
@@ -54,6 +56,14 @@ export interface ViewStore {
   checked: Readonly<Record<string, true>>;
   announcement: string;
   toast: Toast | null;
+  /** 3D view: color mode (FR-20), last camera preset asked for (FR-19), hull and POD filter (FR-21). */
+  colorMode: ColorMode;
+  /** seq changes on every request, so asking for the same preset again moves the camera back. */
+  camera: { preset: CameraPreset; seq: number };
+  hullTransparent: boolean;
+  onlyPod: string | null;
+  /** Containers shown at full color, every other one dimmed. Show uses it (FR-43). */
+  highlight: readonly SlotKey[] | null;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   toggleLeft: () => void;
@@ -71,6 +81,11 @@ export interface ViewStore {
   announce: (text: string) => void;
   showToast: (toast: Toast) => void;
   dismissToast: () => void;
+  setColorMode: (mode: ColorMode) => void;
+  setCameraPreset: (preset: CameraPreset) => void;
+  toggleHull: () => void;
+  setOnlyPod: (pod: string | null) => void;
+  setHighlight: (keys: readonly SlotKey[] | null) => void;
 }
 
 export const SPLIT_MIN = 0.25;
@@ -109,29 +124,19 @@ export function initialView(
     checked: Object.fromEntries(checked.map((id) => [id, true as const])),
     announcement: '',
     toast: null,
+    colorMode: 'pod',
+    camera: { preset: 'iso', seq: 0 },
+    hullTransparent: true,
+    onlyPod: null,
+    highlight: null,
   };
 }
 
-type ViewActions = Pick<
-  ViewStore,
-  | 'setTheme'
-  | 'toggleTheme'
-  | 'toggleLeft'
-  | 'toggleRight'
-  | 'setLeftOpen'
-  | 'setRightTab'
-  | 'setCenterTab'
-  | 'setSplitRatio'
-  | 'setBay'
-  | 'setHalf'
-  | 'select'
-  | 'setFocus'
-  | 'setQuery'
-  | 'toggleChecked'
-  | 'announce'
-  | 'showToast'
-  | 'dismissToast'
->;
+type ViewActions = {
+  [
+    K in keyof ViewStore as ViewStore[K] extends (...args: never[]) => unknown ? K : never
+  ]: ViewStore[K];
+};
 
 export const useViewStore = create<ViewStore>()((set, get) => ({
   ...initialView(),
@@ -189,6 +194,11 @@ export const useViewStore = create<ViewStore>()((set, get) => ({
     clearTimeout(toastTimer);
     set({ toast: null });
   },
+  setColorMode: (colorMode) => set({ colorMode }),
+  setCameraPreset: (preset) => set((s) => ({ camera: { preset, seq: s.camera.seq + 1 } })),
+  toggleHull: () => set((s) => ({ hullTransparent: !s.hullTransparent })),
+  setOnlyPod: (onlyPod) => set({ onlyPod }),
+  setHighlight: (highlight) => set({ highlight }),
 }));
 
 /** The key of the same row and tier in another view of the same 40ft bay. */

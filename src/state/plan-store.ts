@@ -49,6 +49,8 @@ export interface PlanStore extends PlanData {
   redo: () => boolean;
   /** Replaces the violations with the result of a full validation. */
   setViolations: (violations: Violation[]) => void;
+  /** Replaces the whole plan, such as the benchmark vessel on /bench. Clears history. */
+  load: (data: PlanData, state: StowState) => void;
 }
 
 export function createPlanData(): { data: PlanData; state: StowState } {
@@ -80,7 +82,10 @@ export function derive(data: PlanData, state: StowState, violations: Violation[]
   };
 }
 
-export function initialPlanStore(): Omit<PlanStore, 'apply' | 'undo' | 'redo' | 'setViolations'> {
+export function initialPlanStore(): Omit<
+  PlanStore,
+  'apply' | 'undo' | 'redo' | 'setViolations' | 'load'
+> {
   const { data, state } = createPlanData();
   return {
     ...data,
@@ -134,6 +139,14 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
     },
     setViolations(violations) {
       set({ violations, violationIndex: indexViolations(violations) });
+    },
+    load(data, state) {
+      set({
+        ...data,
+        ...derive(data, state, validateAll(state, data.ctx)),
+        history: [],
+        future: [],
+      });
     },
   };
 });
