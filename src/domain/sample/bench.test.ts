@@ -8,8 +8,8 @@ import { generateBenchCall } from './bench';
 describe('benchmark vessel', () => {
   const call = generateBenchCall();
 
-  it('holds 10,000 containers in 10,560 forty-foot slots', () => {
-    expect(createGeometry(call.vessel).slotCount40()).toBe(10560);
+  it('holds 10,000 containers in 10,200 forty-foot slots', () => {
+    expect(createGeometry(call.vessel).slotCount40()).toBe(10200);
     expect(call.containers).toHaveLength(10000);
     expect(new Set(call.containers.map((c) => c.id)).size).toBe(10000);
     expect(call.placements.filter((p) => p.half !== 'both').length).toBeGreaterThan(0);

@@ -21,7 +21,7 @@ const state = createStowState(call.placements);
 const violations = validateAll(state, ctx);
 
 // A valid move of a deck top container to the next free slot in a nearby bay.
-const from = call.placements.filter((p) => p.slotKey.slice(4) === '96')[0]!.slotKey;
+const from = call.placements.filter((p) => p.slotKey.slice(4) === '98')[0]!.slotKey;
 const move: Command = (() => {
   for (const to of nextFreeSlots(state, ctx, 40)) {
     const cmd: Command = { kind: 'move', from, to };
