@@ -63,6 +63,7 @@ Node 24 (see .nvmrc). Install with `npm ci`.
 - `npm test`: Vitest unit tests (`src/**/*.test.ts`, `tools/**/*.test.ts`).
 - `npm run test:coverage`: the same with coverage. Fails under 90% of lines in src/domain.
 - `npm run e2e`: Playwright, Chromium. Run `npx playwright install chromium` once first. Screenshot baselines are per machine: refresh with `npx playwright test e2e/screenshots.spec.ts --update-snapshots`.
+- `npm run bench:3d`: after `npm run build`, measures `/bench` (10,000 containers) in a visible Chromium on the real GPU. Headless Chromium draws WebGL in software: never use its frame rate.
 - `npm run bench`: Vitest benchmarks (`src/**/*.bench.ts`) with the verbose reporter, which prints the table. In Vitest 5 a benchmark is a `test` that takes `{ bench }`.
 
 CI (.github/workflows/ci.yml) runs lint, typecheck and test:coverage on every push.

@@ -286,6 +286,57 @@ The JS figure is not the NFR-06 number: that is measured per route when the rout
 
 The bundle figure is for the workspace route only. NFR-06 is measured per route against its limits in M7, when the plans route exists.
 
+## M3 3D view (Oct 7, 2026)
+
+### What was decided while building
+
+| Topic | Decision |
+| --- | --- |
+| Dependencies | `three` 0.186.1, `@react-three/fiber` 9.8.1, `@react-three/drei` 10.7.9, `@types/three` 0.186.0. All on the approved list. Lines for outlines come from three's own `three/addons/lines`. drei is used for `OrbitControls` only. |
+| Structure | `src/features/viewport3d/Viewport3D.tsx` is the shell in the main bundle: WebGL 2 check, error boundary, loading skeleton, fallback. `scene/ViewportScene.tsx` and everything under `scene/` load on demand in their own chunk with three.js. The DOM overlays (toolbar, legend, hints, tooltip) are in `Overlays.tsx`. |
+| Camera | Orthographic, to match the prototype's parallel projection. The five presets use the prototype's yaw, pitch and target, and zoom to fit the ship the same way (90% of the width or 80% of the height). Moves take 600 ms with the same ease. drei `OrbitControls` gives orbit, pan and zoom, limited to 0.6x to 6x of the fit and 1° to 88° from vertical. |
+| Colors exact | `flat` (no tone mapping) and unlit materials, so POD colors are the CSS values. Face shading (top 1.0, side 0.8, end 0.62) is baked into the box vertex colors as sRGB factors, as the design multiplies them. Edges are a shader patch, under a pixel wide, mixed after the sRGB conversion. Dimmed containers are drawn opaque in the dim color blended 55% over the background, instead of transparent: same look, no sorting problems. |
+| Instances | One InstancedMesh per size class: 20ft, 40ft, 40ft high cube (40HC and RF), 20ft high cube. `ContainerLayer.sync` diffs the plan's placements by object identity (the plan store keeps unchanged placements as the same objects), so a swap writes 4 instances and a move 2. Colors are rewritten for the changed slots and for slots whose violation changed; changing mode, theme, POD filter or focus recolors everything. |
+| Bay gap | The prototype's 3.2 m per side, 400 ms. The layer keeps each instance's base x and bay, and the gap writes only the x of each matrix. The real instance matrices move, so picking stays exact during and after the gap. |
+| Pointer moves | Own `pointermove` listener, one raycast per animation frame (`Raycaster` on the instanced meshes, `instanceId` to slot key). The hover outline is moved and the tooltip DOM is filled directly. An e2e test counts React commits while sweeping the pointer over the ship: 0, with a click as the control. |
+| Labels | BOW, STERN and BAY nn are DOM elements over the canvas, projected in the frame loop. drei `Html` was tried first and logged React 19 "synchronously unmount a root" errors. |
+| Focus mode | View store `highlight`: containers outside the set are dimmed and the set gets red (error) or amber (warning) outlines. Ready for Show (FR-43, M5). The camera move to the bay is M5. |
+| Show only POD | Dims the other PODs, as the prototype does, rather than hiding them. |
+| Hidden, not unmounted | In the Bay tab the 3D view stays mounted with `hidden`, so the camera and the loaded scene survive tab switches. |
+| Fallback | No WebGL 2 at start: "3D view unavailable · WebGL couldn't start. The bay grid still has every action." with Open bay view. A render error (error boundary) or a lost WebGL context shows the same box, saying the 3D view stopped working. |
+| /bench | A lazy route. It loads the benchmark vessel into the plan store (`load` action) and restores the sample plan on leave. It renders every frame, orbits on its own, and reports fps, frame time (mean, p95), CPU time of the render call, GPU time per frame (WebGL timer query where available), draw calls and the GPU name, on screen and on `window.__stowBench`. `npm run bench:3d` runs it on the production build in a visible Chromium. |
+| Benchmark vessel | Reshaped: 25 bays of 24 rows, 9 deck tiers, 8 hold tiers, 10,200 slots, deckhouse gap after bay index 13. The M1 version had 12 hold tiers, which stood above the deck. The rule engine benchmarks were re-run on the new shape (below); the results barely moved. |
+| Lint | `react-hooks/immutability` (a React Compiler rule) is off for `src/features/viewport3d/scene/**` only: R3F changes three.js objects in `useFrame` and effects by design. |
+| Dev hook | In dev builds only, `window.__stowViewport.findPickable()` gives an end-to-end test a container and its screen point. |
+
+### Gate result
+
+- **NFR-05, under 50 draw calls:** met. 10 to 12 draw calls for the whole ship with 10,000 containers (4 instanced meshes, hull inside and outside, hull edges, deck, waterline, deckhouse, outlines when shown). Checked in CI-able headless Playwright too (`e2e/viewport3d.spec.ts`).
+- **NFR-01, 55 fps while orbiting with 10,000 containers:** met on this machine, not measured on the target hardware. On the MacBook Pro M2 Pro the view holds 60 fps, the display's refresh cap in this window, at 1x and 2x pixel ratio and at 1920 x 1080. A frame costs about 1.6 to 2.1 ms of GPU time and under 0.6 ms of CPU for the render call, so about 12% of a 60 fps frame. With Chrome's 4x CPU slowdown it still holds 60 fps. **But the M2 Pro is not a mid-range laptop with integrated graphics**: its GPU is several times faster than, for example, an Intel Iris Xe. The headroom suggests the target holds, but that is an estimate, not a measurement.
+- **Next step for NFR-01:** run `npm run build && npm run bench:3d` on a mid-range Windows or Linux laptop with integrated graphics (an Intel Iris Xe or AMD Radeon 680M class) and record the result here. If it falls short, the first levers are the pixel ratio cap (now 2, can drop to 1.5) and the edge shader; both are a few lines.
+
+### Not done in M3
+
+- Drag targets and the ghost in 3D (FR-32, FR-38): M4.
+- Show moving the camera to the violation (FR-43), port playback lift (FR-56): M5. The layer has what they need (focus set, per-instance base positions).
+- Starting the 3D view causes two main-thread tasks of 54 to 70 ms in the production build (measured below). No target covers start-up, but it is visible as a short pause. Possible fix: build the instances in chunks or after first paint (M7).
+- Headless screenshots of the 3D view use software WebGL; their baselines allow 2% difference.
+
+### M3 measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 7, 2026 | NFR-01 /bench, 10,000 containers orbiting, production build (`npm run bench:3d`, 10 s, 598 frames) | 59.9 fps, frame time 16.69 ms mean and 17.5 ms p95, GPU 1.61 ms per frame, render call 0.46 ms CPU, 12 draw calls, 120,288 triangles, canvas 1440 x 754 at 2x | MacBook Pro Mac14,9, Apple M2 Pro (ANGLE Metal), 32 GB | Chrome for Testing 153.0.8010.12, headed, Playwright 1.63 |
+| Oct 7, 2026 | Same, dev server, at 1x / 2x / 2x at 1920 x 950 canvas | 60.0 / 60.0 / 60.0 fps, p95 17.2 / 17.3 / 17.4 ms, GPU 1.87 ms per frame at 2x | same | same |
+| Oct 7, 2026 | Same at 2x with 4x CPU slowdown (DevTools throttling) | 60.0 fps, p95 17.7 ms, GPU 2.06 ms | same | same |
+| Oct 7, 2026 | Same in headless Chromium (software WebGL, SwiftShader) | 5.7 fps, 10 draw calls. Not representative of any GPU; reported so nobody reads the CI number as a result | same | Chrome for Testing 153 headless |
+| Oct 7, 2026 | NFR-05 draw calls, /bench | 10 to 12 (target under 50) | same | headed and headless |
+| Oct 7, 2026 | NFR-06 3D chunk (`ViewportScene`) | 972.96 kB, 261.68 kB gzip (limit 350 kB gzip). Main chunk 393.51 kB, 122.09 kB gzip | same | Vite 8.3.3 |
+| Oct 7, 2026 | Start-up of the 3D view, workspace, production build, 3 runs | two long tasks per load: 56 and 70 ms, 62 and 54 ms, 61 and 55 ms | same | Chrome for Testing 153 headed, 2x |
+| Oct 7, 2026 | NFR-04 re-checked with the 3D view on the page (worker, 10,000 containers, after the scene loads) | round trip 18.7 to 30.0 ms, no long task | same | Chrome for Testing 153 headless, dev server |
+| Oct 7, 2026 | NFR-03 re-run on the reshaped benchmark vessel: one command with the rule check, then the incremental check (602 samples) | mean 1.66 ms, p99 2.31 ms. Full validation: mean 13.7 ms, p99 14.9 ms. Stability model: 3.64 ms mean | same | Node 25.9.0, Vitest 5.0.3 |
+| Oct 7, 2026 | Tests | 287 unit and component tests in 30 files, domain lines 99.43%; 28 end to end | same | Vitest 5.0.3, Playwright 1.63 |
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |

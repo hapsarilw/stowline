@@ -2,7 +2,7 @@
 
 One row per requirement in docs/SRS.md: 66 functional and 25 non-functional. Status is one of: not started, in progress, done, blocked. The Test column names the test file or scenario that covers the requirement. Milestone follows the PRD release plan and the decisions in docs/BUILD_NOTES.md.
 
-Last updated: Oct 7, 2026, after M2.
+Last updated: Oct 7, 2026, after M3.
 
 ## Functional requirements
 
@@ -23,16 +23,16 @@ Last updated: Oct 7, 2026, after M2.
 | FR-13 | Load list search, filter by POD, type, reefer, DG, unplanned only; sort by any column | M | F-03 | M2 | done | `query.test.ts`, `LoadList.test.tsx` (search, filter chips, sort every column) |
 | FR-14 | Load list renders only visible rows; 1,240 rows scroll without dropped frames | M | F-03 | M2 | done | `LoadList.test.tsx` (visible rows only), `e2e/layout.spec.ts` (scrolls all 928 rows with under 60 rendered) |
 | FR-15 | Multi-select rows; footer shows selected count and total weight | M | F-03 | M2 | done | `LoadList.test.tsx` (selected count and total weight) |
-| FR-16 | Selecting a planned row selects its container in the 3D view and bay view | S | F-03 | M3 | in progress | `LoadList.test.tsx`: a planned row selects its container and bay in the bay view. The 3D view: M3 |
+| FR-16 | Selecting a planned row selects its container in the 3D view and bay view | S | F-03 | M3 | done | `LoadList.test.tsx` (selection and bay), `ContainerLayer.test.ts` (selection outline), `e2e/viewport3d.spec.ts` |
 | FR-17 | With a row focused, Enter picks up the container and moves focus to the bay grid | M | F-06, F-17 | M4 | not started | — |
-| FR-18 | 3D view draws hull, deckhouse and every placed container with instanced meshes | M | F-04 | M3 | not started | — |
-| FR-19 | Orbit, pan, zoom; presets Iso, Port, Starboard, Top, Bow with a 600 ms camera move | M | F-04 | M3 | not started | — |
-| FR-20 | Color by POD, weight, type or violation status, with a legend | M | F-04 | M3 | not started | — |
-| FR-21 | Toggle hull transparency; show only one POD | M | F-04 | M3 | not started | — |
-| FR-22 | Hover tooltip with ID, slot, type, weight, POD; click selects and opens the Inspector | M | F-04 | M3 | not started | — |
-| FR-23 | Gap opens at the selected bay in 400 ms with a bay label | S | F-04 | M3 | not started | — |
-| FR-24 | Without WebGL 2, a message and a button that opens the bay view | M | F-04, F-17 | M3 | not started | — |
-| FR-25 | Loading skeleton while the 3D code loads | S | F-04 | M3 | not started | — |
+| FR-18 | 3D view draws hull, deckhouse and every placed container with instanced meshes | M | F-04 | M3 | done | `ContainerLayer.test.ts`, `mapping.test.ts` (slot to matrix), `hull.test.ts`, `e2e/screenshots.spec.ts` (3D view) |
+| FR-19 | Orbit, pan, zoom; presets Iso, Port, Starboard, Top, Bow with a 600 ms camera move | M | F-04 | M3 | done | `mapping.test.ts` (presets, fit, view round trip, easing), `Viewport3D.test.tsx` (toolbar), `e2e/viewport3d.spec.ts` |
+| FR-20 | Color by POD, weight, type or violation status, with a legend | M | F-04 | M3 | done | `colors.test.ts` (four modes, legends), `ContainerLayer.test.ts`, `Viewport3D.test.tsx` (legend) |
+| FR-21 | Toggle hull transparency; show only one POD | M | F-04 | M3 | done | `Viewport3D.test.tsx`, `ContainerLayer.test.ts` (POD filter dims), `e2e/viewport3d.spec.ts` |
+| FR-22 | Hover tooltip with ID, slot, type, weight, POD; click selects and opens the Inspector | M | F-04 | M3 | done | `e2e/viewport3d.spec.ts` (hover tooltip, click selects in bay view and Inspector, no React render on pointer move), `Viewport3D.test.tsx` (tooltip) |
+| FR-23 | Gap opens at the selected bay in 400 ms with a bay label | S | F-04 | M3 | done | `mapping.test.ts` (gap offsets), `ContainerLayer.test.ts` (x only), `e2e/viewport3d.spec.ts` (bay label) |
+| FR-24 | Without WebGL 2, a message and a button that opens the bay view | M | F-04, F-17 | M3 | done | `Viewport3D.test.tsx`, `e2e/viewport3d.spec.ts` (AT-08, WebGL off) |
+| FR-25 | Loading skeleton while the 3D code loads | S | F-04 | M3 | done | `Viewport3D.test.tsx` (skeleton with the container count) |
 | FR-26 | Bay view cross section with row and tier numbers, Port and Starboard labels, hatch cover line | M | F-05 | M2 | done | `BayView.test.tsx`, `e2e/screenshots.spec.ts` (bay view) |
 | FR-27 | Cell states: empty, plug, occupied, selected, focused, valid, valid with warning, invalid, locked, has violation, picked-up origin | M | F-05 | M2 | done | `Cell.test.tsx` (all 11 states) |
 | FR-28 | Full bay view cells show last 4 digits, POD, weight; Split uses the compact form | M | F-05 | M2 | done | `BayView.test.tsx` (full in Bay, compact in Split), `Cell.test.tsx` |
@@ -50,7 +50,7 @@ Last updated: Oct 7, 2026, after M2.
 | FR-40 | Rule engine evaluates R1 to R6 after every command on the changed stacks | M | F-07 | M1 | done | `rules/incremental.test.ts` (property: incremental equals full), `rules/rules.test.ts`, `rules/golden.test.ts` |
 | FR-41 | Validate runs all rules in a Web Worker and reports errors and warnings | M | F-07 | M1 | done | `Workspace.test.tsx` (Validate reports 6 errors and 1 warning), `e2e/worker.spec.ts` (real worker). The violations list: M5 |
 | FR-42 | Violations panel groups errors and warnings, filters by severity, shows rule, message, slot, containers | M | F-07 | M5 | not started | — |
-| FR-43 | Show selects the violation, moves the camera to its bay, dims uninvolved containers | M | F-07 | M5 | not started | — |
+| FR-43 | Show selects the violation, moves the camera to its bay, dims uninvolved containers | M | F-07 | M5 | in progress | Focus mode: dimming and outlines (`ContainerLayer.test.ts`). Show, camera move and panel: M5 |
 | FR-44 | Suggested fix per violation; Apply fix runs it as one command; when none exists the row says so | M | F-07 | M5 | in progress | Domain: `suggestFix` for all six rules (`rules/fixes.test.ts`). Panel and Apply fix: M5 |
 | FR-45 | New violation slides in over 160 ms and is announced; a resolved one gives a message with Undo | M | F-07 | M5 | not started | — |
 | FR-46 | Inspector shows ID, type, ISO code, weight, POL, POD, reefer set point, DG class, status, slot as bay, row, tier | M | F-08 | M2 | done | `Inspector.test.tsx` |
@@ -73,18 +73,18 @@ Last updated: Oct 7, 2026, after M2.
 | FR-63 | An approved plan is read only; Revise creates a new Draft version | S | F-13 | M6 | not started | — |
 | FR-64 | Import load list reads JSON, checks each row, lists rejected rows with the reason | S | F-14 | M6 | not started | — |
 | FR-65 | Export downloads an approved plan as JSON (required for the M6 gate, decision D10) | C | F-15 | M6 | not started | — |
-| FR-66 | With reduced motion, every animation is instant or a 100 ms fade | M | F-17 | M2 | in progress | Global reduced-motion rule in `src/styles/index.css`, `useTween`. 3D and drop animations: M3, M4. End to end check: M7 |
+| FR-66 | With reduced motion, every animation is instant or a 100 ms fade | M | F-17 | M2 | in progress | Global reduced-motion rule, `useTween`, camera presets and bay gap jump at once with reduced motion. Drop animations: M4. End to end check: M7 |
 
 ## Non-functional requirements
 
 | ID | Requirement | Target | Milestone | Status | Test |
 | --- | --- | --- | --- | --- | --- |
-| NFR-01 | Frame rate while orbiting the 3D view | 55 fps or more, 10,000 containers, mid-range laptop with integrated graphics | M3 | not started | — |
+| NFR-01 | Frame rate while orbiting the 3D view | 55 fps or more, 10,000 containers, mid-range laptop with integrated graphics | M3 | in progress | `/bench`, `npm run bench:3d`: 59.9 fps (display cap) on an Apple M2 Pro, GPU 1.6 ms per frame. Not yet measured on a mid-range laptop with integrated graphics (BUILD_NOTES) |
 | NFR-02 | Target marks after pick-up | Visible bay marked within 100 ms | M4 | not started | — |
 | NFR-03 | Rule check after one command | Under 10 ms | M1 | done | `src/domain/rules/rules.bench.ts`: 1.68 ms mean, 2.48 ms p99 at 10,000 containers (BUILD_NOTES) |
 | NFR-04 | Full validation in the worker | Under 200 ms, no main thread task over 50 ms | M1 | done | `e2e/worker.spec.ts`: 18 to 28 ms round trip at 10,000 containers, no long task (BUILD_NOTES) |
-| NFR-05 | Draw calls for the ship scene | Under 50 | M3 | not started | — |
-| NFR-06 | JavaScript size | Plans route 200 kB gzip or less; 3D chunk 350 kB gzip or less | M0 | not started | — |
+| NFR-05 | Draw calls for the ship scene | Under 50 | M3 | done | `e2e/viewport3d.spec.ts` (/bench under 50), BUILD_NOTES: 10 to 12 draw calls |
+| NFR-06 | JavaScript size | Plans route 200 kB gzip or less; 3D chunk 350 kB gzip or less | M0 | in progress | 3D chunk 261.68 kB gzip (limit 350). Plans route and the CI check: M6, M7 |
 | NFR-07 | First load of the plans route | LCP under 2.5 s on fast 4G, Lighthouse performance 90 or more | M7 | not started | — |
 | NFR-08 | Memory | Heap grows less than 10% after 200 commands and 200 undos | M7 | not started | — |
 | NFR-09 | Accessibility standard | WCAG 2.2 AA, no critical or serious axe findings, both routes and themes | M7 | in progress | `e2e/a11y.spec.ts`: no critical or serious axe findings on the workspace, both themes, with the bay view, violations tab and collapsed panels. Plans route, manual checklist: M6, M7 |
@@ -92,10 +92,10 @@ Last updated: Oct 7, 2026, after M2.
 | NFR-11 | Contrast | Text 4.5:1 or more; controls and focus ring 3:1 or more | M0 | in progress | axe color-contrast passes in both themes (`e2e/a11y.spec.ts`). The token contrast test and the control border exception (D9) are for M7 |
 | NFR-12 | Meaning without color | Every status has an icon and text; every container shows its POD code | M2 | in progress | `Cell.test.tsx` (POD code in every cell), `ui.test.tsx` (status icon with text). 3D labels: M3 |
 | NFR-13 | Target size | 24 × 24 px or more | M2 | in progress | `e2e/target-size.spec.ts`: every workspace target is 24 px or more, including every cell in the Bay view. Other routes: M6 |
-| NFR-14 | Announcements | Slot descriptions polite, refused drops assertive; 3D canvas text alternative points to the bay grid | M4 | not started | — |
+| NFR-14 | Announcements | Slot descriptions polite, refused drops assertive; 3D canvas text alternative points to the bay grid | M4 | in progress | The 3D canvas has a text alternative that points to the bay grid (`role="img"` label). Announcements for drops: M4. Screen reader check: M7 |
 | NFR-15 | Motion | Reduced motion setting honored everywhere | M7 | not started | — |
 | NFR-16 | Unsaved work | Survives a reload or a crash | M6 | not started | — |
-| NFR-17 | 3D failure | An error in the 3D view does not break the workspace | M3 | not started | — |
+| NFR-17 | 3D failure | An error in the 3D view does not break the workspace | M3 | done | `Viewport3D.test.tsx` (error boundary keeps the error inside the 3D view), lost WebGL context shows the fallback |
 | NFR-18 | Request failure | Every failed request shows a message with Retry | M6 | not started | — |
 | NFR-19 | Imported files | Parsed as data only; file text shown as text, never markup | M6 | not started | — |
 | NFR-20 | Secrets | None in the client bundle | M7 | not started | — |
