@@ -23,7 +23,9 @@ const GROUP =
 const button = (on: boolean) =>
   cn(
     'h-6 min-w-6 cursor-pointer rounded-[3px] border-0 px-2 text-[12px]',
-    on ? 'bg-accentbg text-accent' : 'bg-transparent text-text2 hover:text-text',
+    // Pressed: the normal text color on the accent background, as the filter chips do. The
+    // design's accent text on it is 4.49:1 in the light theme, under WCAG AA (decision, M3).
+    on ? 'bg-accentbg text-text' : 'bg-transparent text-text2 hover:text-text',
   );
 
 /** Camera presets (FR-19), color modes (FR-20), hull transparency and "show only" (FR-21). */
@@ -76,7 +78,7 @@ export function Toolbar() {
         onClick={() => view().toggleHull()}
         className={cn(
           'pointer-events-auto flex h-[30px] cursor-pointer items-center gap-1.5 rounded border border-border px-2 text-[12px]',
-          hullTransparent ? 'bg-accentbg text-accent' : 'bg-surface text-text2',
+          hullTransparent ? 'bg-accentbg text-text' : 'bg-surface text-text2',
         )}
       >
         <svg

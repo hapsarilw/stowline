@@ -87,7 +87,7 @@ Last updated: Oct 7, 2026, after M3.
 | NFR-06 | JavaScript size | Plans route 200 kB gzip or less; 3D chunk 350 kB gzip or less | M0 | in progress | 3D chunk 261.68 kB gzip (limit 350). Plans route and the CI check: M6, M7 |
 | NFR-07 | First load of the plans route | LCP under 2.5 s on fast 4G, Lighthouse performance 90 or more | M7 | not started | — |
 | NFR-08 | Memory | Heap grows less than 10% after 200 commands and 200 undos | M7 | not started | — |
-| NFR-09 | Accessibility standard | WCAG 2.2 AA, no critical or serious axe findings, both routes and themes | M7 | in progress | `e2e/a11y.spec.ts`: dark theme passes. **Light theme fails since M3**: pressed 3D toolbar buttons are 4.49:1 (design style, decision pending, BUILD_NOTES). Plans route and manual checklist: M6, M7 |
+| NFR-09 | Accessibility standard | WCAG 2.2 AA, no critical or serious axe findings, both routes and themes | M7 | in progress | `e2e/a11y.spec.ts`: no critical or serious axe findings on the workspace with the 3D view loaded, both themes, with the bay view, violations tab and collapsed panels. Plans route and manual checklist: M6, M7 |
 | NFR-10 | Keyboard | Every function works without a pointer, no focus trap, logical order | M4 | not started | — |
 | NFR-11 | Contrast | Text 4.5:1 or more; controls and focus ring 3:1 or more | M0 | in progress | axe color-contrast passes in both themes (`e2e/a11y.spec.ts`). The token contrast test and the control border exception (D9) are for M7 |
 | NFR-12 | Meaning without color | Every status has an icon and text; every container shows its POD code | M2 | in progress | `Cell.test.tsx` (POD code in every cell), `ui.test.tsx` (status icon with text). 3D labels: M3 |
