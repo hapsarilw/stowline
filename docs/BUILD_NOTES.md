@@ -199,6 +199,45 @@ M4, placement:
 
 The JS figure is not the NFR-06 number: that is measured per route when the routes exist.
 
+## M1 Rule engine (Oct 7, 2026)
+
+### What was decided while building
+
+| Topic | Decision |
+| --- | --- |
+| Dependencies | `comlink` 4.4.2, `fast-check` 4.10.2, `@vitest/coverage-v8` 5.0.3. All on the approved list. |
+| Where things are | `src/domain/plan` (context and immutable state), `rules` (R1 to R6, placement check, validation, fixes), `commands`, `stability`. `src/worker` holds the Comlink worker. `src/domain/testing` holds test builders and is left out of coverage. |
+| Violation | Two fields beyond the SRS: `slot` (where the violation is shown) and `bay` (its 40ft bay), as the prototype had. Ids are `rule:slot`, for example `overstow:100382` and `twenty:290284`, plus `stack:18-4-D` and `dg:140284-140484` as in the SRS. Ties in the sort are broken by slot, so the order is stable. |
+| R4 overstow | Counts only the containers above that go to a later port (change 9). `slotKeys` holds the blocked container and those later-port containers. In the placement check, the restow count is the number of later-port containers over the lowest earlier-port box after the drop. |
+| R5 20ft and 40ft | Both cases from BR-09: a 20ft on a 40ft, and a 40ft on a tier with one 20ft half empty. A 40ft on two 20ft is allowed. For support (placement check step 3), any container in the tier below carries a 40ft; a 20ft needs its own half filled. |
+| R3 neighbours (D5) | Positions along the ship are counted in 20ft bays: a 40ft in bay B covers B-1 and B+1. End to end means 2 apart, so 40ft bays are neighbours at ±4 and 20ft halves at ±2, including the fore and aft halves of one 40ft slot. Left and right follow the row order across the centre line (02 and 01 are neighbours). Above and below are tier ±2. Deck tier 82 and hold tier 16 are not neighbours. |
+| Incremental check | `revalidate` keeps the violations of untouched stacks and checks the touched stacks again: their stack rules, and every DG pair with a container in them. A fast-check property proves it equals full validation after random command sequences, with and without the rule check. |
+| Commands | `applyCommand(state, ctx, command, { check })`. With the check (default) a place or move must pass the placement check, and no command may create an error id that the touched stacks did not have before. Undo and redo use `check: false`. The physical rules always hold, check or not: the slot exists and is free, stacks have no gaps, only the top is lifted (BR-03), locked containers stay (BR-04), onboard containers are not unplaced (D3). Swap is exempt from BR-03 (D2) but needs two containers of the same length. |
+| Shifts (BR-17, D4) | `shiftCount` is the number of containers loaded at an earlier port that are not in their arrival slot. A move away adds 1, a move back takes 1 off, so undo is exact. A container moved twice counts once. |
+| Fixes | Targets are the next free slot of every stack in every bay, nearest first: same bay, then same deck or hold, then row, then tier. Only targets with no error and no warning are used, and the fix must resolve the violation. R4 swaps the blocked container with the top one when that orders the stack, otherwise it reorders the stack as one `batch` of swaps. R6 swaps the two. On the seeded plan 6 of 7 violations get a fix. The reefer has none, because no plug slot is free on the seeded ship. The result says so and offers Unplace. |
+| Fix copy | Kept from the prototype: `Move NSPU 771032 1 (17.1 t) to …`, `Swap with … at …, 0 restows`, `Swap with … at …, heavy box below`, `Move to empty deck stack … (on hatch)`. New: `(separated by n bays)` (the prototype always said 2), `Reorder stack 18-02 deck: 2 swaps, 0 restows`, `Move to plug slot …`, and the reasons when there is no fix. |
+| Stability | `calibrateStability` solves the displacement, KG, trim and heeling moment without containers from the seeded plan. `computeStability` is one pure function and the seeded plan reads exactly GM 1.84, trim 0.62, list 0.4, drafts 12.10 and 12.72, BM 78, SF 64. It sums in slot order, so the same plan gives the same numbers to the last bit, whatever commands led to it. z is the container centre above the keel. |
+| Strength curves (FR-54) | 61 stations from the bow end of bay 02 to the stern end of bay 86 (6.6 m beyond each bay centre), bounding 60 cells. The change in weight per bay is spread over the bay's length, balanced by a uniform plus linear buoyancy change, then summed for shear force and bending moment. The change is zero at both ends. Negative bending moment is sagging, so weight amidships lowers the 78% hogging peak. BM% and SF% are the largest absolute values on the curves. |
+| Gauge states | `gaugeState`: GM below 1.20 is Limit, below 1.40 Check. Trim over 1.50 Limit, over 1.00 Check. List at 2.0 or more Limit, over 0.3 Check. BM and SF over 100% Limit, over 85% Check. These match the prototype and the SRS boundary values. |
+| Benchmark vessel | `generateBenchCall()`: 24 bays (02 to 94), 22 rows, deck tiers 82 to 96, hold tiers 02 to 24, 10,560 forty-foot slots, 10,000 containers. Stacks are full and ordered, with reefers in plug slots, 20ft pairs at the bottom of every fifth hold row, and 2% DG. Its only violations are DG and heavy over light. |
+| Worker | `validationApi.validate` takes plain data (vessel, containers, placements) and builds the context each call. `createValidationClient()` starts the worker. The app does not use the client yet (M2, M5), so the worker is not in a production build yet. It is tested on the dev server. |
+| Benchmarks | Vitest warns that its module runner adds overhead to exported functions in benchmarks. The Node figures below are therefore on the high side. The worker figures from Chromium are the ones that count for NFR-04. |
+
+### Not done in M1
+
+- No UI. The Validate button, violations panel, fixes and stability display come in M2, M4 and M5.
+- The worker is not in a production build until the app imports the client.
+
+### M1 measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 7, 2026 | NFR-03: one command on the 10,000-container vessel, `applyCommand` with the rule check, then `revalidate` (`npm run bench`, 596 samples) | mean 1.68 ms, p99 2.48 ms, max 5.12 ms (target under 10 ms) | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Node 25.9.0, Vitest 5.0.3 |
+| Oct 7, 2026 | Full validation in Node on the 10,000-container vessel, `validateAll` (71 samples) | mean 14.3 ms, p99 19.2 ms | same | same |
+| Oct 7, 2026 | NFR-04: full validation in the Web Worker on the 10,000-container vessel, 5 runs after a warm-up (`e2e/worker.spec.ts`) | round trip 18.1 to 27.6 ms, time in the worker 10.0 to 18.3 ms, no long task on the main thread (target under 200 ms, no task over 50 ms) | same | Chrome for Testing 153.0.8010.12 (Playwright 1.63, headless), Vite dev server |
+| Oct 7, 2026 | Stability model, `computeStability` (`npm run bench`) | sample plan 2,740 containers: mean 1.06 ms, p99 3.51 ms. 10,000 containers: mean 4.06 ms, p99 11.8 ms | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Node 25.9.0, Vitest 5.0.3 |
+| Oct 7, 2026 | Domain coverage (`npm run test:coverage`, 135 tests in 14 files) | lines 99.41%, statements 96.96%, branches 90.69%, functions 99.46% | same | same |
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |
