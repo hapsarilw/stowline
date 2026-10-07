@@ -12,5 +12,13 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'tools/**/*.test.ts'],
     benchmark: { include: ['src/**/*.bench.ts'] },
+    coverage: {
+      provider: 'v8',
+      include: ['src/domain/**/*.ts'],
+      exclude: ['src/domain/**/*.test.ts', 'src/domain/**/*.bench.ts', 'src/domain/testing/**'],
+      reporter: ['text-summary', 'text', 'html'],
+      // NFR-23: domain 90% of lines or more.
+      thresholds: { lines: 90 },
+    },
   },
 });
