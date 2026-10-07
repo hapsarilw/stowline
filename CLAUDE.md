@@ -54,4 +54,14 @@ React 19, TypeScript strict, Vite, React Router, Zustand, three.js with React Th
 - Use real company names or logos.
 
 ## Commands
-(M0 fills this in: dev, build, lint, typecheck, test, e2e, bench.)
+Node 24 (see .nvmrc). Install with `npm ci`.
+
+- `npm run dev`: Vite dev server.
+- `npm run build`: type check, then production build to dist/.
+- `npm run lint`: ESLint, then a Prettier check. `npm run format` fixes formatting.
+- `npm run typecheck`: the app (tsconfig.json), then src/domain alone with no DOM types (tsconfig.domain.json).
+- `npm test`: Vitest unit tests (`src/**/*.test.ts`, `tools/**/*.test.ts`).
+- `npm run e2e`: Playwright, Chromium. Run `npx playwright install chromium` once first.
+- `npm run bench`: Vitest benchmarks (`src/**/*.bench.ts`). In Vitest 5 a benchmark is a `test` that takes `{ bench }`.
+
+CI (.github/workflows/ci.yml) runs lint, typecheck and test on every push.

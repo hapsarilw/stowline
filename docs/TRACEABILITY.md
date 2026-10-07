@@ -2,7 +2,7 @@
 
 One row per requirement in docs/SRS.md: 66 functional and 25 non-functional. Status is one of: not started, in progress, done, blocked. The Test column names the test file or scenario that covers the requirement. Milestone follows the PRD release plan and the decisions in docs/BUILD_NOTES.md.
 
-Last updated: Oct 7, 2026.
+Last updated: Oct 7, 2026, after M0.
 
 ## Functional requirements
 
@@ -99,8 +99,8 @@ Last updated: Oct 7, 2026.
 | NFR-18 | Request failure | Every failed request shows a message with Retry | M6 | not started | — |
 | NFR-19 | Imported files | Parsed as data only; file text shown as text, never markup | M6 | not started | — |
 | NFR-20 | Secrets | None in the client bundle | M7 | not started | — |
-| NFR-21 | Types | TypeScript strict, no `any` in the domain layer | M0 | not started | — |
-| NFR-22 | Layering | Domain imports nothing from React, three.js or the DOM | M0 | not started | — |
+| NFR-21 | Types | TypeScript strict, no `any` in the domain layer | M0 | done | `tsconfig.json` strict, `tsconfig.domain.json`, `@typescript-eslint/no-explicit-any` in `eslint.config.js`; `tools/layering.test.ts` |
+| NFR-22 | Layering | Domain imports nothing from React, three.js or the DOM | M0 | done | `tools/layering.test.ts` (lint rule), `tsconfig.domain.json` (no DOM types) |
 | NFR-23 | Test coverage | Domain 90% of lines or more, whole app 70% or more | M7 | not started | — |
-| NFR-24 | Pipeline | Lint, type check, unit, end to end, axe and bundle size on every push | M7 | not started | — |
+| NFR-24 | Pipeline | Lint, type check, unit, end to end, axe and bundle size on every push | M7 | in progress | `.github/workflows/ci.yml` runs lint, type check and unit tests. End to end, axe and bundle size are not in CI yet |
 | NFR-25 | Browsers | Latest two Chrome, Edge, Firefox, Safari at 1280 × 720 or larger | M7 | not started | — |

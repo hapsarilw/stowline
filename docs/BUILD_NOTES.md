@@ -164,6 +164,41 @@ M4, placement:
 7. Keyboard path. The virtualized load list unmounts rows, so focus uses `aria-activedescendant` with scroll to row. Announcements are polite and debounced; refused drops are assertive. Safari does not Tab to buttons by default, so the flow relies on arrow keys and Enter, tested on WebKit early.
 8. Stability preview per hover (FR-51). Response: the plan store keeps running sums, and the preview uses the same function on the sums plus or minus one container.
 
+## M0 Foundation (Oct 7, 2026)
+
+### What was decided while building
+
+| Topic | Decision |
+| --- | --- |
+| Extra dependencies | `prettier` 3.9.9 (asked for in the M0 prompt). `@types/node` 24 (needed by vite.config.ts, playwright.config.ts and the tests in tools/). Nothing else beyond the approved list. three, R3F, drei, zustand, TanStack Virtual, Comlink, MSW, fast-check, Testing Library, jsdom, axe, coverage and Lighthouse are approved but not installed yet: each is added in the milestone that first uses it. |
+| Node | CI and `.nvmrc` use Node 24. The development machine has Node 25.9.0, an odd release that Vitest 5.0.3 does not list as supported (npm prints an engine warning). Tests, lint and build run fine on it. |
+| TypeScript | 6.0.3, strict, plus `noUncheckedIndexedAccess`. `tsconfig.domain.json` type checks src/domain alone with `lib: ES2023` and no `types`, so any DOM or Node global fails there. |
+| Benchmarks | Vitest 5 removed the `bench` import. A benchmark is a `test` that takes `{ bench }` (see `geometry.bench.ts`). `npm run bench` passes, no numbers are reported yet. |
+| Tokens | `src/styles/tokens.css` holds THEMES.dark and THEMES.light `vars` and the 3D scene colors (`g`, as `--g-*`), plus the four POD colors (`--pod-*`, same in both themes). `src/styles/index.css` maps them to Tailwind with `@theme inline` (`bg-bg`, `text-text2`, `border-border2`, `bg-pod-nlrtm`, and so on). Values are unchanged. The focus ring uses `var(--accent)` (D9). The reduced-motion rule from the design is in the base layer. |
+| Slot model (D1) | `src/domain/geometry`. Keys are BBRRTT. Even bays are 40ft. Odd bays are 20ft halves: bay-1 is the fore half and bay+1 the aft half of the 40ft bay between them. `slotKeyFor`, `slot40Key`, `halfOfKey` convert. Plugs and existence are looked up through the 40ft slot. The 20ft container NSPU 318204 6 is at 290284, half `fore`. |
+| Vessel as data | `Vessel` carries `plugs` (the 404 plug slot keys) and `deckhouseX`, so GET /api/vessels/:id can serve it. `createGeometry(vessel)` builds the lookups. Extra fields beyond the SRS entity list. |
+| Types | The SRS data model, plus `Command` kind `batch` (D2), `HistoryEntry` (command and inverse), and `Plan.shiftCount` instead of `restowCount` (D4). `toTenths` is in `constants.ts` for exact limit checks. |
+| Vessel identity | IMO 9000000, fictional and with a wrong check digit on purpose. The Plans screen catalog (M6) still has to replace the generated IMO numbers in the prototype. |
+| Sample data | `generateSampleCall()` in `src/domain/sample/generate.ts`. Same RNG seed and same draw order as createPlan, so every container is in the same slot with the same weight, POD, type and DG class (fingerprint test). The owner prefix draw is kept and ignored, so IDs are NSPU only. A repeated ID moves to the next free serial; named containers keep theirs. Set points are numbers (`reeferSetPointC`): -18 for reefers on board, as the prototype's fallback text, and the scripted load list values (-25, -18, +4). |
+| 312 planned | The prototype has 253 containers loaded at SGSIN. 59 more are marked: the top container of a deck stack, not scripted, not locked, loaded at IDJKT, chosen by a second seeded RNG (seed 312, sorted by slot key then shuffled). Only the port of loading changes. Checked by running the prototype's own rule engine on the generated data: it still returns the 7 golden violations, and no container moved, changed weight, POD or type. |
+| 1,240 rows | 3 named rows, then the same random generator (seed 1240) continues up to 928 unplanned rows, plus the 312 planned rows. The first 60 rows equal the prototype's. The prototype's `COUNTS.unplannedT` constant (18,374.6 t) is not carried over: counters are computed from data. |
+| Plan header | Plan `042W-SGSIN`, Draft, version 14 (the design's save message and conflict example), planner `rina-adiputri`, ETD 2026-10-08T22:00+08:00. |
+
+### Not done in M0
+
+- Bundle size check in CI (NFR-06) and the token contrast test (NFR-11): not in the M0 prompt.
+- CI has been written but has not run on GitHub: the repository has no remote. The same three commands were run locally.
+- Playwright is not in CI. One smoke test (`e2e/tokens.spec.ts`) passes locally on Chromium.
+
+### M0 measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 7, 2026 | `vite build` of the placeholder app (React 19.3 only) | JS 219.87 kB (68.70 kB gzip), CSS 13.37 kB (3.65 kB gzip) | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Node 25.9.0, Vite 8.3.3 |
+| Oct 7, 2026 | Unit test run, 48 tests in 4 files | 1.4 s | same | Vitest 5.0.3 |
+
+The JS figure is not the NFR-06 number: that is measured per route when the routes exist.
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |
