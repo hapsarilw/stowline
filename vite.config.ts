@@ -5,6 +5,11 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    // The 3D chunk (three.js) is about 1 MB before gzip. NFR-06 limits it to 350 kB gzip,
+    // which docs/BUILD_NOTES.md records per milestone.
+    chunkSizeWarningLimit: 1100,
+  },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

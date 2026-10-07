@@ -26,14 +26,14 @@ function Center() {
     >
       <CenterToolbar />
       <div ref={area} className="flex min-h-0 flex-1 flex-col">
-        {show3d ? (
-          <div
-            className="flex min-h-0 flex-col"
-            style={{ flex: split ? `${splitRatio} 1 0` : '1 1 0' }}
-          >
-            <Viewport3D />
-          </div>
-        ) : null}
+        {/* Kept mounted when hidden, so the scene and the camera survive a tab switch. */}
+        <div
+          hidden={!show3d}
+          className="flex min-h-0 flex-col"
+          style={{ flex: split ? `${splitRatio} 1 0` : '1 1 0' }}
+        >
+          <Viewport3D />
+        </div>
         {split ? <SplitHandle containerRef={area} /> : null}
         {showBay ? (
           <div

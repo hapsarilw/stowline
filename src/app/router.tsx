@@ -7,6 +7,10 @@ export const DEFAULT_PLAN_ID = '042W-SGSIN';
 export const routes: RouteObject[] = [
   { path: '/', element: <Navigate to={`/plans/${DEFAULT_PLAN_ID}`} replace /> },
   { path: '/plans/:planId', element: <WorkspacePage /> },
+  {
+    path: '/bench',
+    lazy: async () => ({ Component: (await import('@/features/bench/BenchPage')).BenchPage }),
+  },
   { path: '*', element: <Navigate to="/" replace /> },
 ];
 
