@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#0B1220}
+body{-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+a{color:#3B9EFF;text-decoration:none} a:hover{color:#7CC0FF;text-decoration:underline}
+:focus-visible{outline:2px solid #3B9EFF;outline-offset:2px}
+::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:#33415E;border-radius:4px} ::-webkit-scrollbar-track{background:transparent}
+@keyframes stw-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-3px)}40%{transform:translateX(3px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
+@keyframes stw-settle{0%{transform:translateY(-6px) scale(1.06)}100%{transform:none}}
+@keyframes stw-in{0%{transform:translateY(-6px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes stw-up{0%{transform:translateY(16px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes stw-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:100ms!important;transition-duration:100ms!important}}
+</style>
+</helmet>
+<div ref="{{ rootRef }}" data-screen-label="{{ screenLabel }}" onKeyDown="{{ onRootKey }}" style="--bg:#0B1220; --surface:#111A2B; --raised:#18233A; --border:#26334D; --border2:#33415E; --text:#E6EDF7; --text2:#9FB0C8; --text3:#8193AD; --accent:#3B9EFF; --accentbg:rgba(59,158,255,0.14); --onaccent:#06111F; --err:#FF5D5D; --errbg:rgba(255,93,93,0.12); --onerr:#0B1220; --warn:#FFB020; --warnbg:rgba(255,176,32,0.12); --ok:#2FD08A; --okbg:rgba(47,208,138,0.14); --hover:#162238; --sel:#132B49; --track:#22304A; position:relative; width:100%; height:100%; min-height:640px; display:grid; grid-template-columns:{{ cols }}; grid-template-rows:48px minmax(0,1fr) 64px; background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:13px; line-height:1.35; overflow:hidden; font-variant-numeric:tabular-nums">
+
+<header aria-label="TopBar" style="grid-column:1 / -1; grid-row:1; display:flex; align-items:center; gap:12px; padding:0 8px 0 12px; background:var(--surface); border-bottom:1px solid var(--border); min-width:0">
+  <div style="display:flex; align-items:center; gap:8px; flex:none">
+    <div aria-hidden="true" style="display:grid; grid-template-columns:repeat(3,6px); grid-template-rows:repeat(3,6px); gap:1px">
+      <span style="background:var(--accent)"></span><span style="border:1px solid var(--border2)"></span><span style="border:1px solid var(--border2)"></span>
+      <span style="background:var(--accent)"></span><span style="background:var(--accent)"></span><span style="border:1px solid var(--border2)"></span>
+      <span style="background:var(--accent)"></span><span style="background:var(--accent)"></span><span style="background:var(--accent)"></span>
+    </div>
+    <span style="font-weight:600; font-size:14px; letter-spacing:0.01em">Stowline</span>
+  </div>
+  <div style="width:1px; height:24px; background:var(--border); flex:none"></div>
+  <button aria-label="Switch vessel or voyage" aria-haspopup="listbox" style="display:flex; align-items:center; gap:10px; height:36px; padding:0 8px; background:transparent; border:1px solid transparent; border-radius:4px; cursor:pointer; text-align:left; flex:none" style-hover="background:var(--hover); border-color:var(--border)">
+    <span style="display:flex; flex-direction:column; line-height:1.2">
+      <span style="font-weight:600; font-size:13px">MV Nusantara Pioneer</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text2)">Voy 042W · 8,500 TEU</span>
+    </span>
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--text2)"><path d="m4 6 4 4 4-4"></path></svg>
+  </button>
+  <div style="width:1px; height:24px; background:var(--border); flex:none"></div>
+  <nav aria-label="Port rotation" style="display:flex; align-items:center; gap:2px; min-width:0; flex:none">
+    <sc-for list="{{ rotation }}" as="p" hint-placeholder-count="6">
+      <div style="display:flex; align-items:center; gap:2px">
+        <sc-if value="{{ p.notFirst }}" hint-placeholder-val="{{ true }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="color:var(--text3)"><path d="m6 4 4 4-4 4"></path></svg></sc-if>
+        <button title="{{ p.title }}" aria-current="{{ p.ariaCurrent }}" style="display:flex; align-items:center; gap:6px; height:24px; padding:0 7px; border-radius:4px; border:1px solid {{ p.bd }}; background:{{ p.bg }}; color:{{ p.fg }}; font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:{{ p.fw }}; cursor:pointer">
+          <sc-if value="{{ p.done }}"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg></sc-if>
+          <sc-if value="{{ p.swatch }}"><span aria-hidden="true" style="width:8px; height:8px; border-radius:1px; background:{{ p.color }}"></span></sc-if>
+          <span>{{ p.code }}</span>
+          <sc-if value="{{ p.current }}"><span style="font-family:'IBM Plex Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; padding:0 4px; border-radius:2px; background:var(--accent); color:var(--onaccent)">Now</span></sc-if>
+        </button>
+      </div>
+    </sc-for>
+  </nav>
+  <div style="width:1px; height:24px; background:var(--border); flex:none"></div>
+  <div style="display:flex; align-items:center; gap:10px; flex:none">
+    <span style="display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 7px; border:1px solid var(--border2); border-radius:4px; font-size:10.5px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em"><span style="width:6px; height:6px; border-radius:50%; border:1.5px solid var(--text2)"></span>Draft</span>
+    <div style="display:flex; flex-direction:column; gap:4px">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)"><span style="color:var(--text); font-weight:600">{{ plannedTxt }}</span> / 1,240 planned</span>
+      <div role="progressbar" aria-label="Plan progress" aria-valuenow="{{ plannedPct }}" style="width:132px; height:3px; background:var(--track); border-radius:2px; overflow:hidden"><div style="height:100%; width:{{ plannedPct }}%; background:var(--accent)"></div></div>
+    </div>
+  </div>
+  <div style="flex:1; min-width:8px"></div>
+  <div style="display:flex; gap:2px; flex:none">
+    <button aria-label="Undo" title="Undo (Ctrl+Z)" disabled="{{ undoDisabled }}" onClick="{{ undo }}" style="width:28px; height:28px; display:grid; place-items:center; border-radius:4px; border:1px solid transparent; background:transparent; color:var(--text2); cursor:pointer; opacity:{{ undoOp }}" style-hover="background:var(--hover); color:var(--text)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3.5 2.5 6.5l3 3"></path><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"></path></svg></button>
+    <button aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled="{{ redoDisabled }}" onClick="{{ redo }}" style="width:28px; height:28px; display:grid; place-items:center; border-radius:4px; border:1px solid transparent; background:transparent; color:var(--text2); cursor:pointer; opacity:{{ redoOp }}" style-hover="background:var(--hover); color:var(--text)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.5 3.5 3 3-3 3"></path><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"></path></svg></button>
+  </div>
+  <button onClick="{{ validate }}" style="display:flex; align-items:center; gap:6px; height:28px; padding:0 6px 0 10px; border-radius:4px; border:1px solid var(--border2); background:var(--raised); font-weight:500; cursor:pointer; flex:none" style-hover="border-color:var(--text3)">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg>
+    <span>Validate</span>
+    <span aria-label="{{ violCount }} violations" style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; padding:1px 5px; border-radius:3px; background:var(--errbg); color:var(--err)">{{ violCount }}</span>
+  </button>
+  <button onClick="{{ save }}" style="height:28px; padding:0 14px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:var(--onaccent); font-weight:600; cursor:pointer; flex:none">Save</button>
+  <button aria-label="Account: Rina Adiputri, vessel planner" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--border2); background:var(--raised); font-size:11px; font-weight:600; color:var(--text2); cursor:pointer; flex:none">RA</button>
+</header>
+
+<aside aria-label="LoadList" style="grid-row:2; grid-column:1; display:flex; flex-direction:column; min-height:0; min-width:0; background:var(--surface); border-right:1px solid var(--border); overflow:hidden">
+  <sc-if value="{{ leftOpen }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; flex-direction:column; height:100%; min-height:0">
+      <div style="display:flex; align-items:center; gap:8px; height:40px; padding:0 8px 0 12px; flex:none">
+        <h2 style="margin:0; font-size:13px; font-weight:600">Load list</h2>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text2)">SGSIN · {{ listCount }}</span>
+        <div style="flex:1"></div>
+        <button aria-label="Import load list (BAPLIE/EDI)" title="Import BAPLIE" style="width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2); cursor:pointer" style-hover="background:var(--hover); color:var(--text)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 13.5h11"></path></svg></button>
+        <button aria-label="Collapse load list" onClick="{{ toggleLeft }}" style="width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2); cursor:pointer" style-hover="background:var(--hover); color:var(--text)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 4-4 4 4 4"></path></svg></button>
+      </div>
+      <div style="padding:0 12px; flex:none">
+        <label style="display:flex; align-items:center; gap:6px; height:28px; padding:0 6px 0 8px; border:1px solid var(--border2); border-radius:4px; background:var(--bg)">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="color:var(--text3); flex:none"><circle cx="7" cy="7" r="4.5"></circle><path d="m10.5 10.5 3.5 3.5"></path></svg>
+          <input ref="{{ searchRef }}" aria-label="Search load list" placeholder="Search ID, POD, type" value="{{ qTxt }}" onChange="{{ onQ }}" style="flex:1; min-width:0; height:24px; border:0; outline:0; background:transparent; font-size:12.5px; color:var(--text)">
+          <kbd style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text3); border:1px solid var(--border2); border-radius:3px; padding:0 4px; line-height:16px">/</kbd>
+        </label>
+      </div>
+      <div role="group" aria-label="Filters" style="display:flex; flex-wrap:wrap; gap:4px; padding:8px 12px; flex:none">
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
+          <button aria-pressed="{{ c.pressed }}" onClick="{{ c.onClick }}" style="display:inline-flex; align-items:center; gap:5px; height:24px; padding:0 8px; border-radius:4px; border:1px solid {{ c.bd }}; background:{{ c.bg }}; color:{{ c.fg }}; font-size:12px; cursor:pointer; white-space:nowrap">
+            <sc-if value="{{ c.swatch }}"><span aria-hidden="true" style="width:8px; height:8px; border-radius:1px; background:{{ c.color }}"></span></sc-if>
+            <span>{{ c.label }}</span>
+            <sc-if value="{{ c.caret }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></sc-if>
+          </button>
+        </sc-for>
+      </div>
+      <div role="row" style="display:grid; grid-template-columns:16px minmax(0,1fr) 34px 36px 44px 44px; gap:6px; align-items:center; height:28px; padding:0 12px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); font-size:11px; flex:none">
+        <span aria-hidden="true" style="width:12px; height:12px; border:1px solid var(--border2); border-radius:3px"></span>
+        <sc-for list="{{ sortCols }}" as="h" hint-placeholder-count="5">
+          <button role="columnheader" aria-sort="{{ h.ariaSort }}" onClick="{{ h.onClick }}" style="display:flex; align-items:center; gap:3px; justify-content:{{ h.just }}; padding:0; border:0; background:transparent; color:{{ h.fg }}; font-size:11px; font-weight:500; cursor:pointer; min-width:0">{{ h.label }}<span style="font-size:8px">{{ h.arrow }}</span></button>
+        </sc-for>
+      </div>
+      <div role="grid" aria-label="Containers to load" aria-multiselectable="true" style="flex:1; min-height:0; overflow:auto">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="16">
+          <div role="row" aria-selected="{{ r.ariaSel }}" tabIndex="0" draggable="{{ r.draggable }}" onDragStart="{{ r.onDragStart }}" onDragEnd="{{ onDragEnd }}" onClick="{{ r.onClick }}" onKeyDown="{{ r.onKey }}" style="display:grid; grid-template-columns:16px minmax(0,1fr) 34px 36px 44px 44px; gap:6px; align-items:center; height:32px; padding:0 12px; border-bottom:1px solid var(--border); background:{{ r.bg }}; opacity:{{ r.op }}; outline:{{ r.outline }}; outline-offset:-1px; cursor:grab; box-sizing:border-box" style-hover="background:var(--hover)">
+            <span role="checkbox" aria-checked="{{ r.ariaChecked }}" aria-label="Select {{ r.id }}" onClick="{{ r.onCheck }}" style="width:14px; height:14px; box-sizing:border-box; border-radius:3px; border:1px solid {{ r.cbBd }}; background:{{ r.cbBg }}; display:grid; place-items:center; color:var(--onaccent); cursor:pointer">
+              <sc-if value="{{ r.checked }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg></sc-if>
+            </span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:{{ r.idFg }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ r.id }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)">{{ r.type }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; text-align:right">{{ r.wt }}</span>
+            <span style="justify-self:start; display:inline-flex; align-items:center; height:18px; padding:0 5px; border-radius:3px; background:{{ r.podColor }}; color:#0B1220; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600">{{ r.pod }}</span>
+            <span style="display:flex; align-items:center; gap:3px; justify-content:flex-end; color:var(--text2)">
+              <sc-if value="{{ r.planned }}"><span title="Planned slot" style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text3)">{{ r.slot }}</span></sc-if>
+              <sc-if value="{{ r.rf }}"><span title="Reefer {{ r.temp }}" aria-label="Reefer" style="display:grid; color:var(--accent)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M8 1.5v13M2.4 4.75l11.2 6.5M2.4 11.25l11.2-6.5M6 2.8 8 4.5l2-1.7M6 13.2 8 11.5l2 1.7"></path></svg></span></sc-if>
+              <sc-if value="{{ r.dg }}"><span title="IMDG class {{ r.dgTxt }}" aria-label="Dangerous goods class {{ r.dgTxt }}" style="display:inline-flex; align-items:center; gap:2px; height:16px; padding:0 3px; border:1px solid var(--warn); border-radius:2px; color:var(--warn); font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600"><svg width="7" height="7" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0 8 4 4 8 0 4Z" fill="currentColor"></path></svg>{{ r.dgTxt }}</span></sc-if>
+            </span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ listEmpty }}">
+          <div style="display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:24px 16px; color:var(--text2); font-size:12.5px">
+            <span style="font-weight:600; color:var(--text)">No containers match</span>
+            <span style="text-wrap:pretty">Nothing in the SGSIN load list matches “{{ qTxt }}” with the current filters.</span>
+            <button onClick="{{ clearFilters }}" style="height:26px; padding:0 10px; border-radius:4px; border:1px solid var(--border2); background:var(--raised); font-size:12px; cursor:pointer">Clear search and filters</button>
+          </div>
+        </sc-if>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; height:36px; padding:0 12px; border-top:1px solid var(--border); font-size:12px; color:var(--text2); flex:none">
+        <span><span style="color:var(--text); font-weight:600">{{ selCount }}</span> selected · <span style="font-family:'IBM Plex Mono',monospace">{{ selWeight }} t</span></span>
+        <div style="flex:1"></div>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px">{{ shownCount }} shown · {{ unplannedTxt }} unplanned</span>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ leftClosed }}">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:8px 0; height:100%">
+      <button aria-label="Expand load list" onClick="{{ toggleLeft }}" style="width:28px; height:28px; display:grid; place-items:center; border:1px solid var(--border2); border-radius:4px; background:var(--raised); color:var(--text2); cursor:pointer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></button>
+      <span style="writing-mode:vertical-rl; transform:rotate(180deg); font-size:12px; font-weight:600; color:var(--text2)">Load list · <span style="font-family:'IBM Plex Mono',monospace">{{ unplannedTxt }}</span> unplanned</span>
+    </div>
+  </sc-if>
+</aside>
+
+<main aria-label="Plan workspace" style="grid-row:2; grid-column:2; display:flex; flex-direction:column; min-width:0; min-height:0; position:relative">
+  <div style="display:flex; align-items:center; gap:12px; height:36px; padding:0 8px; border-bottom:1px solid var(--border); background:var(--surface); flex:none; min-width:0">
+    <div role="tablist" aria-label="View" style="display:flex; padding:2px; gap:2px; background:var(--bg); border:1px solid var(--border); border-radius:4px; flex:none">
+      <sc-for list="{{ viewTabs }}" as="t" hint-placeholder-count="3">
+        <button role="tab" aria-selected="{{ t.sel }}" onClick="{{ t.onClick }}" style="height:22px; padding:0 12px; border-radius:3px; border:1px solid {{ t.bd }}; background:{{ t.bg }}; color:{{ t.fg }}; font-size:12px; font-weight:500; cursor:pointer">{{ t.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex; align-items:center; gap:2px; flex:none">
+      <button aria-label="Previous bay" onClick="{{ prevBay }}" style="width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2); cursor:pointer" style-hover="background:var(--hover); color:var(--text)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 4-4 4 4 4"></path></svg></button>
+      <span aria-live="polite" style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; min-width:56px; text-align:center">Bay {{ bayTxt }}</span>
+      <button aria-label="Next bay" onClick="{{ nextBay }}" style="width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2); cursor:pointer" style-hover="background:var(--hover); color:var(--text)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></button>
+    </div>
+    <span style="font-size:12px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0">{{ bayInfo }}</span>
+    <div style="flex:1"></div>
+    <sc-if value="{{ hasBayViol }}"><span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--err); white-space:nowrap"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg>{{ bayViol }} in this bay</span></sc-if>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2); white-space:nowrap">{{ bayFill }}</span>
+  </div>
+  <div style="flex:1; min-height:0; display:flex; flex-direction:column">
+    <section aria-label="Viewport3D" style="position:relative; flex:{{ flex3d }}; min-height:0; display:{{ show3d }}; overflow:hidden; background:var(--bg)">
+      <div ref="{{ paneRef }}" style="position:absolute; inset:0">
+        <canvas ref="{{ canvasRef }}" role="img" aria-label="3D stowage view of MV Nusantara Pioneer. Every action here is also available in the bay grid with the keyboard." onPointerDown="{{ cvDown }}" onPointerMove="{{ cvMove }}" onPointerUp="{{ cvUp }}" onPointerLeave="{{ cvLeave }}" style="display:block; cursor:{{ cvCursor }}; touch-action:none"></canvas>
+      </div>
+      <sc-if value="{{ loading }}">
+        <div aria-busy="true" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:var(--bg)">
+          <div aria-hidden="true" style="display:flex; align-items:flex-end; gap:3px; animation:stw-pulse 1.4s ease-in-out infinite">
+            <span style="width:22px; height:18px; background:var(--raised)"></span><span style="width:22px; height:30px; background:var(--raised)"></span><span style="width:22px; height:38px; background:var(--raised)"></span><span style="width:22px; height:38px; background:var(--raised)"></span><span style="width:22px; height:34px; background:var(--raised)"></span><span style="width:10px; height:56px; background:var(--border2)"></span><span style="width:22px; height:26px; background:var(--raised)"></span><span style="width:22px; height:14px; background:var(--raised)"></span>
+          </div>
+          <span style="font-size:12px; color:var(--text2)">Loading vessel geometry and 3,4xx containers…</span>
+        </div>
+      </sc-if>
+      <div role="toolbar" aria-label="3D view controls" style="position:absolute; top:8px; left:8px; right:8px; display:flex; flex-wrap:wrap; align-items:center; gap:6px; pointer-events:none">
+        <div style="pointer-events:auto; display:flex; align-items:center; gap:2px; padding:2px; background:var(--surface); border:1px solid var(--border); border-radius:4px">
+          <span style="padding:0 6px; font-size:11px; color:var(--text3)">Camera</span>
+          <sc-for list="{{ camBtns }}" as="b" hint-placeholder-count="5"><button aria-pressed="{{ b.sel }}" title="{{ b.title }}" onClick="{{ b.onClick }}" style="height:24px; min-width:24px; padding:0 8px; border:0; border-radius:3px; background:{{ b.bg }}; color:{{ b.fg }}; font-size:12px; cursor:pointer">{{ b.label }}</button></sc-for>
+        </div>
+        <div style="pointer-events:auto; display:flex; align-items:center; gap:2px; padding:2px; background:var(--surface); border:1px solid var(--border); border-radius:4px">
+          <span style="padding:0 6px; font-size:11px; color:var(--text3)">Color</span>
+          <sc-for list="{{ modeBtns }}" as="b" hint-placeholder-count="4"><button aria-pressed="{{ b.sel }}" onClick="{{ b.onClick }}" style="height:24px; padding:0 8px; border:0; border-radius:3px; background:{{ b.bg }}; color:{{ b.fg }}; font-size:12px; cursor:pointer">{{ b.label }}</button></sc-for>
+        </div>
+        <button aria-pressed="{{ hullPressed }}" onClick="{{ toggleHull }}" title="Hull transparency" style="pointer-events:auto; display:flex; align-items:center; gap:6px; height:30px; padding:0 8px; border:1px solid var(--border); border-radius:4px; background:{{ hullBg }}; color:{{ hullFg }}; font-size:12px; cursor:pointer">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 9.5h13l-2 4h-9z"></path><path d="M4 9.5V6h8v3.5" stroke-dasharray="2 1.5"></path></svg>
+          <span>Hull</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px">{{ hullTxt }}</span>
+        </button>
+        <label style="pointer-events:auto; display:flex; align-items:center; gap:6px; height:30px; padding:0 4px 0 8px; border:1px solid var(--border); border-radius:4px; background:var(--surface); font-size:12px; color:var(--text2)">
+          Show only
+          <select value="{{ onlyPod }}" onChange="{{ onOnlyPod }}" aria-label="Show only containers for port" style="height:24px; border:1px solid var(--border2); border-radius:3px; background:var(--bg); color:var(--text); font-size:12px; padding:0 4px">
+            <option value="">All PODs</option>
+            <option value="LKCMB">LKCMB · Colombo</option>
+            <option value="AEJEA">AEJEA · Jebel Ali</option>
+            <option value="NLRTM">NLRTM · Rotterdam</option>
+            <option value="DEHAM">DEHAM · Hamburg</option>
+          </select>
+        </label>
+      </div>
+      <sc-if value="{{ focusBanner }}">
+        <div role="status" style="position:absolute; top:48px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; height:32px; padding:0 4px 0 10px; background:var(--surface); border:1px solid var(--err); border-radius:4px; font-size:12px; white-space:nowrap; z-index:2">
+          <span style="display:grid; color:var(--err)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></span>
+          <span>Focused on <span style="font-weight:600">{{ focusCount }} containers</span> · <span style="font-family:'IBM Plex Mono',monospace">{{ focusTitle }}</span> · others dimmed</span>
+          <button onClick="{{ clearFocus }}" style="display:flex; align-items:center; gap:6px; height:24px; padding:0 8px; border:1px solid var(--border2); border-radius:3px; background:var(--raised); font-size:12px; cursor:pointer">Clear focus <kbd style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3)">Esc</kbd></button>
+        </div>
+      </sc-if>
+      <div style="position:absolute; left:8px; bottom:{{ legendBottom }}px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:5px 8px; background:var(--surface); border:1px solid var(--border); border-radius:4px; font-size:11.5px; max-width:calc(100% - 16px)">
+        <span style="color:var(--text3); font-size:11px">{{ legendTitle }}</span>
+        <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4"><span style="display:inline-flex; align-items:center; gap:5px"><span aria-hidden="true" style="width:10px; height:10px; border-radius:2px; background:{{ l.color }}"></span><span style="font-family:'IBM Plex Mono',monospace">{{ l.label }}</span><span style="font-family:'IBM Plex Mono',monospace; color:var(--text3)">{{ l.count }}</span></span></sc-for>
+      </div>
+      <sc-if value="{{ split }}">
+        <div style="position:absolute; right:8px; bottom:8px; display:flex; gap:10px; font-size:11px; color:var(--text3); pointer-events:none">
+          <span>Drag to orbit</span><span>Scroll to zoom</span><span>Click to inspect</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ hoverTip }}">
+        <div role="tooltip" style="position:absolute; left:{{ tipX }}px; top:{{ tipY }}px; transform:translate(14px,14px); pointer-events:none; min-width:200px; padding:8px 10px; background:var(--raised); border:1px solid var(--border2); border-radius:4px; display:flex; flex-direction:column; gap:4px; z-index:4">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600">{{ tip.id }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)">{{ tip.slot }} · {{ tip.type }} · {{ tip.wt }} t</span>
+          <span style="display:flex; align-items:center; gap:6px"><span style="display:inline-flex; align-items:center; height:18px; padding:0 5px; border-radius:3px; background:{{ tip.podColor }}; color:#0B1220; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600">{{ tip.pod }}</span><span style="font-size:11.5px; color:var(--text2)">{{ tip.podName }}</span></span>
+          <sc-if value="{{ tip.viol }}"><span style="font-size:11.5px; color:var(--err); text-wrap:pretty; max-width:240px">{{ tip.violMsg }}</span></sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ playing }}">
+        <div aria-label="PortTimeline" style="position:absolute; left:8px; right:8px; bottom:8px; display:flex; align-items:center; gap:20px; padding:10px 20px 10px 10px; background:var(--surface); border:1px solid var(--border); border-radius:4px; z-index:3">
+          <div style="display:flex; align-items:center; gap:4px; flex:none">
+            <button aria-label="Previous port" onClick="{{ playPrev }}" style="width:30px; height:30px; display:grid; place-items:center; border:1px solid var(--border2); border-radius:4px; background:var(--raised); cursor:pointer"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 3h2v10H3zM13 3v10L6 8z"></path></svg></button>
+            <button aria-label="{{ playLabel }}" onClick="{{ playToggle }}" style="width:36px; height:30px; display:grid; place-items:center; border:1px solid var(--accent); border-radius:4px; background:var(--accent); color:var(--onaccent); cursor:pointer">
+              <sc-if value="{{ playIsOn }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 3h3v10H4zM9 3h3v10H9z"></path></svg></sc-if>
+              <sc-if value="{{ playIsOff }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"></path></svg></sc-if>
+            </button>
+            <button aria-label="Next port" onClick="{{ playNext }}" style="width:30px; height:30px; display:grid; place-items:center; border:1px solid var(--border2); border-radius:4px; background:var(--raised); cursor:pointer"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11 3h2v10h-2zM3 3v10l7-5z"></path></svg></button>
+            <span style="margin-left:4px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text2); border:1px solid var(--border2); border-radius:3px; padding:2px 5px">1×</span>
+          </div>
+          <div role="slider" aria-label="Port playback" aria-valuemin="0" aria-valuemax="4" aria-valuetext="{{ playNow }}" tabIndex="0" style="flex:1; min-width:0; position:relative; height:70px">
+            <div style="position:absolute; left:0; right:0; top:27px; height:2px; background:var(--border2)"></div>
+            <div style="position:absolute; left:0; width:{{ playPct }}%; top:27px; height:2px; background:var(--accent)"></div>
+            <sc-for list="{{ stops }}" as="s" hint-placeholder-count="5">
+              <button onClick="{{ s.onClick }}" style="position:absolute; left:{{ s.l }}%; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:3px; padding:0; border:0; background:transparent; color:{{ s.fg }}; cursor:pointer; min-width:84px">
+                <span style="display:flex; align-items:center; gap:5px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; height:16px"><span aria-hidden="true" style="width:8px; height:8px; border-radius:1px; background:{{ s.color }}"></span>{{ s.code }}</span>
+                <span style="width:12px; height:12px; box-sizing:border-box; border-radius:50%; border:2px solid {{ s.dotBd }}; background:{{ s.dot }}; margin-top:3px"></span>
+                <span style="font-size:11px; white-space:nowrap">{{ s.name }}</span>
+                <span style="display:flex; align-items:center; gap:4px; height:16px">
+                  <sc-if value="{{ s.hasN }}"><span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text2)">{{ s.n }}</span></sc-if>
+                  <sc-if value="{{ s.hasRs }}"><span style="display:inline-flex; align-items:center; gap:3px; height:16px; padding:0 4px; border-radius:2px; background:var(--warnbg); color:var(--warn); font-size:10.5px; font-weight:600"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8a6 6 0 0 1 10.2-4.2L14 5.5M14 2v3.5h-3.5M14 8a6 6 0 0 1-10.2 4.2L2 10.5M2 14v-3.5h3.5"></path></svg>{{ s.rs }}</span></sc-if>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="flex:none; width:210px; display:flex; flex-direction:column; gap:2px; font-size:12px">
+            <span style="font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Now playing</span>
+            <span style="text-wrap:pretty">{{ playNow }}</span>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+    <sc-if value="{{ split }}">
+      <div role="separator" aria-orientation="horizontal" aria-label="Resize 3D and bay view" style="height:6px; flex:none; background:var(--surface); border-top:1px solid var(--border); border-bottom:1px solid var(--border); cursor:row-resize; display:grid; place-items:center"><span style="width:32px; height:2px; border-radius:1px; background:var(--border2)"></span></div>
+    </sc-if>
+    <section aria-label="BayView" style="flex:{{ flexBay }}; display:{{ showBay }}; flex-direction:column; min-height:0; background:var(--surface)">
+      <div style="display:flex; align-items:center; gap:12px; min-height:30px; padding:0 10px; border-bottom:1px solid var(--border); flex:none; font-size:12px; flex-wrap:wrap">
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600">Bay {{ bayTxt }}</span>
+        <span style="color:var(--text2)">Cross section · looking forward</span>
+        <div style="flex:1"></div>
+        <sc-if value="{{ big }}">
+          <div aria-label="Cell legend" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+            <sc-for list="{{ legendCells }}" as="l" hint-placeholder-count="8"><span style="display:inline-flex; align-items:center; gap:5px; color:var(--text2); font-size:11.5px"><span aria-hidden="true" style="width:16px; height:11px; box-sizing:border-box; border-radius:2px; background-color:{{ l.bg }}; background-image:{{ l.img }}; border:{{ l.bd }}; box-shadow:{{ l.sh }}; outline:{{ l.ol }}; outline-offset:1px"></span>{{ l.label }}</span></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ split }}">
+          <button onClick="{{ openBay }}" style="display:flex; align-items:center; gap:5px; height:22px; padding:0 8px; border:1px solid var(--border2); border-radius:3px; background:var(--raised); font-size:11.5px; color:var(--text2); cursor:pointer" style-hover="color:var(--text)">Full bay view<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5 8.5 7.5M6.5 13.5h-4v-4M2.5 13.5l5-5"></path></svg></button>
+        </sc-if>
+      </div>
+      <div role="grid" aria-label="{{ gridLabel }}" aria-activedescendant="{{ activeDesc }}" tabIndex="0" onKeyDown="{{ onGridKey }}" onFocus="{{ onGridFocus }}" onBlur="{{ onGridBlur }}" style="flex:1; min-height:0; display:flex; flex-direction:column; gap:{{ gGap }}px; padding:6px 10px 6px; outline:none; position:relative">
+        <div role="row" style="display:grid; grid-template-columns:30px repeat(16,minmax(0,1fr)) 30px; gap:{{ gGap }}px; height:14px; flex:none; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3); align-items:end">
+          <span style="font-weight:600; color:var(--text2); font-size:9.5px">PORT</span>
+          <sc-for list="{{ rowHdr }}" as="h" hint-placeholder-count="16"><span role="columnheader" style="text-align:center">{{ h }}</span></sc-for>
+          <span style="font-weight:600; color:var(--text2); text-align:right; font-size:9.5px">STBD</span>
+        </div>
+        <sc-for list="{{ deckTiers }}" as="t" hint-placeholder-count="6">
+          <div role="row" style="display:grid; grid-template-columns:30px repeat(16,minmax(0,1fr)) 30px; gap:{{ gGap }}px; flex:1 1 0; min-height:0">
+            <span style="align-self:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3)">{{ t.label }}</span>
+            <sc-for list="{{ t.cells }}" as="c" hint-placeholder-count="16">
+              <div id="{{ c.domId }}" role="gridcell" aria-label="{{ c.aria }}" aria-selected="{{ c.ariaSel }}" draggable="{{ c.draggable }}" onDragStart="{{ c.onDragStart }}" onDragEnd="{{ onDragEnd }}" onDragOver="{{ c.onDragOver }}" onDrop="{{ c.onDrop }}" onClick="{{ c.onClick }}" style="position:relative; box-sizing:border-box; min-width:0; min-height:0; border-radius:2px; display:flex; flex-direction:column; align-items:center; justify-content:center; visibility:{{ c.vis }}; background-color:{{ c.bg }}; background-image:{{ c.img }}; border:{{ c.bd }}; box-shadow:{{ c.sh }}; outline:{{ c.ol }}; outline-offset:1px; color:{{ c.fg }}; animation:{{ c.anim }}; z-index:{{ c.z }}; cursor:pointer; font-family:'IBM Plex Mono',monospace; line-height:1.1">
+                <sc-if value="{{ c.big }}"><span style="font-size:11.5px; font-weight:600">{{ c.l4 }}</span><span style="font-size:10px; font-weight:500">{{ c.pod }} {{ c.wt }}</span></sc-if>
+                <sc-if value="{{ c.small }}"><span style="font-size:9.5px; font-weight:600">{{ c.pod }}</span></sc-if>
+                <sc-if value="{{ c.lock }}"><span aria-hidden="true" style="position:absolute; top:2px; left:2px; display:grid"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7.5" rx="1"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg></span></sc-if>
+                <sc-if value="{{ c.plug }}"><span aria-hidden="true" style="position:absolute; bottom:2px; left:2px; display:grid; color:{{ c.iconFg }}"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 1.5v3.5M10.5 1.5v3.5M3.5 5h9v2.5a4.5 4.5 0 0 1-9 0zM8 12v2.5"></path></svg></span></sc-if>
+                <sc-if value="{{ c.rf }}"><span aria-hidden="true" style="position:absolute; bottom:2px; left:2px; display:grid"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 1.5v13M2.4 4.75l11.2 6.5M2.4 11.25l11.2-6.5"></path></svg></span></sc-if>
+                <sc-if value="{{ c.dg }}"><span aria-hidden="true" style="position:absolute; bottom:1px; right:1px; font-size:8.5px; font-weight:700; padding:0 2px; background:#0B1220; color:#FFB020; border-radius:1px">{{ c.dgTxt }}</span></sc-if>
+                <sc-if value="{{ c.vx }}"><span aria-hidden="true" style="position:absolute; top:-1px; right:-1px; width:11px; height:11px; display:grid; place-items:center; background:{{ c.vxBg }}; color:#0B1220; font-size:9px; font-weight:700; border-radius:0 2px 0 2px">!</span></sc-if>
+                <sc-if value="{{ c.ghost }}"><div aria-hidden="true" style="position:absolute; inset:-1px; transform:translate(-2px,-4px); background:{{ c.gColor }}; border:1px solid var(--text); border-radius:2px; box-shadow:0 4px 0 rgba(0,0,0,0.35); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#0B1220; z-index:3; animation:stw-settle 180ms ease-out"><span style="font-size:11px; font-weight:700">{{ c.gL4 }}</span><span style="font-size:9.5px; font-weight:600">{{ c.gPod }}</span></div></sc-if>
+                <sc-if value="{{ c.dragGhost }}"><div aria-hidden="true" style="position:absolute; left:55%; top:45%; width:78px; height:28px; display:flex; align-items:center; justify-content:center; gap:5px; background:{{ c.dgColor }}; background-image:repeating-linear-gradient(90deg, rgba(11,18,32,0.14) 0 2px, transparent 2px 6px); border:1px solid #0B1220; border-radius:2px; color:#0B1220; font-size:10.5px; font-weight:700; opacity:0.92; z-index:5; box-shadow:0 6px 0 rgba(0,0,0,0.3)"><span>{{ c.dgL4 }}</span><span>{{ c.dgPod }}</span><span style="font-weight:500">{{ c.dgW }}</span><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true" style="position:absolute; left:-6px; top:-8px"><path d="M1 1v13l3.5-3.2 2.4 5.4 2.2-1-2.4-5.3H11z" fill="#FFFFFF" stroke="#0B1220" stroke-width="1"></path></svg></div></sc-if>
+                <sc-if value="{{ c.tip }}"><div role="tooltip" style="position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); white-space:nowrap; display:flex; flex-direction:column; gap:2px; padding:6px 9px; background:var(--raised); border:1px solid {{ c.tipBd }}; border-radius:4px; font-family:'IBM Plex Sans',sans-serif; font-size:12px; color:var(--text); z-index:6; pointer-events:none"><span style="display:flex; align-items:center; gap:6px; color:{{ c.tipFg }}; font-weight:600"><sc-if value="{{ c.tipErr }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></sc-if><sc-if value="{{ c.tipOk }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg></sc-if>{{ c.tipTitle }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text2)">{{ c.tipSub }}</span></div></sc-if>
+              </div>
+            </sc-for>
+            <span style="align-self:center; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3)">{{ t.label }}</span>
+          </div>
+        </sc-for>
+        <div role="row" aria-label="Deck stack weights" style="display:grid; grid-template-columns:30px repeat(16,minmax(0,1fr)) 30px; gap:{{ gGap }}px; height:{{ totH }}px; flex:none; align-items:center">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--text3)">Σ t</span>
+          <sc-for list="{{ deckTot }}" as="s" hint-placeholder-count="16"><div title="{{ s.title }}" style="visibility:{{ s.vis }}; display:flex; flex-direction:column; gap:2px; min-width:0"><span style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:{{ s.fg }}; font-weight:{{ s.fw }}">{{ s.txt }}</span><span style="height:3px; background:var(--track); border-radius:1px; overflow:hidden"><span style="display:block; height:100%; width:{{ s.pct }}%; background:{{ s.col }}"></span></span></div></sc-for>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--text3); text-align:right">/90</span>
+        </div>
+        <div aria-hidden="true" style="display:grid; grid-template-columns:30px minmax(0,1fr) 30px; gap:2px; align-items:center; height:10px; flex:none">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--text3); letter-spacing:0.04em">HATCH</span>
+          <div style="height:2px; background:var(--text3)"></div>
+          <span></span>
+        </div>
+        <sc-for list="{{ holdTiers }}" as="t" hint-placeholder-count="8">
+          <div role="row" style="display:grid; grid-template-columns:30px repeat(16,minmax(0,1fr)) 30px; gap:{{ gGap }}px; flex:1 1 0; min-height:0">
+            <span style="align-self:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3)">{{ t.label }}</span>
+            <sc-for list="{{ t.cells }}" as="c" hint-placeholder-count="16">
+              <div id="{{ c.domId }}" role="gridcell" aria-label="{{ c.aria }}" aria-selected="{{ c.ariaSel }}" draggable="{{ c.draggable }}" onDragStart="{{ c.onDragStart }}" onDragEnd="{{ onDragEnd }}" onDragOver="{{ c.onDragOver }}" onDrop="{{ c.onDrop }}" onClick="{{ c.onClick }}" style="position:relative; box-sizing:border-box; min-width:0; min-height:0; border-radius:2px; display:flex; flex-direction:column; align-items:center; justify-content:center; visibility:{{ c.vis }}; background-color:{{ c.bg }}; background-image:{{ c.img }}; border:{{ c.bd }}; box-shadow:{{ c.sh }}; outline:{{ c.ol }}; outline-offset:1px; color:{{ c.fg }}; animation:{{ c.anim }}; z-index:{{ c.z }}; cursor:pointer; font-family:'IBM Plex Mono',monospace; line-height:1.1">
+                <sc-if value="{{ c.big }}"><span style="font-size:11.5px; font-weight:600">{{ c.l4 }}</span><span style="font-size:10px; font-weight:500">{{ c.pod }} {{ c.wt }}</span></sc-if>
+                <sc-if value="{{ c.small }}"><span style="font-size:9.5px; font-weight:600">{{ c.pod }}</span></sc-if>
+                <sc-if value="{{ c.lock }}"><span aria-hidden="true" style="position:absolute; top:2px; left:2px; display:grid"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7.5" rx="1"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg></span></sc-if>
+                <sc-if value="{{ c.plug }}"><span aria-hidden="true" style="position:absolute; bottom:2px; left:2px; display:grid; color:{{ c.iconFg }}"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 1.5v3.5M10.5 1.5v3.5M3.5 5h9v2.5a4.5 4.5 0 0 1-9 0zM8 12v2.5"></path></svg></span></sc-if>
+                <sc-if value="{{ c.rf }}"><span aria-hidden="true" style="position:absolute; bottom:2px; left:2px; display:grid"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 1.5v13M2.4 4.75l11.2 6.5M2.4 11.25l11.2-6.5"></path></svg></span></sc-if>
+                <sc-if value="{{ c.dg }}"><span aria-hidden="true" style="position:absolute; bottom:1px; right:1px; font-size:8.5px; font-weight:700; padding:0 2px; background:#0B1220; color:#FFB020; border-radius:1px">{{ c.dgTxt }}</span></sc-if>
+                <sc-if value="{{ c.vx }}"><span aria-hidden="true" style="position:absolute; top:-1px; right:-1px; width:11px; height:11px; display:grid; place-items:center; background:{{ c.vxBg }}; color:#0B1220; font-size:9px; font-weight:700; border-radius:0 2px 0 2px">!</span></sc-if>
+                <sc-if value="{{ c.ghost }}"><div aria-hidden="true" style="position:absolute; inset:-1px; transform:translate(-2px,-4px); background:{{ c.gColor }}; border:1px solid var(--text); border-radius:2px; box-shadow:0 4px 0 rgba(0,0,0,0.35); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#0B1220; z-index:3"><span style="font-size:11px; font-weight:700">{{ c.gL4 }}</span><span style="font-size:9.5px; font-weight:600">{{ c.gPod }}</span></div></sc-if>
+              </div>
+            </sc-for>
+            <span style="align-self:center; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3)">{{ t.label }}</span>
+          </div>
+        </sc-for>
+        <div role="row" aria-label="Hold stack weights" style="display:grid; grid-template-columns:30px repeat(16,minmax(0,1fr)) 30px; gap:{{ gGap }}px; height:{{ totH }}px; flex:none; align-items:center">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--text3)">Σ t</span>
+          <sc-for list="{{ holdTot }}" as="s" hint-placeholder-count="16"><div title="{{ s.title }}" style="visibility:{{ s.vis }}; display:flex; flex-direction:column; gap:2px; min-width:0"><span style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:{{ s.fg }}; font-weight:{{ s.fw }}">{{ s.txt }}</span><span style="height:3px; background:var(--track); border-radius:1px; overflow:hidden"><span style="display:block; height:100%; width:{{ s.pct }}%; background:{{ s.col }}"></span></span></div></sc-for>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--text3); text-align:right">/210</span>
+        </div>
+      </div>
+      <div role="status" aria-live="polite" style="display:flex; align-items:center; gap:10px; min-height:28px; padding:0 10px; border-top:1px solid var(--border); font-size:12px; color:var(--text2); flex:none; min-width:0">
+        <sc-if value="{{ heldOn }}"><span style="flex:none; display:inline-flex; align-items:center; height:18px; padding:0 6px; border-radius:3px; background:var(--accentbg); color:var(--accent); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em">Picked up</span></sc-if>
+        <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ announce }}</span>
+        <span style="display:flex; gap:10px; font-size:11px; color:var(--text3); flex:none">
+          <span style="display:flex; gap:4px; align-items:center"><kbd style="font-family:'IBM Plex Mono',monospace; font-size:10px; padding:0 4px; border:1px solid var(--border2); border-radius:3px; color:var(--text2)">←↑↓→</kbd>Move</span>
+          <span style="display:flex; gap:4px; align-items:center"><kbd style="font-family:'IBM Plex Mono',monospace; font-size:10px; padding:0 4px; border:1px solid var(--border2); border-radius:3px; color:var(--text2)">Enter</kbd>Pick up / place</span>
+          <span style="display:flex; gap:4px; align-items:center"><kbd style="font-family:'IBM Plex Mono',monospace; font-size:10px; padding:0 4px; border:1px solid var(--border2); border-radius:3px; color:var(--text2)">Esc</kbd>Cancel</span>
+        </span>
+      </div>
+    </section>
+  </div>
+</main>
+<aside aria-label="Details" style="grid-row:2; grid-column:3; display:flex; flex-direction:column; min-height:0; min-width:0; background:var(--surface); border-left:1px solid var(--border); overflow:hidden">
+  <sc-if value="{{ rightOpen }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; flex-direction:column; height:100%; min-height:0">
+      <div role="tablist" aria-label="Details" style="display:flex; align-items:stretch; height:40px; padding:0 8px; gap:4px; border-bottom:1px solid var(--border); flex:none">
+        <button role="tab" aria-selected="{{ tabInsSel }}" onClick="{{ tabIns }}" style="display:flex; align-items:center; gap:6px; padding:0 8px; border:0; border-bottom:2px solid {{ tabInsBd }}; background:transparent; color:{{ tabInsFg }}; font-weight:600; font-size:13px; cursor:pointer">Inspector</button>
+        <button role="tab" aria-selected="{{ tabVioSel }}" onClick="{{ tabVio }}" style="display:flex; align-items:center; gap:6px; padding:0 8px; border:0; border-bottom:2px solid {{ tabVioBd }}; background:transparent; color:{{ tabVioFg }}; font-weight:600; font-size:13px; cursor:pointer">Violations<span aria-label="{{ violCount }} violations" style="display:inline-flex; align-items:center; height:18px; padding:0 5px; border-radius:3px; background:var(--err); color:var(--onerr); font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600">{{ violCount }}</span></button>
+        <div style="flex:1"></div>
+        <button aria-label="Collapse panel" onClick="{{ toggleRight }}" style="align-self:center; width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2); cursor:pointer" style-hover="background:var(--hover); color:var(--text)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></button>
+      </div>
+      <sc-if value="{{ tabIns }}" hint-placeholder-val="{{ true }}">
+        <div role="tabpanel" aria-label="Inspector" style="flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column">
+          <sc-if value="{{ insEmpty }}">
+            <div style="padding:24px 16px; display:flex; flex-direction:column; gap:8px; color:var(--text2); font-size:12.5px">
+              <span style="font-weight:600; color:var(--text)">Nothing selected</span>
+              <span style="text-wrap:pretty">Select a container in the load list, the 3D view or the bay grid. In the grid, use the arrow keys and press Enter to pick up.</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ insHas }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:12px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid var(--border)">
+              <div style="display:flex; align-items:center; gap:6px">
+                <span style="font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">{{ ins.mode }}</span>
+                <div style="flex:1"></div>
+                <sc-if value="{{ ins.locked }}"><span style="display:inline-flex; align-items:center; gap:4px; height:18px; padding:0 6px; border:1px solid var(--border2); border-radius:3px; font-size:11px; color:var(--text2)"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7.5" rx="1"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg>Locked</span></sc-if>
+                <span style="display:inline-flex; align-items:center; height:18px; padding:0 6px; border:1px solid {{ ins.stFg }}; border-radius:3px; font-size:11px; font-weight:600; color:{{ ins.stFg }}">{{ ins.status }}</span>
+              </div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:17px; font-weight:600; letter-spacing:0.02em">{{ ins.id }}</div>
+              <div aria-hidden="true" style="position:relative; height:52px; box-sizing:border-box; border-radius:2px; background-color:{{ ins.color }}; background-image:repeating-linear-gradient(90deg, rgba(11,18,32,0.16) 0 2px, transparent 2px 7px); border:1px solid rgba(11,18,32,0.45); display:flex; align-items:center; justify-content:space-between; padding:0 10px; color:#0B1220">
+                <div style="display:flex; flex-direction:column; line-height:1.1; background:{{ ins.color }}; padding:2px 4px"><span style="font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:700">{{ ins.podShort }}</span><span style="font-size:10.5px; font-weight:600">{{ ins.podName }}</span></div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.2; font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600; background:{{ ins.color }}; padding:2px 4px"><span>{{ ins.iso }}</span><span>{{ ins.wt }} t</span></div>
+              </div>
+              <dl style="display:grid; grid-template-columns:auto minmax(0,1fr); gap:5px 12px; margin:0; font-size:12px">
+                <sc-for list="{{ ins.fields }}" as="f" hint-placeholder-count="8"><dt style="color:var(--text2)">{{ f.k }}</dt><dd style="margin:0; font-family:'IBM Plex Mono',monospace; font-size:11.5px; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ f.v }}</dd></sc-for>
+              </dl>
+            </div>
+            <div style="padding:12px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid var(--border)">
+              <div style="display:flex; align-items:baseline; justify-content:space-between"><span style="font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">{{ ins.slotTitle }}</span><span style="font-size:11.5px; color:var(--text2)">{{ ins.slotNote }}</span></div>
+              <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px">
+                <sc-for list="{{ ins.slotParts }}" as="p" hint-placeholder-count="3"><div style="display:flex; flex-direction:column; gap:2px; padding:6px 8px; background:var(--bg); border:1px solid var(--border); border-radius:4px"><span style="font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:600">{{ p.v }}</span><span style="font-size:11px; color:var(--text2)">{{ p.k }}</span></div></sc-for>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:5px">
+                <div style="display:flex; justify-content:space-between; font-size:12px"><span style="color:var(--text2)">{{ ins.stackLbl }}</span><span style="font-family:'IBM Plex Mono',monospace; font-weight:600; color:{{ ins.stackFg }}">{{ ins.stackTxt }}</span></div>
+                <div style="position:relative; height:6px; background:var(--track); border-radius:2px"><div style="height:100%; width:{{ ins.stackPct }}%; background:{{ ins.stackCol }}; border-radius:2px"></div><div title="Stack limit" style="position:absolute; top:-3px; bottom:-3px; left:{{ ins.limPct }}%; width:2px; background:var(--text)"></div></div>
+              </div>
+            </div>
+            <div style="padding:10px 12px; display:flex; flex-direction:column">
+              <span style="font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:4px">Rule checks</span>
+              <sc-for list="{{ ins.checks }}" as="k" hint-placeholder-count="6">
+                <div style="display:grid; grid-template-columns:16px minmax(0,1fr) auto; gap:8px; align-items:center; min-height:26px; font-size:12px; border-bottom:1px solid var(--border)">
+                  <span style="display:grid; color:{{ k.fg }}">
+                    <sc-if value="{{ k.err }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Error"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></sc-if>
+                    <sc-if value="{{ k.warn }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Warning"><path d="M8 1.8 15 14H1z"></path><path d="M8 6v3.6M8 11.6v.4"></path></svg></sc-if>
+                    <sc-if value="{{ k.ok }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Pass"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg></sc-if>
+                    <sc-if value="{{ k.na }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-label="Not applicable"><circle cx="8" cy="8" r="6.3"></circle><path d="M5 8h6"></path></svg></sc-if>
+                  </span>
+                  <span>{{ k.name }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:{{ k.fg }}">{{ k.txt }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <div style="position:sticky; bottom:0; display:grid; grid-template-columns:{{ ins.actCols }}; gap:6px; padding:10px 12px; border-top:1px solid var(--border); background:var(--surface)">
+              <sc-for list="{{ ins.actions }}" as="a" hint-placeholder-count="3"><button onClick="{{ a.onClick }}" disabled="{{ a.disabled }}" aria-keyshortcuts="{{ a.key }}" style="display:flex; align-items:center; justify-content:center; gap:6px; height:30px; border-radius:4px; border:1px solid var(--border2); background:var(--raised); font-size:12.5px; font-weight:500; cursor:pointer; opacity:{{ a.op }}" style-hover="border-color:var(--text3)"><span>{{ a.label }}</span><kbd style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3); border:1px solid var(--border2); border-radius:3px; padding:0 3px">{{ a.key }}</kbd></button></sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ tabVio }}">
+        <div role="tabpanel" aria-label="ViolationsPanel" style="flex:1; min-height:0; display:flex; flex-direction:column">
+          <div style="display:flex; align-items:center; gap:8px; padding:8px 12px; flex:none">
+            <div role="radiogroup" aria-label="Severity" style="display:flex; padding:2px; gap:2px; background:var(--bg); border:1px solid var(--border); border-radius:4px">
+              <sc-for list="{{ vFilters }}" as="f" hint-placeholder-count="3"><button role="radio" aria-checked="{{ f.sel }}" onClick="{{ f.onClick }}" style="display:flex; align-items:center; gap:5px; height:22px; padding:0 8px; border-radius:3px; border:1px solid {{ f.bd }}; background:{{ f.bg }}; color:{{ f.fg }}; font-size:12px; cursor:pointer">{{ f.label }}<span style="font-family:'IBM Plex Mono',monospace; font-size:11px">{{ f.n }}</span></button></sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <button onClick="{{ validate }}" style="height:24px; padding:0 8px; border:0; border-radius:3px; background:transparent; color:var(--accent); font-size:12px; cursor:pointer" style-hover="background:var(--accentbg)">Re-run</button>
+          </div>
+          <div style="padding:0 12px 8px; font-size:11.5px; color:var(--text2); flex:none; text-wrap:pretty">{{ violSummary }}</div>
+          <div style="flex:1; min-height:0; overflow:auto">
+            <sc-for list="{{ vGroups }}" as="g" hint-placeholder-count="2">
+              <div role="group" aria-label="{{ g.label }}">
+                <div style="display:flex; align-items:center; gap:6px; height:28px; padding:0 12px; background:var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:1; font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:{{ g.fg }}">
+                  <sc-if value="{{ g.err }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></sc-if>
+                  <sc-if value="{{ g.warn }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 15 14H1z"></path><path d="M8 6v3.6M8 11.6v.4"></path></svg></sc-if>
+                  <span>{{ g.label }}</span><span style="font-family:'IBM Plex Mono',monospace">{{ g.count }}</span>
+                </div>
+                <sc-for list="{{ g.items }}" as="v" hint-placeholder-count="3">
+                  <article aria-label="{{ v.aria }}" onClick="{{ v.onSelect }}" style="display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-bottom:1px solid var(--border); background:{{ v.bg }}; box-shadow:{{ v.sh }}; cursor:pointer; animation:{{ v.anim }}" style-hover="background:var(--hover)">
+                    <div style="display:flex; align-items:center; gap:6px">
+                      <span style="font-size:10.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:{{ v.fg }}">{{ v.sevTxt }} · {{ v.title }}</span>
+                      <div style="flex:1"></div>
+                      <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)">{{ v.slot }}</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.4; text-wrap:pretty">{{ v.msg }}</p>
+                    <sc-if value="{{ v.selected }}">
+                      <div style="display:flex; flex-direction:column; padding:4px 8px; background:var(--bg); border:1px solid var(--border); border-radius:4px">
+                        <sc-for list="{{ v.inv }}" as="x" hint-placeholder-count="3"><div style="display:grid; grid-template-columns:52px minmax(0,1fr) 34px 36px; gap:6px; align-items:center; height:24px; font-family:'IBM Plex Mono',monospace; font-size:11.5px"><span style="color:var(--text2)">{{ x.slot }}</span><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ x.id }}</span><span style="text-align:right">{{ x.wt }}</span><span style="justify-self:end; display:inline-flex; align-items:center; height:16px; padding:0 4px; border-radius:2px; background:{{ x.podColor }}; color:#0B1220; font-size:10.5px; font-weight:600">{{ x.pod }}</span></div></sc-for>
+                      </div>
+                    </sc-if>
+                    <div style="display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--text2)"><span style="flex:none; font-weight:600; color:var(--text)">Fix</span><span style="flex:1; text-wrap:pretty">{{ v.fix }}</span></div>
+                    <div style="display:flex; gap:6px">
+                      <button onClick="{{ v.onShow }}" style="display:flex; align-items:center; gap:5px; height:24px; padding:0 8px; border:1px solid var(--border2); border-radius:3px; background:var(--raised); font-size:12px; cursor:pointer" style-hover="border-color:var(--text3)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"></path><circle cx="8" cy="8" r="2"></circle></svg>Show</button>
+                      <sc-if value="{{ v.canFix }}"><button onClick="{{ v.onFix }}" style="height:24px; padding:0 8px; border:1px solid var(--accent); border-radius:3px; background:transparent; color:var(--accent); font-size:12px; cursor:pointer" style-hover="background:var(--accentbg)">Apply fix</button></sc-if>
+                    </div>
+                  </article>
+                </sc-for>
+              </div>
+            </sc-for>
+            <sc-if value="{{ vEmpty }}">
+              <div style="padding:24px 16px; display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:var(--text2)"><span style="display:flex; align-items:center; gap:6px; color:var(--ok); font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg>No violations</span>All rule checks pass for the current plan.</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{ rightClosed }}">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:8px 0; height:100%">
+      <button aria-label="Expand details panel" onClick="{{ toggleRight }}" style="width:28px; height:28px; display:grid; place-items:center; border:1px solid var(--border2); border-radius:4px; background:var(--raised); color:var(--text2); cursor:pointer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 4-4 4 4 4"></path></svg></button>
+      <span style="writing-mode:vertical-rl; font-size:12px; font-weight:600; color:var(--text2)">Inspector</span>
+      <span style="writing-mode:vertical-rl; font-size:12px; font-weight:600; color:var(--err)">Violations · {{ violCount }}</span>
+    </div>
+  </sc-if>
+</aside>
+
+<footer style="grid-column:1 / -1; grid-row:3; display:grid; grid-template-columns:minmax(0,1fr) auto; background:var(--surface); border-top:1px solid var(--border); min-width:0">
+  <nav aria-label="BayNavigator" style="display:flex; align-items:stretch; gap:8px; padding:3px 12px; min-width:0">
+    <div style="display:flex; flex-direction:column; justify-content:flex-start; flex:none; width:38px; font-size:10px; color:var(--text3); padding-top:9px; gap:0">
+      <span style="height:16px; line-height:16px">Deck</span><span style="height:16px; line-height:16px; margin-top:2px">Hold</span><span style="font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.04em">BOW</span>
+    </div>
+    <div style="flex:1; min-width:0; display:flex; align-items:stretch; gap:2px">
+      <sc-for list="{{ navBays }}" as="b" hint-placeholder-count="22">
+        <button aria-label="{{ b.aria }}" aria-current="{{ b.cur }}" onClick="{{ b.onClick }}" style="flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:stretch; gap:1px; padding:1px 2px; border:1px solid {{ b.bd }}; border-radius:3px; background:{{ b.bg }}; cursor:pointer" style-hover="border-color:var(--border2)">
+          <span style="height:8px; display:grid; place-items:center; color:{{ b.vfg }}; font-family:'IBM Plex Mono',monospace; font-size:8.5px; font-weight:700; line-height:1">{{ b.vtxt }}</span>
+          <span style="height:15px; background:var(--track); display:flex; align-items:flex-end; border-radius:1px; overflow:hidden"><span style="width:100%; height:{{ b.dh }}%; background:{{ b.fill }}"></span></span>
+          <span style="height:2px; background:var(--text3)"></span>
+          <span style="height:15px; background:var(--track); display:flex; align-items:flex-end; border-radius:1px; overflow:hidden"><span style="width:100%; height:{{ b.hh }}%; background:{{ b.fill }}"></span></span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:{{ b.lfg }}; text-align:center; line-height:1.15; font-weight:{{ b.fw }}">{{ b.label }}</span>
+        </button>
+        <sc-if value="{{ b.house }}"><div aria-hidden="true" title="Deckhouse" style="flex:0 0 12px; display:flex; flex-direction:column; gap:1px; padding:2px 0"><span style="flex:1; background:var(--border2); border-radius:1px"></span><span style="font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--text3); text-align:center">DH</span></div></sc-if>
+      </sc-for>
+    </div>
+    <div style="flex:none; display:flex; align-items:flex-end; padding-bottom:1px; font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text3); letter-spacing:0.04em">STERN</div>
+  </nav>
+  <section aria-label="StabilityStrip" style="display:flex; align-items:stretch; border-left:1px solid var(--border)">
+    <sc-for list="{{ gauges }}" as="g" hint-placeholder-count="4">
+      <div role="group" aria-label="{{ g.label }} {{ g.val }} {{ g.unit }}, {{ g.stTxt }}" style="display:flex; flex-direction:column; justify-content:center; gap:3px; width:128px; box-sizing:border-box; padding:0 12px; border-right:1px solid var(--border)">
+        <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2)">
+          <span>{{ g.label }}</span><div style="flex:1"></div>
+          <span style="display:inline-flex; align-items:center; gap:3px; color:{{ g.fg }}; font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:0.04em">
+            <sc-if value="{{ g.ok }}"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg></sc-if>
+            <sc-if value="{{ g.warn }}"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 15 14H1z"></path><path d="M8 6v3.6"></path></svg></sc-if>
+            <sc-if value="{{ g.err }}"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path></svg></sc-if>
+            {{ g.stTxt }}
+          </span>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:5px; white-space:nowrap"><span style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600">{{ g.val }}</span><span style="font-size:10.5px; color:var(--text2); overflow:hidden; text-overflow:ellipsis">{{ g.unit }}</span></div>
+        <div style="position:relative; height:4px; background:var(--track); border-radius:2px">
+          <sc-for list="{{ g.zones }}" as="z" hint-placeholder-count="1"><span style="position:absolute; top:0; bottom:0; left:{{ z.l }}%; width:{{ z.w }}%; background:{{ z.c }}; opacity:0.6"></span></sc-for>
+          <span style="position:absolute; top:-3px; bottom:-3px; left:{{ g.mark }}%; width:2px; margin-left:-1px; background:var(--text)"></span>
+          <sc-if value="{{ g.hasDelta }}"><span style="position:absolute; right:0; top:-19px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600; padding:0 3px; border-radius:2px; background:var(--accentbg); color:var(--accent)">{{ g.delta }}</span></sc-if>
+        </div>
+      </div>
+    </sc-for>
+    <button onClick="{{ toggleDrawer }}" aria-expanded="{{ drawerExp }}" aria-controls="stability-drawer" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; width:72px; border:0; background:{{ drawerBtnBg }}; color:{{ drawerBtnFg }}; font-size:11px; cursor:pointer" style-hover="color:var(--text)">
+      <sc-if value="{{ drawerUp }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4-4 4 4"></path></svg></sc-if>
+      <sc-if value="{{ drawerDown }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></sc-if>
+      <span>Stability</span>
+    </button>
+  </section>
+</footer>
+<sc-if value="{{ drawer }}">
+  <section id="stability-drawer" aria-label="StabilityDrawer" style="position:absolute; left:0; right:0; bottom:64px; height:392px; z-index:20; display:flex; flex-direction:column; background:var(--surface); border-top:1px solid var(--border2); animation:stw-up 220ms ease-out">
+    <div style="display:flex; align-items:center; gap:12px; height:40px; padding:0 8px 0 16px; border-bottom:1px solid var(--border); flex:none">
+      <h2 style="margin:0; font-size:13px; font-weight:600">Stability</h2>
+      <span style="font-size:12px; color:var(--text2)">Departure condition · SGSIN · draft plan, {{ plannedTxt }} of 1,240 loaded</span>
+      <div style="flex:1"></div>
+      <div role="radiogroup" aria-label="Limit set" style="display:flex; padding:2px; gap:2px; background:var(--bg); border:1px solid var(--border); border-radius:4px">
+        <button role="radio" aria-checked="true" style="height:22px; padding:0 10px; border-radius:3px; border:1px solid var(--border2); background:var(--raised); font-size:12px; cursor:pointer">Seagoing limits</button>
+        <button role="radio" aria-checked="false" style="height:22px; padding:0 10px; border-radius:3px; border:1px solid transparent; background:transparent; color:var(--text2); font-size:12px; cursor:pointer">Harbour limits</button>
+      </div>
+      <button aria-label="Close stability drawer" onClick="{{ closeDrawer }}" style="width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2); cursor:pointer" style-hover="background:var(--hover); color:var(--text)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button>
+    </div>
+    <div style="flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr) 400px">
+      <div style="display:flex; flex-direction:column; gap:8px; padding:12px 16px; border-right:1px solid var(--border); min-width:0">
+        <div style="display:flex; align-items:center; gap:14px; font-size:12px">
+          <span style="font-weight:600">Longitudinal strength</span>
+          <span style="color:var(--text2)">% of permissible, along ship length</span>
+          <div style="flex:1"></div>
+          <span style="display:inline-flex; align-items:center; gap:5px; color:var(--text2)"><span style="width:16px; height:2px; background:var(--accent)"></span>Bending moment</span>
+          <span style="display:inline-flex; align-items:center; gap:5px; color:var(--text2)"><span style="width:16px; height:0; border-top:2px dashed var(--text)"></span>Shear force</span>
+          <span style="display:inline-flex; align-items:center; gap:5px; color:var(--text2)"><span style="width:16px; height:0; border-top:1px dashed var(--err)"></span>Limit</span>
+        </div>
+        <div style="flex:1; min-height:0; display:grid; grid-template-columns:36px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 16px; gap:2px 6px">
+          <div style="position:relative; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3); text-align:right">
+            <span style="position:absolute; right:0; top:4.5%; transform:translateY(-50%)">+100</span>
+            <span style="position:absolute; right:0; top:27.3%; transform:translateY(-50%)">+50</span>
+            <span style="position:absolute; right:0; top:50%; transform:translateY(-50%)">0</span>
+            <span style="position:absolute; right:0; top:72.7%; transform:translateY(-50%)">−50</span>
+            <span style="position:absolute; right:0; top:95.5%; transform:translateY(-50%)">−100</span>
+          </div>
+          <div style="position:relative; border:1px solid var(--border); border-radius:2px; background:var(--bg)">
+            <svg width="100%" height="100%" viewBox="0 0 600 220" preserveAspectRatio="none" aria-label="Bending moment peaks at 78 percent, shear force at 64 percent of limit" style="position:absolute; inset:0">
+              <rect x="{{ bayBandX }}" y="0" width="24" height="220" fill="#3B9EFF" opacity="0.10"></rect>
+              <path d="M0 60H600M0 160H600" stroke="#26334D" stroke-width="1" vector-effect="non-scaling-stroke"></path>
+              <path d="M0 110H600" stroke="#33415E" stroke-width="1" vector-effect="non-scaling-stroke"></path>
+              <path d="M0 10H600M0 210H600" stroke="#FF5D5D" stroke-width="1" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"></path>
+              <path d="M0 25H600M0 195H600" stroke="#FFB020" stroke-width="1" stroke-dasharray="2 4" opacity="0.7" vector-effect="non-scaling-stroke"></path>
+              <path d="{{ sfPath }}" fill="none" stroke="#E6EDF7" stroke-width="1.6" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"></path>
+              <path d="{{ bmPath }}" fill="none" stroke="#3B9EFF" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+            </svg>
+            <sc-for list="{{ peaks }}" as="p" hint-placeholder-count="3"><span style="position:absolute; left:{{ p.l }}%; top:{{ p.t }}%; transform:translate(-50%,-130%); font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600; color:{{ p.fg }}; background:var(--bg); padding:0 3px; white-space:nowrap">{{ p.txt }}</span></sc-for>
+            <span style="position:absolute; right:6px; top:2px; font-size:10px; color:var(--err); background:var(--bg); padding:0 2px">100% limit</span>
+            <span style="position:absolute; right:6px; top:9%; font-size:10px; color:var(--warn); background:var(--bg); padding:0 2px">85% caution</span>
+          </div>
+          <span></span>
+          <div style="position:relative; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3)">
+            <sc-for list="{{ chartBays }}" as="x" hint-placeholder-count="8"><span style="position:absolute; left:{{ x.l }}%; transform:translateX(-50%)">{{ x.label }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; padding:12px 16px; border-right:1px solid var(--border); min-width:0">
+        <div style="display:flex; align-items:center; gap:10px; font-size:12px"><span style="font-weight:600">Draft and trim</span><span style="color:var(--text2)">Trim exaggerated ×8</span></div>
+        <div style="flex:1; min-height:0; position:relative">
+          <svg width="100%" height="100%" viewBox="0 0 340 170" preserveAspectRatio="xMidYMid meet" aria-label="Draft forward {{ draftFwd }} metres, aft {{ draftAft }} metres, {{ trimTxt }}">
+            <path d="M14 40 L300 40 L326 44 L322 108 L304 140 L52 140 Q30 132 22 104 Z" fill="#18233A" stroke="#33415E" stroke-width="1"></path>
+            <rect x="196" y="6" width="16" height="34" fill="#C3CCDA" opacity="0.85"></rect>
+            <path d="M24 40V26h162v14M222 40V30h76v10" fill="#26334D"></path>
+            <path d="M24 33h162M222 35h76" stroke="#0B1220" stroke-width="0.6"></path>
+            <polygon points="{{ wl.poly }}" fill="#3B9EFF" opacity="0.16"></polygon>
+            <line x1="0" y1="{{ wl.summerY }}" x2="340" y2="{{ wl.summerY }}" stroke="#FFB020" stroke-width="1" stroke-dasharray="4 3"></line>
+            <line x1="{{ wl.x1 }}" y1="{{ wl.y1 }}" x2="{{ wl.x2 }}" y2="{{ wl.y2 }}" stroke="#3B9EFF" stroke-width="1.6"></line>
+            <path d="M30 128V150M170 128V150M310 128V150" stroke="#9FB0C8" stroke-width="1"></path>
+            <text x="4" y="{{ wl.summerY }}" dy="-4" font-family="IBM Plex Mono" font-size="8.5" fill="#FFB020">Summer 14.50</text>
+            <text x="30" y="162" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9FB0C8">FWD</text>
+            <text x="170" y="162" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9FB0C8">MID</text>
+            <text x="310" y="162" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9FB0C8">AFT</text>
+          </svg>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px">
+          <sc-for list="{{ drafts }}" as="d" hint-placeholder-count="3"><div style="display:flex; flex-direction:column; gap:1px; padding:6px 8px; border:1px solid var(--border); border-radius:4px; background:var(--bg)"><span style="font-size:11px; color:var(--text2)">Draft {{ d.k }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600">{{ d.v }} <span style="font-size:11px; color:var(--text2); font-weight:400">m</span></span></div></sc-for>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto minmax(0,1fr); gap:10px 12px; padding:12px 16px; min-width:0">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px">
+          <span style="align-self:flex-start; font-size:12px; font-weight:600">GM</span>
+          <svg width="100%" viewBox="0 0 200 112" aria-label="GM {{ gmBig }} metres, minimum 1.20">
+            <path d="{{ gmArcRed }}" fill="none" stroke="#FF5D5D" stroke-width="10" opacity="0.7"></path>
+            <path d="{{ gmArcOk }}" fill="none" stroke="#2FD08A" stroke-width="10" opacity="0.55"></path>
+            <line x1="{{ gmMinTick.a.x }}" y1="{{ gmMinTick.a.y }}" x2="{{ gmMinTick.b.x }}" y2="{{ gmMinTick.b.y }}" stroke="#E6EDF7" stroke-width="2"></line>
+            <line x1="100" y1="96" x2="{{ gmNeedle.x }}" y2="{{ gmNeedle.y }}" stroke="#E6EDF7" stroke-width="2.5" stroke-linecap="round"></line>
+            <circle cx="100" cy="96" r="4" fill="#E6EDF7"></circle>
+            <text x="20" y="110" font-family="IBM Plex Mono" font-size="9" fill="#8193AD" text-anchor="middle">0</text>
+            <text x="180" y="110" font-family="IBM Plex Mono" font-size="9" fill="#8193AD" text-anchor="middle">3.0</text>
+          </svg>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:600">{{ gmBig }} m</span>
+          <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--ok)"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg>OK · min 1.20 m</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px">
+          <span style="align-self:flex-start; font-size:12px; font-weight:600">List</span>
+          <svg width="100%" viewBox="0 0 200 112" aria-label="List {{ listBig }} degrees {{ listSide }}">
+            <path d="{{ lsWarnL }}" fill="none" stroke="#FFB020" stroke-width="10" opacity="0.5"></path>
+            <path d="{{ lsWarnR }}" fill="none" stroke="#FFB020" stroke-width="10" opacity="0.5"></path>
+            <path d="{{ lsErrL }}" fill="none" stroke="#FF5D5D" stroke-width="10" opacity="0.75"></path>
+            <path d="{{ lsErrR }}" fill="none" stroke="#FF5D5D" stroke-width="10" opacity="0.75"></path>
+            <path d="{{ lsOk }}" fill="none" stroke="#2FD08A" stroke-width="10" opacity="0.6"></path>
+            <line x1="100" y1="96" x2="{{ lsNeedle.x }}" y2="{{ lsNeedle.y }}" stroke="#E6EDF7" stroke-width="2.5" stroke-linecap="round"></line>
+            <circle cx="100" cy="96" r="4" fill="#E6EDF7"></circle>
+            <text x="20" y="110" font-family="IBM Plex Mono" font-size="9" fill="#8193AD" text-anchor="middle">5° P</text>
+            <text x="180" y="110" font-family="IBM Plex Mono" font-size="9" fill="#8193AD" text-anchor="middle">5° S</text>
+          </svg>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:600">{{ listBig }}° <span style="font-size:12px; color:var(--text2); font-weight:400">{{ listSide }}</span></span>
+          <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--warn)"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 15 14H1z"></path><path d="M8 6v3.6"></path></svg>Check · crane limit 0.3°</span>
+        </div>
+        <div style="grid-column:1 / -1; display:flex; flex-direction:column; gap:5px">
+          <div style="display:flex; align-items:baseline; gap:8px; font-size:12px"><span style="font-weight:600">Trim</span><span style="font-family:'IBM Plex Mono',monospace; font-weight:600">{{ trimTxt }}</span><div style="flex:1"></div><span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--ok)"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg>OK · limit ±1.50 m</span></div>
+          <div style="position:relative; height:8px; background:var(--track); border-radius:2px">
+            <span style="position:absolute; left:16.7%; right:16.7%; top:0; bottom:0; background:var(--ok); opacity:0.3"></span>
+            <span style="position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:var(--text3)"></span>
+            <span style="position:absolute; left:{{ trimMark }}%; top:-4px; bottom:-4px; width:3px; margin-left:-1.5px; background:var(--text); border-radius:1px"></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3)"><span>1.5 head</span><span>0</span><span>1.5 stern</span></div>
+        </div>
+        <dl style="grid-column:1 / -1; display:grid; grid-template-columns:repeat(3, auto minmax(0,1fr)); gap:4px 8px; margin:0; font-size:11.5px; align-content:end">
+          <sc-for list="{{ hydro }}" as="h" hint-placeholder-count="6"><dt style="color:var(--text2)">{{ h.k }}</dt><dd style="margin:0; font-family:'IBM Plex Mono',monospace; text-align:right">{{ h.v }}</dd></sc-for>
+        </dl>
+      </div>
+    </div>
+  </section>
+</sc-if>
+
+<sc-if value="{{ toastOn }}">
+  <div role="alert" style="position:absolute; left:50%; bottom:76px; transform:translateX(-50%); z-index:30; display:flex; align-items:center; gap:10px; min-width:380px; max-width:600px; padding:8px 6px 8px 12px; background:var(--raised); border:1px solid {{ toastBd }}; border-radius:4px; animation:stw-in 160ms ease-out">
+    <span style="display:grid; color:{{ toastFg }}">
+      <sc-if value="{{ toastErr }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Error"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></sc-if>
+      <sc-if value="{{ toastWarn }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Warning"><path d="M8 1.8 15 14H1z"></path><path d="M8 6v3.6M8 11.6v.4"></path></svg></sc-if>
+      <sc-if value="{{ toastOk }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Done"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg></sc-if>
+    </span>
+    <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px"><span style="font-weight:600; font-size:12.5px">{{ toastTitle }}</span><span style="font-size:12px; color:var(--text2); text-wrap:pretty">{{ toastMsg }}</span></div>
+    <sc-if value="{{ toastUndo }}"><button onClick="{{ undo }}" style="height:26px; padding:0 10px; border:1px solid var(--border2); border-radius:3px; background:transparent; font-size:12px; cursor:pointer">Undo</button></sc-if>
+    <button aria-label="Dismiss" onClick="{{ dismissToast }}" style="width:26px; height:26px; display:grid; place-items:center; border:0; border-radius:3px; background:transparent; color:var(--text2); cursor:pointer"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button>
+  </div>
+</sc-if>
+<div role="status" aria-live="assertive" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap">{{ srText }}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;scene&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;default&quot;,&quot;drag&quot;,&quot;bay&quot;,&quot;violations&quot;,&quot;stability&quot;,&quot;playback&quot;],&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;'default'|'drag'|'bay'|'violations'|'stability'|'playback'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark'|'light'&quot;},&quot;reducedMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;label&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { ready: false };
+  rootRef = React.createRef(); paneRef = React.createRef(); canvasRef = React.createRef(); searchRef = React.createRef();
+  _uid = Math.random().toString(36).slice(2, 7);
+  componentDidMount() {
+    import('./workspace-vm.js').then((M) => { this.M = M; this.A = M.makeActions(this); this.applyTheme(); this.setState(M.initState(this.props.scene || 'default')); }).catch((e) => console.error('Stowline load failed', e));
+  }
+  componentDidUpdate(pp) {
+    if (!this.M) return;
+    if (pp.theme !== this.props.theme) this.applyTheme();
+    if (pp.scene !== this.props.scene) { this.r && this.r.fly({ yaw: 204, pitch: 27, zoom: 1, tx: 0, ty: 0, tz: -4 }, 0); this.setState(this.M.initState(this.props.scene || 'default')); return; }
+    if (!this.r && this.state.ready && this.canvasRef.current) this.r = this.M.createRenderer(this);
+    this.M.syncRenderer(this);
+    this.playTick();
+  }
+  componentWillUnmount() { this.r && this.r.destroy(); this.ro && this.ro.disconnect(); clearTimeout(this._pt); clearTimeout(this._tt); clearTimeout(this._st); }
+  applyTheme() { const el = this.rootRef.current; if (!el || !this.M) return; const v = this.M.THEMES[this.props.theme === 'light' ? 'light' : 'dark'].vars; for (const k in v) el.style.setProperty(k, v[k]); }
+  playTick() {
+    const p = this.state.play;
+    if (!p || !p.playing) { clearTimeout(this._pt); this._pk = null; return; }
+    if (this._pk === p.port) return; this._pk = p.port; clearTimeout(this._pt);
+    const pod = this.M.S.POD_LIST[p.port - 1]; let n = 0; for (const k in this.state.slots) if (this.state.slots[k].pod === pod) n++;
+    this._pt = setTimeout(() => { this._pk = null; this.A.playStep(1); }, this.props.reducedMotion ? 2500 : n * 20 + 2400);
+  }
+  undo = () => this.A && this.A.undo();
+  redo = () => this.A && this.A.redo();
+  validate = () => this.A && this.A.validate();
+  save = () => this.A && this.A.save();
+  onQ = (e) => this.setState({ q: e.target.value });
+  clearFilters = () => this.setState({ q: '', fPod: null, fType: null, fRf: false, fDg: false });
+  toggleLeft = () => this.setState((s) => ({ leftOpen: !s.leftOpen }));
+  toggleRight = () => this.setState((s) => ({ rightOpen: !s.rightOpen }));
+  prevBay = () => this.A && this.A.stepBay(-1);
+  nextBay = () => this.A && this.A.stepBay(1);
+  toggleHull = () => this.setState((s) => ({ hullT: !s.hullT }));
+  onOnlyPod = (e) => this.setState({ onlyPod: e.target.value });
+  tabIns = () => this.setState({ rightTab: 'inspector' });
+  tabVio = () => this.setState({ rightTab: 'violations' });
+  clearFocus = () => this.A && this.A.clearFocus();
+  toggleDrawer = () => this.setState((s) => ({ drawer: !s.drawer }));
+  closeDrawer = () => this.setState({ drawer: false });
+  playPrev = () => this.A && this.A.playStep(-1);
+  playNext = () => this.A && this.A.playStep(1);
+  playToggle = () => this.A && this.A.playToggle();
+  dismissToast = () => this.setState({ toast: null });
+  onDragEnd = () => this.setState({ drag: null, over: null });
+  openBay = () => this.setState({ centerTab: 'bay' });
+  onGridFocus = () => this.setState({ gridFocused: true });
+  onGridBlur = () => { if (!this.state.held) this.setState({ gridFocused: false }); };
+  onGridKey = (e) => {
+    if (!this.A) return; const k = e.key;
+    const mv = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k];
+    if (mv) { e.preventDefault(); this.A.moveFocus(mv[0], mv[1]); return; }
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); this.A.enter(); return; }
+    if (k === 'Escape') { e.preventDefault(); e.stopPropagation(); this.A.cancel(); }
+  };
+  onRootKey = (e) => {
+    if (!this.A) return; const t = e.target.tagName;
+    if (e.key === 'Escape') this.A.cancel();
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? this.A.redo() : this.A.undo(); }
+    if (e.key === '/' && t !== 'INPUT') { e.preventDefault(); this.searchRef.current && this.searchRef.current.focus(); }
+  };
+  cvDown = (e) => { this._d = { x: e.clientX, y: e.clientY, moved: false }; e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); };
+  cvMove = (e) => {
+    const r = this.r; if (!r) return; const d = this._d;
+    if (d) { const dx = e.clientX - d.x, dy = e.clientY - d.y; if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true; if (d.moved) { r.orbit(dx, dy); d.x = e.clientX; d.y = e.clientY; if (this.state.hover) this.setState({ hover: null }); return; } }
+    const rc = e.currentTarget.getBoundingClientRect(), px = e.clientX - rc.left, py = e.clientY - rc.top, b = r.hit(px, py), k = b ? b.key : null;
+    if (k !== (this.state.hover && this.state.hover.key)) this.setState({ hover: k ? { key: k, x: px, y: py } : null });
+  };
+  cvUp = (e) => {
+    const d = this._d; this._d = null; if (!this.r || (d && d.moved)) return;
+    const rc = e.currentTarget.getBoundingClientRect(), b = this.r.hit(e.clientX - rc.left, e.clientY - rc.top);
+    if (b) this.setState({ sel: b.key, bay: +b.key.slice(0, 2), focus: b.key, rightTab: 'inspector' });
+  };
+  cvLeave = () => { this._d = null; if (this.state.hover) this.setState({ hover: null }); };
+  renderVals() {
+    const base = { rootRef: this.rootRef, paneRef: this.paneRef, canvasRef: this.canvasRef, searchRef: this.searchRef, loading: !this.state.ready, screenLabel: this.props.label || 'Stowline workspace', cols: '320px minmax(0,1fr) 320px', leftOpen: true, rightOpen: true,
+      undo: this.undo, redo: this.redo, validate: this.validate, save: this.save, onQ: this.onQ, clearFilters: this.clearFilters, toggleLeft: this.toggleLeft, toggleRight: this.toggleRight, prevBay: this.prevBay, nextBay: this.nextBay, toggleHull: this.toggleHull, onOnlyPod: this.onOnlyPod, tabIns: this.tabIns, tabVio: this.tabVio, clearFocus: this.clearFocus, toggleDrawer: this.toggleDrawer, closeDrawer: this.closeDrawer, playPrev: this.playPrev, playNext: this.playNext, playToggle: this.playToggle, dismissToast: this.dismissToast, onDragEnd: this.onDragEnd, openBay: this.openBay, onGridFocus: this.onGridFocus, onGridBlur: this.onGridBlur, onGridKey: this.onGridKey, onRootKey: this.onRootKey, cvDown: this.cvDown, cvMove: this.cvMove, cvUp: this.cvUp, cvLeave: this.cvLeave };
+    if (!this.state.ready || !this.M) return base;
+    return Object.assign(base, this.M.buildVM(this));
+  }
+}
+</script>
+</body>
+</html>

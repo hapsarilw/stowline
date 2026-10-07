@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#0B1220}
+button,input,select{font:inherit;color:inherit}
+a{color:#3B9EFF;text-decoration:none} a:hover{color:#7CC0FF;text-decoration:underline}
+:focus-visible{outline:2px solid #3B9EFF;outline-offset:2px}
+</style>
+</helmet>
+<div data-screen-label="07 Plans list" style="width:100%; height:100%; min-height:720px; display:grid; grid-template-rows:48px minmax(0,1fr); grid-template-columns:minmax(0,1fr) 360px; background:#0B1220; color:#E6EDF7; font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:13px; line-height:1.35; font-variant-numeric:tabular-nums; overflow:hidden">
+  <header style="grid-column:1 / -1; display:flex; align-items:center; gap:16px; padding:0 12px; background:#111A2B; border-bottom:1px solid #26334D">
+    <div style="display:flex; align-items:center; gap:8px">
+      <div aria-hidden="true" style="display:grid; grid-template-columns:repeat(3,6px); grid-template-rows:repeat(3,6px); gap:1px">
+        <span style="background:#3B9EFF"></span><span style="border:1px solid #33415E"></span><span style="border:1px solid #33415E"></span>
+        <span style="background:#3B9EFF"></span><span style="background:#3B9EFF"></span><span style="border:1px solid #33415E"></span>
+        <span style="background:#3B9EFF"></span><span style="background:#3B9EFF"></span><span style="background:#3B9EFF"></span>
+      </div>
+      <span style="font-weight:600; font-size:14px">Stowline</span>
+    </div>
+    <nav aria-label="Main" style="display:flex; align-items:stretch; height:48px; gap:4px">
+      <a href="#" aria-current="page" style="display:flex; align-items:center; padding:0 10px; color:#E6EDF7; font-weight:600; border-bottom:2px solid #3B9EFF; text-decoration:none">Plans</a>
+      <a href="#" style="display:flex; align-items:center; padding:0 10px; color:#9FB0C8; border-bottom:2px solid transparent; text-decoration:none">Vessels</a>
+      <a href="#" style="display:flex; align-items:center; padding:0 10px; color:#9FB0C8; border-bottom:2px solid transparent; text-decoration:none">Port rotations</a>
+      <a href="#" style="display:flex; align-items:center; padding:0 10px; color:#9FB0C8; border-bottom:2px solid transparent; text-decoration:none">Rule library</a>
+    </nav>
+    <div style="flex:1"></div>
+    <label style="display:flex; align-items:center; gap:6px; width:280px; height:28px; padding:0 8px; border:1px solid #33415E; border-radius:4px; background:#0B1220">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#8193AD" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"></circle><path d="m10.5 10.5 3.5 3.5"></path></svg>
+      <input aria-label="Search plans" placeholder="Search vessel, voyage, container ID" value="{{ q }}" onChange="{{ onQ }}" style="flex:1; min-width:0; border:0; outline:0; background:transparent; font-size:12.5px; color:#E6EDF7">
+      <kbd style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#8193AD; border:1px solid #33415E; border-radius:3px; padding:0 4px">⌘K</kbd>
+    </label>
+    <span style="font-size:12px; color:#9FB0C8">Singapore planning desk</span>
+    <button aria-label="Account: Rina Adiputri" style="width:28px; height:28px; border-radius:50%; border:1px solid #33415E; background:#18233A; font-size:11px; font-weight:600; color:#9FB0C8; cursor:pointer">RA</button>
+  </header>
+
+  <main style="display:flex; flex-direction:column; min-width:0; min-height:0; border-right:1px solid #26334D">
+    <div style="display:flex; align-items:flex-end; gap:16px; padding:20px 20px 12px">
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <h1 style="margin:0; font-size:20px; font-weight:600; letter-spacing:-0.005em">Stowage plans</h1>
+        <span style="font-size:12.5px; color:#9FB0C8">{{ countTxt }} · next departure <span style="font-family:'IBM Plex Mono',monospace; color:#E6EDF7">08 Oct 22:00</span></span>
+      </div>
+      <div style="flex:1"></div>
+      <button style="height:30px; padding:0 12px; border-radius:4px; border:1px solid #33415E; background:#18233A; font-weight:500; cursor:pointer">Import BAPLIE</button>
+      <button style="display:flex; align-items:center; gap:6px; height:30px; padding:0 12px; border-radius:4px; border:1px solid #3B9EFF; background:#3B9EFF; color:#06111F; font-weight:600; cursor:pointer"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>New plan</button>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; padding:0 20px 12px; flex-wrap:wrap">
+      <div role="tablist" aria-label="Status" style="display:flex; padding:2px; gap:2px; background:#0B1220; border:1px solid #26334D; border-radius:4px">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button role="tab" aria-selected="{{ t.sel }}" onClick="{{ t.onClick }}" style="display:flex; align-items:center; gap:6px; height:24px; padding:0 10px; border-radius:3px; border:1px solid {{ t.bd }}; background:{{ t.bg }}; color:{{ t.fg }}; font-size:12px; cursor:pointer">{{ t.label }}<span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8193AD">{{ t.n }}</span></button></sc-for>
+      </div>
+      <button style="display:flex; align-items:center; gap:5px; height:28px; padding:0 8px; border-radius:4px; border:1px solid #33415E; background:transparent; color:#9FB0C8; font-size:12px; cursor:pointer">Vessel: All<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+      <button style="display:flex; align-items:center; gap:5px; height:28px; padding:0 8px; border-radius:4px; border:1px solid #33415E; background:transparent; color:#9FB0C8; font-size:12px; cursor:pointer">Port: All<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+      <button aria-pressed="{{ mineP }}" onClick="{{ toggleMine }}" style="height:28px; padding:0 8px; border-radius:4px; border:1px solid {{ mineBd }}; background:{{ mineBg }}; color:{{ mineFg }}; font-size:12px; cursor:pointer">Assigned to me</button>
+      <button aria-pressed="{{ issuesP }}" onClick="{{ toggleIssues }}" style="height:28px; padding:0 8px; border-radius:4px; border:1px solid {{ issuesBd }}; background:{{ issuesBg }}; color:{{ issuesFg }}; font-size:12px; cursor:pointer">Has violations</button>
+      <div style="flex:1"></div>
+      <span style="font-size:12px; color:#8193AD">ETD next 14 days · UTC+8</span>
+    </div>
+    <div role="table" aria-label="Voyages" style="flex:1; min-height:0; overflow:auto; border-top:1px solid #26334D">
+      <div role="row" style="position:sticky; top:0; z-index:1; display:grid; grid-template-columns:minmax(200px,1.4fr) 64px 70px 118px minmax(160px,1fr) 92px 104px 128px 76px; gap:12px; align-items:center; height:32px; padding:0 20px; background:#111A2B; border-bottom:1px solid #26334D; font-size:11.5px; color:#9FB0C8">
+        <span role="columnheader">Vessel</span><span role="columnheader">Voyage</span><span role="columnheader">Port</span>
+        <button role="columnheader" aria-sort="{{ etdSort }}" onClick="{{ sortEtd }}" style="display:flex; align-items:center; gap:4px; padding:0; border:0; background:transparent; color:#E6EDF7; font-size:11.5px; cursor:pointer">ETD<span style="font-size:8px">{{ etdArrow }}</span></button>
+        <span role="columnheader">Progress</span><span role="columnheader">Violations</span><span role="columnheader">Status</span><span role="columnheader">Planner</span><span role="columnheader" style="text-align:right">Updated</span>
+      </div>
+      <sc-for list="{{ plans }}" as="p" hint-placeholder-count="12">
+        <div role="row" tabIndex="0" aria-selected="{{ p.ariaSel }}" onClick="{{ p.onClick }}" onKeyDown="{{ p.onKey }}" style="display:grid; grid-template-columns:minmax(200px,1.4fr) 64px 70px 118px minmax(160px,1fr) 92px 104px 128px 76px; gap:12px; align-items:center; height:48px; padding:0 20px; border-bottom:1px solid #26334D; background:{{ p.bg }}; box-shadow:{{ p.sh }}; cursor:pointer; outline-offset:-2px" style-hover="background:#162238">
+          <div style="display:flex; flex-direction:column; gap:1px; min-width:0"><span style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ p.vessel }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#9FB0C8">{{ p.teu }} TEU · {{ p.imo }}</span></div>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:12px">{{ p.voy }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:12px">{{ p.port }}</span>
+          <div style="display:flex; flex-direction:column; gap:1px"><span style="font-family:'IBM Plex Mono',monospace; font-size:12px">{{ p.etd }}</span><span style="font-size:11px; color:{{ p.dueFg }}">{{ p.due }}</span></div>
+          <div style="display:flex; flex-direction:column; gap:4px; min-width:0">
+            <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11.5px"><span>{{ p.done }} / {{ p.total }}</span><span style="color:#9FB0C8">{{ p.pct }}%</span></div>
+            <div role="progressbar" aria-valuenow="{{ p.pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Planned" style="height:4px; background:#22304A; border-radius:2px; overflow:hidden"><div style="height:100%; width:{{ p.pct }}%; background:{{ p.barCol }}"></div></div>
+          </div>
+          <span style="display:inline-flex; align-items:center; gap:5px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:{{ p.vFg }}">
+            <sc-if value="{{ p.hasErr }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></sc-if>
+            <sc-if value="{{ p.hasWarnOnly }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 15 14H1z"></path><path d="M8 6v3.6M8 11.6v.4"></path></svg></sc-if>
+            <sc-if value="{{ p.clean }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg></sc-if>
+            {{ p.vTxt }}
+          </span>
+          <span style="justify-self:start; display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 7px; border:1px solid {{ p.stBd }}; border-radius:4px; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:{{ p.stFg }}; background:{{ p.stBg }}"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background:{{ p.stDot }}; border:1.5px solid {{ p.stFg }}; box-sizing:border-box"></span>{{ p.status }}</span>
+          <span style="display:flex; align-items:center; gap:6px; min-width:0"><span aria-hidden="true" style="flex:none; width:20px; height:20px; border-radius:50%; background:#18233A; border:1px solid #33415E; display:grid; place-items:center; font-size:9px; font-weight:600; color:#9FB0C8">{{ p.ini }}</span><span style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:{{ p.plFg }}">{{ p.planner }}</span></span>
+          <span style="text-align:right; font-size:12px; color:#9FB0C8">{{ p.upd }}</span>
+        </div>
+      </sc-for>
+      <sc-if value="{{ empty }}">
+        <div style="padding:48px 20px; display:flex; flex-direction:column; align-items:center; gap:8px; color:#9FB0C8"><span style="font-weight:600; color:#E6EDF7">No plans match these filters</span><span>Try another status, or clear the search.</span><button onClick="{{ clear }}" style="margin-top:4px; height:28px; padding:0 10px; border-radius:4px; border:1px solid #33415E; background:#18233A; cursor:pointer">Clear filters</button></div>
+      </sc-if>
+    </div>
+  </main>
+
+  <aside aria-label="Plan preview" style="display:flex; flex-direction:column; min-height:0; background:#111A2B; overflow:auto">
+    <div style="padding:16px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid #26334D">
+      <div style="display:flex; align-items:center; gap:8px"><span style="font-size:10.5px; color:#8193AD; text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Plan preview</span><div style="flex:1"></div><span style="display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 7px; border:1px solid {{ s.stBd }}; border-radius:4px; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:{{ s.stFg }}; background:{{ s.stBg }}">{{ s.status }}</span></div>
+      <span style="font-size:16px; font-weight:600">{{ s.vessel }}</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9FB0C8">Voy {{ s.voy }} · {{ s.port }} · ETD {{ s.etd }}</span>
+    </div>
+    <div style="padding:14px 16px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid #26334D">
+      <div style="display:flex; justify-content:space-between; font-size:12px"><span style="color:#9FB0C8">Bay fill, bow to stern</span><span style="font-family:'IBM Plex Mono',monospace">{{ s.done }} / {{ s.total }}</span></div>
+      <div aria-label="Bay fill profile" style="display:flex; align-items:flex-end; gap:2px; height:48px; padding:4px; background:#0B1220; border:1px solid #26334D; border-radius:4px">
+        <sc-for list="{{ s.profile }}" as="b" hint-placeholder-count="22"><span style="flex:1 1 0; display:flex; flex-direction:column; justify-content:flex-end; height:100%; gap:1px"><span style="height:{{ b.d }}%; background:{{ b.c }}"></span><span style="height:1px; background:#8193AD"></span><span style="height:{{ b.h }}%; background:{{ b.c }}"></span></span></sc-for>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8193AD"><span>BOW 02</span><span>86 STERN</span></div>
+    </div>
+    <div style="padding:14px 16px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; border-bottom:1px solid #26334D">
+      <sc-for list="{{ s.stab }}" as="g" hint-placeholder-count="3"><div style="display:flex; flex-direction:column; gap:2px; padding:8px; border:1px solid #26334D; border-radius:4px; background:#0B1220"><span style="font-size:11px; color:#9FB0C8">{{ g.k }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600">{{ g.v }}</span><span style="font-size:10.5px; font-weight:600; color:{{ g.fg }}; text-transform:uppercase; letter-spacing:0.04em">{{ g.st }}</span></div></sc-for>
+    </div>
+    <div style="padding:14px 16px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid #26334D">
+      <span style="font-size:10.5px; color:#8193AD; text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Open violations</span>
+      <sc-for list="{{ s.viol }}" as="v" hint-placeholder-count="4"><div style="display:grid; grid-template-columns:14px minmax(0,1fr) auto; gap:8px; align-items:center; font-size:12px; min-height:22px"><span style="width:8px; height:8px; border-radius:1px; background:{{ v.c }}"></span><span>{{ v.k }}</span><span style="font-family:'IBM Plex Mono',monospace; color:{{ v.fg }}">{{ v.n }}</span></div></sc-for>
+      <sc-if value="{{ s.noViol }}"><span style="font-size:12px; color:#2FD08A">All rule checks pass</span></sc-if>
+    </div>
+    <div style="padding:14px 16px; display:flex; flex-direction:column; gap:8px; flex:1">
+      <span style="font-size:10.5px; color:#8193AD; text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Activity</span>
+      <sc-for list="{{ s.log }}" as="l" hint-placeholder-count="4"><div style="display:grid; grid-template-columns:44px minmax(0,1fr); gap:8px; font-size:12px"><span style="font-family:'IBM Plex Mono',monospace; color:#8193AD">{{ l.t }}</span><span style="text-wrap:pretty; color:#C9D4E4">{{ l.m }}</span></div></sc-for>
+    </div>
+    <div style="position:sticky; bottom:0; display:flex; gap:8px; padding:12px 16px; border-top:1px solid #26334D; background:#111A2B">
+      <button style="flex:1; height:32px; border-radius:4px; border:1px solid #3B9EFF; background:#3B9EFF; color:#06111F; font-weight:600; cursor:pointer">Open plan</button>
+      <button style="height:32px; padding:0 12px; border-radius:4px; border:1px solid #33415E; background:#18233A; cursor:pointer">Send for review</button>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 'all', sel: 0, q: '', mine: false, issues: false, etdDir: 1 };
+  data() {
+    return [
+      ['MV Nusantara Pioneer', '8,500', '042W', 'SGSIN', '08 Oct 22:00', 312, 1240, 6, 1, 'Draft', 'Rina Adiputri', '2 min', 0],
+      ['MV Selat Meridian', '6,200', '118E', 'IDJKT', '09 Oct 06:00', 1804, 1960, 0, 2, 'In review', 'Dimas Hartono', '18 min', 1],
+      ['MV Arafura Dawn', '4,250', '077W', 'LKCMB', '10 Oct 14:30', 940, 940, 0, 0, 'Approved', 'Priya Nair', '1 h', 2],
+      ['MV Banda Horizon', '8,500', '203N', 'SGSIN', '10 Oct 23:00', 486, 1322, 9, 2, 'Draft', 'Rina Adiputri', '3 h', 3],
+      ['MV Sunda Voyager', '10,100', '015W', 'AEJEA', '11 Oct 08:00', 2110, 2210, 1, 0, 'In review', 'Omar Haddad', '5 h', 4],
+      ['MV Malacca Crest', '13,800', '064E', 'NLRTM', '12 Oct 18:00', 3020, 3020, 0, 0, 'Approved', 'Lena Vos', 'Yesterday', 5],
+      ['MV Andaman Reach', '5,600', '131W', 'LKCMB', '13 Oct 04:00', 0, 1105, 0, 0, 'Draft', 'Unassigned', '—', 6],
+      ['MV Coral Tern', '2,800', '009S', 'SGSIN', '13 Oct 20:00', 1288, 1410, 3, 1, 'Draft', 'Kevin Lim', 'Yesterday', 7],
+      ['MV Timor Lantern', '3,400', '052W', 'IDJKT', '14 Oct 10:00', 760, 760, 0, 0, 'Approved', 'Dimas Hartono', '2 d', 8],
+      ['MV Natuna Ridge', '9,000', '088E', 'DEHAM', '15 Oct 12:00', 1950, 2480, 2, 1, 'In review', 'Lena Vos', '2 d', 9],
+      ['MV Laut Biru', '6,700', '027W', 'AEJEA', '16 Oct 02:00', 410, 1630, 0, 0, 'Draft', 'Rina Adiputri', '3 d', 10],
+      ['MV Riau Spirit', '4,800', '140N', 'SGSIN', '17 Oct 15:00', 0, 890, 0, 0, 'Draft', 'Unassigned', '—', 11],
+    ].map((r, i) => ({ vessel: r[0], teu: r[1], voy: r[2], port: r[3], etd: r[4], done: r[5], total: r[6], e: r[7], w: r[8], status: r[9], planner: r[10], upd: r[11], i, imo: 'IMO 9' + String(712000 + i * 3147).slice(0, 6) }));
+  }
+  st(s) { return s === 'Approved' ? { fg: '#2FD08A', bd: 'rgba(47,208,138,0.5)', bg: 'rgba(47,208,138,0.10)', dot: '#2FD08A' } : s === 'In review' ? { fg: '#FFB020', bd: 'rgba(255,176,32,0.5)', bg: 'rgba(255,176,32,0.10)', dot: 'transparent' } : { fg: '#9FB0C8', bd: '#33415E', bg: 'transparent', dot: 'transparent' }; }
+  renderVals() {
+    const s = this.state, all = this.data(), q = s.q.trim().toLowerCase();
+    const f = all.filter((p) => (s.tab === 'all' || p.status === s.tab) && (!s.mine || p.planner === 'Rina Adiputri') && (!s.issues || p.e + p.w > 0) && (!q || (p.vessel + ' ' + p.voy + ' ' + p.port).toLowerCase().includes(q))).sort((a, b) => (a.i - b.i) * s.etdDir);
+    const days = ['Tomorrow', 'in 2 days', 'in 3 days', 'in 3 days', 'in 4 days', 'in 5 days', 'in 6 days', 'in 6 days', 'in 7 days', 'in 8 days', 'in 9 days', 'in 10 days'];
+    const plans = f.map((p) => { const pct = Math.round((p.done / p.total) * 100), c = this.st(p.status), sel = p.i === s.sel; return Object.assign({}, p, { done: p.done.toLocaleString('en-US'), total: p.total.toLocaleString('en-US'), pct, barCol: pct === 100 ? '#2FD08A' : '#3B9EFF', vTxt: p.e + p.w === 0 ? 'Clear' : p.e ? `${p.e} err${p.w ? ` · ${p.w} w` : ''}` : `${p.w} warn`, vFg: p.e ? '#FF5D5D' : p.w ? '#FFB020' : '#2FD08A', hasErr: p.e > 0, hasWarnOnly: !p.e && p.w > 0, clean: p.e + p.w === 0, stFg: c.fg, stBd: c.bd, stBg: c.bg, stDot: c.dot, ini: p.planner === 'Unassigned' ? '—' : p.planner.split(' ').map((x) => x[0]).join(''), plFg: p.planner === 'Unassigned' ? '#8193AD' : '#E6EDF7', due: days[p.i], dueFg: p.i === 0 ? '#FFB020' : '#9FB0C8', ariaSel: sel ? 'true' : 'false', bg: sel ? '#132B49' : 'transparent', sh: sel ? 'inset 2px 0 0 #3B9EFF' : 'none', onClick: () => this.setState({ sel: p.i }), onKey: (e) => { if (e.key === 'Enter') this.setState({ sel: p.i }); } }); });
+    const p = all[s.sel] || all[0], c = this.st(p.status);
+    let seed = p.i * 7 + 3; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    const prog = p.done / p.total;
+    const profile = Array.from({ length: 22 }, (_, k) => { const full = k / 22 < prog * 1.15 || prog === 1; const d = full ? 55 + rnd() * 40 : rnd() * 15; return { d: (d * 0.48).toFixed(0), h: ((full ? 90 : 20 + rnd() * 30) * 0.48).toFixed(0), c: p.e && (k === 4 || k === 2) ? '#FF5D5D' : '#5C6E8C' }; });
+    const tabs = [['all', 'All'], ['Draft', 'Draft'], ['In review', 'In review'], ['Approved', 'Approved']].map(([k, l]) => ({ label: l, n: k === 'all' ? all.length : all.filter((x) => x.status === k).length, sel: s.tab === k ? 'true' : 'false', bg: s.tab === k ? '#18233A' : 'transparent', fg: s.tab === k ? '#E6EDF7' : '#9FB0C8', bd: s.tab === k ? '#33415E' : 'transparent', onClick: () => this.setState({ tab: k }) }));
+    const tg = (on) => ({ bd: on ? '#3B9EFF' : '#33415E', bg: on ? 'rgba(59,158,255,0.14)' : 'transparent', fg: on ? '#E6EDF7' : '#9FB0C8' });
+    const m = tg(s.mine), is = tg(s.issues);
+    const violRows = p.i === 0 ? [['#FF5D5D', 'Overstow', '2'], ['#FF5D5D', 'Stack weight', '1'], ['#FF5D5D', 'Reefer power', '1'], ['#FF5D5D', 'DG segregation', '1'], ['#FF5D5D', '20ft on 40ft', '1'], ['#FFB020', 'Heavy over light', '1']] : p.e + p.w ? [['#FF5D5D', 'Errors', String(p.e)], ['#FFB020', 'Warnings', String(p.w)]].filter((x) => x[2] !== '0') : [];
+    return {
+      q: s.q, onQ: (e) => this.setState({ q: e.target.value }), clear: () => this.setState({ q: '', tab: 'all', mine: false, issues: false }),
+      tabs, plans, empty: plans.length === 0, countTxt: `${all.length} voyages · ${all.filter((x) => x.status !== 'Approved').length} need work`,
+      etdArrow: s.etdDir > 0 ? '▲' : '▼', etdSort: s.etdDir > 0 ? 'ascending' : 'descending', sortEtd: () => this.setState({ etdDir: -s.etdDir }),
+      mineP: s.mine ? 'true' : 'false', mineBd: m.bd, mineBg: m.bg, mineFg: m.fg, toggleMine: () => this.setState({ mine: !s.mine }),
+      issuesP: s.issues ? 'true' : 'false', issuesBd: is.bd, issuesBg: is.bg, issuesFg: is.fg, toggleIssues: () => this.setState({ issues: !s.issues }),
+      s: { vessel: p.vessel, voy: p.voy, port: p.port, etd: p.etd, status: p.status, stFg: c.fg, stBd: c.bd, stBg: c.bg, done: p.done.toLocaleString('en-US'), total: p.total.toLocaleString('en-US'), profile,
+        stab: p.i === 0 ? [{ k: 'GM', v: '1.84 m', st: 'OK', fg: '#2FD08A' }, { k: 'Trim', v: '0.62 m S', st: 'OK', fg: '#2FD08A' }, { k: 'List', v: '0.4° P', st: 'Check', fg: '#FFB020' }] : [{ k: 'GM', v: (1.5 + (p.i % 5) * 0.21).toFixed(2) + ' m', st: 'OK', fg: '#2FD08A' }, { k: 'Trim', v: (0.2 + (p.i % 4) * 0.13).toFixed(2) + ' m S', st: 'OK', fg: '#2FD08A' }, { k: 'List', v: (0.1 * (p.i % 3)).toFixed(1) + '°', st: 'OK', fg: '#2FD08A' }],
+        viol: violRows.map(([cc, k, n]) => ({ c: cc, k, n, fg: cc })), noViol: violRows.length === 0,
+        log: p.i === 0 ? [{ t: '14:32', m: 'Rina Adiputri validated the plan: 6 errors, 1 warning' }, { t: '14:20', m: 'Moved NSPU 615540 9 to 180484' }, { t: '13:05', m: 'Imported SGSIN load list, 1,240 containers' }, { t: '09:12', m: 'Plan created from IDJKT departure BAPLIE' }] : [{ t: '12:40', m: p.planner + ' updated the plan' }, { t: '08:15', m: 'Load list revised by terminal' }, { t: 'Mon', m: 'Plan created' }] },
+    };
+  }
+}
+</script>
+</body>
+</html>

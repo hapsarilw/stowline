@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#070C16}
+a{color:#3B9EFF;text-decoration:none} a:hover{color:#7CC0FF;text-decoration:underline}
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:72px; padding:64px; background:#070C16; color:#E6EDF7; font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:14px; line-height:1.45; width:max-content">
+  <header style="display:flex; flex-direction:column; gap:8px; max-width:1100px">
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8193AD">STOWLINE · 3D container stowage planner · MV Nusantara Pioneer · Voy 042W · SGSIN</span>
+    <h1 style="margin:0; font-size:36px; font-weight:600; letter-spacing:-0.01em">Screens 01–08</h1>
+    <p style="margin:0; font-size:15px; color:#9FB0C8; max-width:900px; text-wrap:pretty">Every frame is the same live component. Drag rows from the load list onto bay cells, use the arrow keys and Enter in the bay grid, orbit the 3D view, Show or Apply fix on violations, and undo with Ctrl+Z. The rule engine re-checks the whole plan on every move.</p>
+    <nav style="display:flex; flex-wrap:wrap; gap:14px; font-family:'IBM Plex Mono',monospace; font-size:13px; margin-top:6px">
+      <a href="#s01">01 Workspace</a><a href="#s01b">01 · 1920</a><a href="#s01c">01 · Light</a><a href="#s02">02 Drag</a><a href="#s03">03 Bay view</a><a href="#s04">04 Violations</a><a href="#s05">05 Stability</a><a href="#s06">06 Playback</a><a href="#s07">07 Plans</a><a href="#s08">08 Components</a>
+    </nav>
+  </header>
+
+  <section id="s01" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">01</span><h2 style="margin:0; font-size:20px; font-weight:600">Main workspace · 1440 × 900</h2></div>
+      <div style="width:1440px; height:900px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Workspace" scene="default" label="01 Main workspace" style="width:1440px; height:900px" hint-size="1440px,900px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8; font-size:14px">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Components</h3>
+      <p style="margin:0; font-family:'IBM Plex Mono',monospace; font-size:12.5px; line-height:1.7">TopBar · LoadList · Viewport3D · BayView · BayNavigator · StabilityStrip · Inspector · ViolationsPanel</p>
+      <h3 style="margin:8px 0 0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">Selected: NSPU 482913 5 at 180486. Its stack, 18-04 deck, is at 96.4 t of a 90.0 t limit, so the Inspector shows the error and the bay navigator flags bay 18.</p>
+      <p style="margin:0; text-wrap:pretty">The 3D view is a canvas stand-in for the R3F scene: 2,740 boxes colored by POD, hull at 20%, a gap opened at bay 18 (400 ms). Drag to orbit, scroll to zoom, hover for a tooltip, click to inspect.</p>
+      <p style="margin:0; text-wrap:pretty">List reads 0.4° to port against a 0.3° crane tolerance, so its gauge shows Check. GM, trim and BM/SF are OK.</p>
+      <h3 style="margin:8px 0 0; color:#E6EDF7; font-size:14px; font-weight:600">Motion</h3>
+      <p style="margin:0; text-wrap:pretty">Camera fly 600 ms ease-in-out. Changing bay opens a gap at that bay, 400 ms. Stability numbers count to the new value over 300 ms.</p>
+    </aside>
+  </section>
+
+  <section id="s01b" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">01</span><h2 style="margin:0; font-size:20px; font-weight:600">Main workspace · 1920 × 1080</h2></div>
+      <div style="width:1920px; height:1080px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Workspace" scene="default" label="01 Main workspace 1920" style="width:1920px; height:1080px" hint-size="1920px,1080px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">Side panels stay at 320 px. All extra width goes to the center, so bay cells grow to about 74 × 20 px and the 3D view gains detail. The load list shows about 24 rows.</p>
+    </aside>
+  </section>
+
+  <section id="s01c" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">01</span><h2 style="margin:0; font-size:20px; font-weight:600">Main workspace · light</h2></div>
+      <div style="width:1440px; height:900px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Workspace" scene="default" theme="light" label="01 Main workspace light" style="width:1440px; height:900px" hint-size="1440px,900px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">Same layout and tokens with light values: bg #EDF1F6, surface #FFFFFF, accent #0B6BD3, error #C42B2B, warning #9A5800, ok #0A7A4A. All status text stays above 4.5:1. POD colors don't change.</p>
+    </aside>
+  </section>
+
+  <section id="s02" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">02</span><h2 style="margin:0; font-size:20px; font-weight:600">Drag in progress</h2></div>
+      <div style="width:1440px; height:900px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Workspace" scene="drag" label="02 Drag in progress" style="width:1440px; height:900px" hint-size="1440px,900px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">Dragging NSPU 551208 4 (40HC, 24.1 t, Jebel Ali) over 180688. Only the next free tier of each stack is a target. Green outlines are valid, amber is valid with a warning, red hatching is invalid.</p>
+      <p style="margin:0; text-wrap:pretty">Most red cells fail on overstow: they sit on Colombo boxes, which leave first. 180688 fails on weight. The tooltip and the stack total both show 96.4 t of 90.0 t. The 3D view shows a red ghost at the target, and the stability strip previews the change.</p>
+      <h3 style="margin:8px 0 0; color:#E6EDF7; font-size:14px; font-weight:600">Motion</h3>
+      <p style="margin:0; text-wrap:pretty">Valid drop: the container settles into the slot in 180 ms, ease-out. Invalid drop: it returns to its origin in 220 ms, the slot shakes once, and a toast gives the reason. With reduced motion: instant change or a 100 ms fade.</p>
+    </aside>
+  </section>
+
+  <section id="s03" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">03</span><h2 style="margin:0; font-size:20px; font-weight:600">Bay view, full width · keyboard pick-up</h2></div>
+      <div style="width:1440px; height:900px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Workspace" scene="bay" label="03 Bay view" style="width:1440px; height:900px" hint-size="1440px,900px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">Side panels collapse to 40 px rails, so bay 18 gets the full width. Rows read 16…02 to port and 01…15 to starboard. Tiers run 92–82 on deck and 16–02 in the hold, split by the hatch cover line.</p>
+      <p style="margin:0; text-wrap:pretty">With the keyboard, NSPU 771032 1 has been picked up from 180488 (dashed origin) and focused over a valid target. The live region reads the slot, the container and the rule result.</p>
+      <p style="margin:0; text-wrap:pretty">All cell states appear here: empty, plug, occupied, selected, focus, valid, warning, invalid, locked (hold 180202 and 180102) and violation (the 18-04 deck stack).</p>
+      <h3 style="margin:8px 0 0; color:#E6EDF7; font-size:14px; font-weight:600">Keys</h3>
+      <p style="margin:0; font-family:'IBM Plex Mono',monospace; font-size:12.5px; line-height:1.7">← ↑ ↓ → move · Enter pick up / place · Esc cancel</p>
+    </aside>
+  </section>
+
+  <section id="s04" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">04</span><h2 style="margin:0; font-size:20px; font-weight:600">Violations</h2></div>
+      <div style="width:1440px; height:900px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Workspace" scene="violations" label="04 Violations" style="width:1440px; height:900px" hint-size="1440px,900px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">There are 7 violations: 6 errors and 1 warning. The stack weight error is selected, and the camera has flown to bay 18 with only the 4 containers involved at full color.</p>
+      <p style="margin:0; text-wrap:pretty">Each fix is computed from the live plan. Apply fix makes the move, the rule engine re-runs, and the row is replaced by a "Resolved" toast with Undo.</p>
+      <h3 style="margin:8px 0 0; color:#E6EDF7; font-size:14px; font-weight:600">Motion</h3>
+      <p style="margin:0; text-wrap:pretty">Show: camera fly 600 ms ease-in-out. A new violation row slides in over 160 ms and the badge count ticks.</p>
+    </aside>
+  </section>
+
+  <section id="s05" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">05</span><h2 style="margin:0; font-size:20px; font-weight:600">Stability drawer</h2></div>
+      <div style="width:1440px; height:900px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Workspace" scene="stability" label="05 Stability drawer" style="width:1440px; height:900px" hint-size="1440px,900px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">Opens from the Stability button on the bottom strip. Bending moment peaks at 78% and shear force at 64%, drawn against 100% limit lines and an 85% caution line. The selected bay is shaded.</p>
+      <p style="margin:0; text-wrap:pretty">Drafts: forward 12.10 m, aft 12.72 m. Trim 0.62 m by stern is drawn 8× exaggerated, with the summer load line marked.</p>
+      <h3 style="margin:8px 0 0; color:#E6EDF7; font-size:14px; font-weight:600">Motion</h3>
+      <p style="margin:0; text-wrap:pretty">The drawer slides up 220 ms ease-out. Needles and numbers count over 300 ms.</p>
+    </aside>
+  </section>
+
+  <section id="s06" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">06</span><h2 style="margin:0; font-size:20px; font-weight:600">Port playback</h2></div>
+      <div style="width:1440px; height:900px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Workspace" scene="playback" label="06 Port playback" style="width:1440px; height:900px" hint-size="1440px,900px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">PortTimeline has one stop per port, with the discharge count and restow badge from the live overstow check: Colombo 2, Jebel Ali 1. Click a stop to jump to it. Play steps through each port automatically.</p>
+      <p style="margin:0; text-wrap:pretty">Boxes for earlier ports are already gone. Boxes for the current port lift off.</p>
+      <h3 style="margin:8px 0 0; color:#E6EDF7; font-size:14px; font-weight:600">Motion</h3>
+      <p style="margin:0; text-wrap:pretty">Containers lift one after another with a 20 ms stagger, deck before hold, 500 ms each. With reduced motion they are removed at once.</p>
+    </aside>
+  </section>
+
+  <section id="s07" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">07</span><h2 style="margin:0; font-size:20px; font-weight:600">Plans list</h2></div>
+      <div style="width:1440px; height:900px; border:1px solid #26334D; overflow:hidden"><dc-import name="Stowline Plans" style="width:1440px; height:900px" hint-size="1440px,900px"></dc-import></div>
+    </div>
+    <aside style="width:360px; padding-top:44px; display:flex; flex-direction:column; gap:14px; color:#9FB0C8">
+      <h3 style="margin:0; color:#E6EDF7; font-size:14px; font-weight:600">Notes</h3>
+      <p style="margin:0; text-wrap:pretty">This is the entry screen. You can filter by status tab, Assigned to me, Has violations or search text, and sort by ETD. The selected voyage opens a preview with bay fill, stability, open violations and activity.</p>
+    </aside>
+  </section>
+
+  <section id="s08" style="display:flex; gap:40px; align-items:flex-start">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; padding:2px 8px; border:1px solid #3B9EFF; color:#3B9EFF; border-radius:4px">08</span><h2 style="margin:0; font-size:20px; font-weight:600">Components and tokens</h2></div>
+      <div style="width:1440px; border:1px solid #26334D"><dc-import name="Stowline Components" style="width:1440px" hint-size="1440px,1900px"></dc-import></div>
+    </div>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,57 @@
+# Stowline
+
+A 3D container stowage planner. Front-end portfolio project, one developer.
+
+## Source of truth
+- docs/SRS.md decides. docs/PRD.md explains why. If they disagree, stop and ask.
+- design/ is the approved prototype. Port its logic. Do not copy its structure.
+  - Stowline Workspace.dc.html, Stowline Plans.dc.html, Stowline Components.dc.html: layout, tokens, states, ARIA labels, copy.
+  - Stowline.dc.html: notes for screens 01 to 08 and motion timings.
+  - stowline-data.js: sample data generator and rule engine.
+  - workspace-vm.js: interaction logic and theme tokens.
+  - stow3d.js: 2D canvas stand-in for the 3D view (hull sections, camera presets, color scales).
+  - support.js: the design tool's runtime. Ignore it.
+- Keep every visible number, label and color as designed, unless the SRS section "From prototype to production" says otherwise.
+- The seeded plan must always give the 7 violations in the SRS section "Golden fixture".
+- Generated container IDs use the NSPU prefix only.
+
+## Stack
+React 19, TypeScript strict, Vite, React Router, Zustand, three.js with React Three Fiber v9 and drei v10, TanStack Virtual, Tailwind CSS with the design tokens as CSS variables, Comlink, Mock Service Worker with IndexedDB, Vitest, fast-check, React Testing Library, Playwright, axe, GitHub Actions. Ask before adding any other dependency.
+
+## Architecture
+- src/domain: pure TypeScript. No imports from React, three or the DOM.
+- src/state: Zustand plan store and view store.
+- src/features/<name>: plans, load-list, bay-view, viewport3d, inspector, violations, stability, playback.
+- src/api: typed client and MSW handlers.
+- Drag, click and keyboard end in the same command. Every command passes the placement check and has an inverse.
+- After a command, re-check only the changed stacks. Full validation runs in the worker.
+- Component names: TopBar, LoadList, Viewport3D, BayView, BayNavigator, StabilityStrip, Inspector, ViolationsPanel, StabilityDrawer, PortTimeline.
+
+## 3D view
+- One InstancedMesh per container size. Update only the instances that changed.
+- Pick with the raycaster and instanceId. No React re-render on pointer move.
+- Render on demand. Animate inside the frame loop, not with React state.
+- Lazy load the 3D code. Fall back to the bay view when WebGL 2 is missing or the scene throws.
+
+## Accessibility
+- Everything the 3D view does also works in the bay grid with the keyboard.
+- A status always has an icon and text.
+- Respect prefers-reduced-motion everywhere.
+
+## Workflow
+- One milestone per session. The scope is in the prompt. The gate is in the PRD section "Release plan".
+- Write domain tests first. Run lint, type check and tests before you report.
+- Small commits with conventional messages that name the FR ids.
+- Keep docs/TRACEABILITY.md current: one row per FR and NFR, with status and the test that covers it.
+- Put measured numbers in docs/BUILD_NOTES.md with the machine and browser.
+- End every milestone with a report: what was built, FR and NFR ids done, what is not done, gate result. Then stop and wait.
+
+## Never
+- Add features that are not in the SRS.
+- Change tokens, copy or sample numbers without asking.
+- Use `any`, or put domain logic in components.
+- Report a number you did not measure.
+- Use real company names or logos.
+
+## Commands
+(M0 fills this in: dev, build, lint, typecheck, test, e2e, bench.)
