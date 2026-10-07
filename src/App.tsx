@@ -1,8 +1,14 @@
+import { useState } from 'react';
+import { RouterProvider } from 'react-router/dom';
+import { createRouter } from './app/router';
+import { ThemeSync } from './app/ThemeSync';
+
 export function App() {
+  const [router] = useState(createRouter);
   return (
-    <main className="min-h-full bg-bg p-6 text-text">
-      <h1 className="text-2xl font-semibold">Stowline</h1>
-      <p className="text-text2">3D container stowage planner</p>
-    </main>
+    <>
+      <ThemeSync />
+      <RouterProvider router={router} />
+    </>
   );
 }
