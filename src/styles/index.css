@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-border: var(--border);
+  --color-border2: var(--border2);
+  --color-text: var(--text);
+  --color-text2: var(--text2);
+  --color-text3: var(--text3);
+  --color-accent: var(--accent);
+  --color-accentbg: var(--accentbg);
+  --color-onaccent: var(--onaccent);
+  --color-err: var(--err);
+  --color-errbg: var(--errbg);
+  --color-onerr: var(--onerr);
+  --color-warn: var(--warn);
+  --color-warnbg: var(--warnbg);
+  --color-ok: var(--ok);
+  --color-okbg: var(--okbg);
+  --color-hover: var(--hover);
+  --color-sel: var(--sel);
+  --color-track: var(--track);
+  --color-pod-lkcmb: var(--pod-lkcmb);
+  --color-pod-aejea: var(--pod-aejea);
+  --color-pod-nlrtm: var(--pod-nlrtm);
+  --color-pod-deham: var(--pod-deham);
+
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    background: var(--bg);
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border2);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 100ms !important;
+      transition-duration: 100ms !important;
+    }
+  }
+}
