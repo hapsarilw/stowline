@@ -51,8 +51,8 @@ test('workspace targets are 24 px or more, in Split', async ({ page }) => {
   expect(await tooSmall(page, false)).toEqual([]);
   // An open filter list covers part of the load list, so check its options on their own.
   await page.getByRole('button', { name: 'POD' }).first().click();
-  expect(await page.getByRole('option').count()).toBe(5);
-  expect(await tooSmall(page, false, '[role=option]')).toEqual([]);
+  expect(await page.getByRole('listbox').getByRole('option').count()).toBe(5);
+  expect(await tooSmall(page, false, '[role=listbox] [role=option]')).toEqual([]);
 });
 
 test('workspace targets, including every bay cell, are 24 px or more in the Bay view', async ({

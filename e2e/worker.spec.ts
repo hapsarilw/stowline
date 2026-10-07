@@ -1,12 +1,16 @@
 import { expect, test } from '@playwright/test';
 import type * as Client from '../src/worker/client';
 import type * as Domain from '../src/domain';
+import type {} from '../src/features/viewport3d/scene/Picking';
 
 // FR-41 and NFR-04: full validation runs in a Web Worker, under 200 ms, with no main thread
 // task over 50 ms. Uses the dev server, which serves unbundled modules: a conservative setting.
 
 test('full validation of 10,000 containers runs in the worker', async ({ page }) => {
   await page.goto('/');
+  // Let the 3D view finish loading first: its start-up is not part of this measurement.
+  await page.waitForFunction(() => window.__stowViewport !== undefined, null, { timeout: 30_000 });
+  await page.waitForTimeout(1000);
   const result = await page.evaluate(async () => {
     const clientUrl = '/src/worker/client.ts';
     const domainUrl = '/src/domain/index.ts';
