@@ -1,8 +1,11 @@
 import { ESLint } from 'eslint';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // NFR-22: the domain layer imports nothing from React, three.js or the DOM.
 // These tests lint a snippet as if it lived in src/domain, using the real ESLint config.
+// The first lint starts a type-aware ESLint over the whole project, which takes a few seconds.
+vi.setConfig({ testTimeout: 60_000 });
+
 const eslint = new ESLint();
 
 async function messages(code: string, filePath: string) {

@@ -10,7 +10,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'tools/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'tools/**/*.test.ts'],
+    setupFiles: ['src/test/setup.ts'],
     benchmark: { include: ['src/**/*.bench.ts'] },
     coverage: {
       provider: 'v8',
