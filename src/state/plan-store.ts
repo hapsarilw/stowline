@@ -21,11 +21,23 @@ import {
   type Violation,
   type ViolationIndex,
 } from '@/domain';
+import { activityText } from './messages';
 
 // The plan store holds the plan being edited. Every change goes through a command: it passes
 // the placement check, has an inverse, and re-checks only the stacks it touched.
 
 export type PlanHeader = Omit<Plan, 'placements' | 'shiftCount'>;
+
+/** A command in the history, with its line for the activity log. */
+export interface HistoryItem extends HistoryEntry {
+  text: string;
+}
+
+/** One entry of the plan's activity log (FR-58). */
+export interface ActivityEntry {
+  at: string;
+  text: string;
+}
 
 export interface PlanData {
   header: PlanHeader;
@@ -42,8 +54,10 @@ export interface PlanStore extends PlanData {
   stability: StabilityReading;
   /** Load list containers that are placed. */
   planned: number;
-  history: HistoryEntry[];
+  history: HistoryItem[];
   future: Command[];
+  /** Newest last. */
+  activity: ActivityEntry[];
   apply: (command: Command) => CommandResult;
   undo: () => boolean;
   redo: () => boolean;
@@ -92,8 +106,11 @@ export function initialPlanStore(): Omit<
     ...derive(data, state, validateAll(state, data.ctx)),
     history: [],
     future: [],
+    activity: [],
   };
 }
+
+const entry = (text: string): ActivityEntry => ({ at: new Date().toISOString(), text });
 
 export const usePlanStore = create<PlanStore>()((set, get) => {
   const commit = (state: StowState, touched: string[], extra: Partial<PlanStore>) => {
@@ -107,21 +124,24 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
       const s = get();
       const r = applyCommand(s.state, s.ctx, command);
       if (!r.ok) return r;
+      const text = activityText(command, s.state);
       commit(r.state, r.touched, {
-        history: [...s.history, { command, inverse: r.inverse }],
+        history: [...s.history, { command, inverse: r.inverse, text }],
         future: [],
+        activity: [...s.activity, entry(text)],
       });
       return r;
     },
     undo() {
       const s = get();
-      const entry = s.history[s.history.length - 1];
-      if (!entry) return false;
-      const r = applyCommand(s.state, s.ctx, entry.inverse, { check: false });
+      const last = s.history[s.history.length - 1];
+      if (!last) return false;
+      const r = applyCommand(s.state, s.ctx, last.inverse, { check: false });
       if (!r.ok) return false;
       commit(r.state, r.touched, {
         history: s.history.slice(0, -1),
-        future: [...s.future, entry.command],
+        future: [...s.future, last.command],
+        activity: [...s.activity, entry(`Undid: ${last.text}`)],
       });
       return true;
     },
@@ -131,9 +151,11 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
       if (!command) return false;
       const r = applyCommand(s.state, s.ctx, command, { check: false });
       if (!r.ok) return false;
+      const text = activityText(command, s.state);
       commit(r.state, r.touched, {
-        history: [...s.history, { command, inverse: r.inverse }],
+        history: [...s.history, { command, inverse: r.inverse, text }],
         future: s.future.slice(0, -1),
+        activity: [...s.activity, entry(`Redid: ${text}`)],
       });
       return true;
     },
@@ -146,6 +168,7 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
         ...derive(data, state, validateAll(state, data.ctx)),
         history: [],
         future: [],
+        activity: [],
       });
     },
   };

@@ -64,6 +64,8 @@ export interface ViewStore {
   onlyPod: string | null;
   /** Containers shown at full color, every other one dimmed. Show uses it (FR-43). */
   highlight: readonly SlotKey[] | null;
+  /** Bumped to ask the bay grid to take the keyboard focus (FR-17). */
+  gridFocusSeq: number;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   toggleLeft: () => void;
@@ -86,6 +88,7 @@ export interface ViewStore {
   toggleHull: () => void;
   setOnlyPod: (pod: string | null) => void;
   setHighlight: (keys: readonly SlotKey[] | null) => void;
+  requestGridFocus: () => void;
 }
 
 export const SPLIT_MIN = 0.25;
@@ -129,6 +132,7 @@ export function initialView(
     hullTransparent: true,
     onlyPod: null,
     highlight: null,
+    gridFocusSeq: 0,
   };
 }
 
@@ -199,6 +203,7 @@ export const useViewStore = create<ViewStore>()((set, get) => ({
   toggleHull: () => set((s) => ({ hullTransparent: !s.hullTransparent })),
   setOnlyPod: (onlyPod) => set({ onlyPod }),
   setHighlight: (highlight) => set({ highlight }),
+  requestGridFocus: () => set((s) => ({ gridFocusSeq: s.gridFocusSeq + 1 })),
 }));
 
 /** The key of the same row and tier in another view of the same 40ft bay. */
