@@ -36,6 +36,7 @@ Sources read: CLAUDE.md, docs/PRD.md, docs/SRS.md, and every file in design/ exc
 | D11 | Other plans in the plans list | Only plans with vessel geometry and placements can be opened. For the other eleven, Open plan is disabled and the reason is shown. |
 | D12 | Copy | Loading skeleton shows the computed container count. A refused move says the container returned to its slot; a refused load list drop says it returned to the load list. The Resolved toast follows the Components copy (new value, for example "Stack 18-04 deck back to 79.3 t of 90.0 t"). The plans search placeholder drops "container ID". The import control reads "Import load list". |
 | D13 | Sample identity | Generated container IDs use NSPU only. The random draw for the prefix is kept, so the seeded plan does not change. The generated IMO numbers will be checked and replaced with clearly fictional values if they match real ships. |
+| D14 | NFR-06 with the mock API in the browser | Owner decision, Oct 8, 2026: the plans route may load 300 kB gzip in total while Mock Service Worker answers the API in the browser; the app itself keeps the SRS limit of 200 kB. `npm run measure:js` checks both on the production build. When a real server replaces the mock, the 200 kB limit applies to the whole route again. |
 
 ### Other gaps and how they are handled
 
@@ -503,13 +504,13 @@ AT-04 (Apply fix: 7 to 6 violations, 18-04 at 79.3 t, Undo gives 7) and AT-07 (C
 
 Also passing: AT-01, AT-03 in full (keyboard only, version 14 to 15), AT-05 (conflict message, history kept, review, apply, save), AT-06 (not offered, disabled, approved and read only), AT-10. The plans list, the dialogs, the account menu, the conflict and the import report pass axe in both themes.
 
-### NFR-06 is not met: the plans route is 288.8 kB gzip, the target is 200 kB
+### NFR-06: the plans route is 288.8 kB gzip, the target is 200 kB (decided: D14)
 
 Measured on the production build with `npm run measure:js` (the scripts the plans route loads): 288.8 kB. Mock Service Worker is 156.1 kB of it, the app 117.7 kB, the plans page 6.1 kB. The workspace route is now lazy loaded too (it was in the main bundle), which took the main bundle from 137.6 to 117.7 kB, but msw cannot be left out: it answers the API. Options, for you to choose:
 1. Raise the plans route limit to 300 kB gzip with the mock, and keep 200 kB for the app alone (117.7 + 6.1 + about 10 kB = about 135 kB, under 200). The SRS says the mock is for version 1; with a real server the msw chunk goes away.
 2. Keep 200 kB for the whole route, and load msw only on the first API call, in parallel with the page. It does not change the bytes, only when they arrive.
 3. Replace msw with a small `fetch` wrapper that answers the same contract. It meets 200 kB, but the stack in CLAUDE.md says Mock Service Worker.
-I recommend 1.
+I recommend 1. **Decision (owner, Oct 8, 2026): option 1, recorded as D14.**
 
 ### New UI for review (D7)
 
@@ -578,7 +579,7 @@ With the machine loaded (load average 15 to 44 from other programs), some end-to
 
 | Date | What | Result | Machine | Runtime |
 | --- | --- | --- | --- | --- |
-| Oct 8, 2026 | NFR-06 plans route JavaScript (`npm run measure:js`) | 292.1 kB gzip: msw 156.1, app 118.3 (target 200 kB; still not met, see M6) | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Chrome for Testing 153, Vite 8.3.3 |
+| Oct 8, 2026 | NFR-06 plans route JavaScript (`npm run measure:js`) | app 136.1 kB gzip (limit 200), mock API 156.1, total 292.2 (limit 300 with the mock, D14): pass | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Chrome for Testing 153, Vite 8.3.3 |
 | Oct 8, 2026 | Tests | 470 unit and component tests, domain lines 99.39%; 87 end to end, 2 full runs in a row | same | Vitest 5.0.3, Playwright 1.63 |
 
 ## Measurements

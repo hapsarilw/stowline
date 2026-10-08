@@ -11,6 +11,8 @@ export default defineConfig({
     include: ['three', '@react-three/fiber', '@react-three/drei', 'comlink'],
   },
   build: {
+    // tools/measure-js.mjs reads it to tell the mock API's chunk from the app's (NFR-06).
+    manifest: true,
     // The 3D chunk (three.js) is about 1 MB before gzip. NFR-06 limits it to 350 kB gzip,
     // which docs/BUILD_NOTES.md records per milestone.
     chunkSizeWarningLimit: 1100,
