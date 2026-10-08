@@ -252,7 +252,7 @@ export function TopBar() {
       <Link
         to="/plans"
         aria-label="Stowline, all plans"
-        className="flex-none no-underline text-text"
+        className="flex h-6 flex-none items-center no-underline text-text"
       >
         <Logo />
       </Link>

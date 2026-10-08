@@ -91,7 +91,7 @@ function Row({
             }}
             // On the surface color, not transparent: on a selected row's --sel the accent text
             // falls to 4.4:1 in the light theme (WCAG AA needs 4.5:1).
-            className="h-6 cursor-pointer rounded-[3px] border border-accent bg-surface px-2 text-[12px] text-accent hover:bg-accentbg disabled:cursor-default disabled:opacity-45"
+            className="h-6 cursor-pointer rounded-[3px] border border-accent bg-surface px-2 text-[12px] text-accent hover:bg-hover disabled:cursor-default disabled:opacity-45"
           >
             {r.action.label}
           </button>
@@ -161,7 +161,7 @@ export function ViolationsPanel() {
         <button
           type="button"
           onClick={() => void runValidation()}
-          className="h-6 cursor-pointer rounded-[3px] border-0 bg-transparent px-2 text-[12px] text-accent hover:bg-accentbg"
+          className="h-6 cursor-pointer rounded-[3px] border-0 bg-transparent px-2 text-[12px] text-accent hover:bg-hover"
         >
           Re-run
         </button>

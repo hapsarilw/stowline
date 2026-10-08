@@ -8,7 +8,7 @@ export function PageHeader({ planId }: { planId: string }) {
       <Link
         to="/plans"
         aria-label="Stowline, all plans"
-        className="flex items-center gap-2 text-text no-underline"
+        className="flex h-6 items-center gap-2 text-text no-underline"
       >
         <span
           aria-hidden="true"
@@ -22,7 +22,10 @@ export function PageHeader({ planId }: { planId: string }) {
       </Link>
       <span aria-hidden="true" className="h-5 w-px bg-border" />
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[12.5px]">
-        <Link to="/plans" className="text-accent no-underline hover:underline">
+        <Link
+          to="/plans"
+          className="inline-flex h-6 items-center text-accent no-underline hover:underline"
+        >
           All plans
         </Link>
         <span aria-hidden="true" className="text-text3">

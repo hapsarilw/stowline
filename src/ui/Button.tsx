@@ -8,7 +8,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
     'border-accent bg-accent font-semibold text-onaccent hover:brightness-110 disabled:opacity-40',
   secondary:
     'border-border2 bg-raised font-medium text-text hover:border-text3 disabled:opacity-45',
-  ghost: 'border-transparent text-accent hover:bg-accentbg disabled:opacity-45',
+  ghost: 'border-transparent text-accent hover:bg-hover disabled:opacity-45',
   danger: 'border-err text-err hover:bg-errbg disabled:opacity-45',
 };
 

@@ -313,7 +313,7 @@ export function LoadList() {
         </IconButton>
       </div>
       <div className="flex-none px-3">
-        <label className="flex h-7 items-center gap-1.5 rounded border border-border2 bg-bg pr-1.5 pl-2">
+        <label className="flex h-7 items-center gap-1.5 rounded border border-border2 bg-bg pr-1.5 pl-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent focus-within:outline-solid">
           <span className="text-text3">
             <IconSearch size={13} strokeWidth={1.6} />
           </span>
@@ -365,7 +365,7 @@ export function LoadList() {
         tabIndex={0}
         onKeyDown={onKeyDown}
         className={cn(
-          'min-h-0 overflow-auto outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+          'min-h-0 overflow-auto outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent focus-visible:outline-solid',
           rows.length > 0 ? 'flex-1' : 'flex-none',
         )}
       >

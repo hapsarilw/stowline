@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openWorkspace } from './helpers';
+import { openPlans, openWorkspace } from './helpers';
 
 // NFR-13: every target is 24 x 24 px or more. A target may be smaller to look at when an
 // invisible hit area makes it 24 px, so this checks the point 11 px from the center in each
@@ -10,7 +10,7 @@ import { openWorkspace } from './helpers';
 // exception of WCAG 2.5.8. Rows of the load list are 32 px.
 
 const TARGETS =
-  'button, [role=tab], [role=checkbox], input, select, [role=separator], [role=option], [id^="bay-cell-"]';
+  'a[href], button, [role=tab], [role=checkbox], [role=menuitemradio], [role=menuitemcheckbox], [role=row][tabindex], input, textarea, select, [role=separator], [role=option], [id^="bay-cell-"]';
 
 async function tooSmall(page: Page, includeCells: boolean, only = TARGETS) {
   return page.evaluate(
@@ -62,4 +62,17 @@ test('workspace targets, including every bay cell, are 24 px or more in the Bay 
   await openWorkspace(page);
   await page.getByRole('tab', { name: 'Bay', exact: true }).click();
   expect(await tooSmall(page, true)).toEqual([]);
+});
+
+test('plans route targets, the New plan dialog and the account menu are 24 px or more', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPlans(page);
+  expect(await tooSmall(page, false)).toEqual([]);
+  await page.getByRole('button', { name: /^Account:/ }).click();
+  expect(await tooSmall(page, false, `[role=menu] :is(${TARGETS})`)).toEqual([]);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'New plan' }).click();
+  expect(await tooSmall(page, false, `[role=dialog] :is(${TARGETS})`)).toEqual([]);
 });

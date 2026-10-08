@@ -384,7 +384,7 @@ export function PlansPage() {
         <Link
           to="/plans"
           aria-label="Stowline"
-          className="flex items-center gap-2 text-text no-underline"
+          className="flex h-6 items-center gap-2 text-text no-underline"
         >
           <span
             aria-hidden="true"
@@ -407,7 +407,7 @@ export function PlansPage() {
           </a>
         </nav>
         <div className="flex-1" />
-        <label className="flex h-7 w-[280px] items-center gap-1.5 rounded border border-border2 bg-bg px-2">
+        <label className="flex h-7 w-[280px] items-center gap-1.5 rounded border border-border2 bg-bg px-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent focus-within:outline-solid">
           <span className="text-text3">
             <IconSearch size={13} strokeWidth={1.6} />
           </span>
@@ -416,7 +416,7 @@ export function PlansPage() {
             placeholder="Search vessel, voyage, port"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="min-w-0 flex-1 border-0 bg-transparent text-[12.5px] text-text outline-none"
+            className="h-6 min-w-0 flex-1 border-0 bg-transparent text-[12.5px] text-text outline-none"
           />
         </label>
         <span className="text-[12px] text-text2">Singapore planning desk</span>
@@ -504,7 +504,7 @@ export function PlansPage() {
                 <button
                   type="button"
                   onClick={() => setAsc(!asc)}
-                  className="flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-[11.5px] text-text"
+                  className="flex h-6 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-[11.5px] text-text"
                 >
                   ETD{' '}
                   <span aria-hidden="true" className="text-[8px]">
