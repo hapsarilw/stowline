@@ -2,6 +2,7 @@
 import { act, render, renderHook, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_LIMITS } from '@/domain';
+import { dispatch } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { resetStores } from '@/test/render';
 import { buildGauges, type StabilityValues } from './gauges';
@@ -94,6 +95,26 @@ describe('StabilityStrip', () => {
         screen.getByRole('group', { name: /^GM 1\.10 m · min 1\.20, Limit$/ }),
       ).toBeInTheDocument(),
     );
+  });
+});
+
+describe('StabilityStrip preview (FR-51)', () => {
+  beforeEach(resetStores);
+
+  it('shows the change on GM, trim and list while a container is over a target, and clears it', () => {
+    render(<StabilityStrip />);
+    const deltas = () => screen.queryAllByText(/^[+−]\d/);
+    expect(deltas()).toHaveLength(0);
+    act(() => dispatch({ type: 'pickFromSlot', key: '180488', via: 'pointer' }));
+    expect(deltas()).toHaveLength(0);
+    act(() => dispatch({ type: 'hover', key: '180688' }));
+    const shown = deltas().map((d) => d.textContent);
+    expect(shown).toHaveLength(3);
+    expect(shown[0]).toMatch(/^[+−]\d\.\d{3}$/);
+    expect(shown[1]).toMatch(/^[+−]\d\.\d{2} m$/);
+    expect(shown[2]).toMatch(/^[+−]\d\.\d{2}°$/);
+    act(() => dispatch({ type: 'cancel' }));
+    expect(deltas()).toHaveLength(0);
   });
 });
 

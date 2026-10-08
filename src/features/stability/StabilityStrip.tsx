@@ -2,6 +2,7 @@ import { usePlanStore } from '@/state/plan-store';
 import { cn } from '@/ui/cn';
 import { IconCheckCircle, IconChevronUp, IconError, IconWarning } from '@/ui/icons';
 import { buildGauges, type GaugeModel } from './gauges';
+import { deltaLabels, useStabilityPreview } from './preview';
 import { useTween } from './useTween';
 
 const TONE_TEXT = { ok: 'text-ok', check: 'text-warn', limit: 'text-err' } as const;
@@ -45,7 +46,10 @@ function Gauge({ g }: { g: GaugeModel }) {
           style={{ left: `${g.mark}%` }}
         />
         {g.delta ? (
-          <span className="absolute -top-[19px] right-0 rounded-[2px] bg-accentbg px-[3px] font-mono text-[10.5px] font-semibold text-accent">
+          <span
+            data-testid="stability-delta"
+            className="absolute -top-[19px] right-0 rounded-[2px] bg-accentbg px-[3px] font-mono text-[10.5px] font-semibold text-accent"
+          >
             {g.delta}
           </span>
         ) : null}
@@ -54,12 +58,14 @@ function Gauge({ g }: { g: GaugeModel }) {
   );
 }
 
-/** GM, trim, list and bending moment with shear force, always visible (FR-50). */
+/** GM, trim, list and bending moment with shear force, always visible (FR-50, FR-51, FR-52). */
 export function StabilityStrip() {
   const stability = usePlanStore((s) => s.stability);
   const limits = usePlanStore((s) => s.ctx.vessel.limits);
   const target = [stability.gm, stability.trim, stability.list, stability.bmPct, stability.sfPct];
   const [gm, trim, list, bmPct, sfPct] = useTween(target);
+  // FR-51: while a container is held over a slot, the change it would make.
+  const preview = useStabilityPreview();
   const gauges = buildGauges(
     { gm: gm!, trim: trim!, list: list!, bmPct: bmPct!, sfPct: sfPct! },
     {
@@ -70,6 +76,7 @@ export function StabilityStrip() {
       sfPct: stability.sfPct,
     },
     limits,
+    preview ? deltaLabels(preview) : {},
   );
 
   return (
