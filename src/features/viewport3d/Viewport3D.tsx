@@ -12,7 +12,17 @@ import { hasWebGL2 } from './webgl';
 // load on demand (FR-25 shows the skeleton meanwhile). Without WebGL 2, or when the scene fails,
 // it offers the bay view, which has every action (FR-24, NFR-17).
 
-const ViewportScene = lazy(() => import('./scene/ViewportScene'));
+const loadScene = () => import('./scene/ViewportScene');
+const ViewportScene = lazy(loadScene);
+
+/**
+ * Starts loading three.js and the scene while the plan's data is still on its way, so the 3D
+ * view does not wait for its chunk after the data (M7). Nothing loads without WebGL 2. A failure
+ * here is ignored: the lazy view loads again and shows its own fallback.
+ */
+export function preloadViewport(): void {
+  if (hasWebGL2()) loadScene().catch(() => undefined);
+}
 
 /** The loading skeleton from the components sheet. */
 export function Skeleton() {

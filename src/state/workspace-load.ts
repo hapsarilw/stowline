@@ -26,8 +26,14 @@ export interface LoadedPlan {
 
 /** Fetches a plan, its load list and its vessel. Touches no store. Throws ApiError. */
 export async function fetchPlan(planId: string): Promise<LoadedPlan> {
-  const [detail, items] = await Promise.all([api.getPlan(planId), api.getLoadList(planId)]);
-  const { vessel } = await api.getVessel(detail.vesselId);
+  // The vessel needs only the plan: ask for it as soon as the plan arrives, while the load list
+  // is still on its way (M7: about 220 ms less to open a plan).
+  const planned = api.getPlan(planId);
+  const [detail, items, { vessel }] = await Promise.all([
+    planned,
+    api.getLoadList(planId),
+    planned.then((d) => api.getVessel(d.vesselId)),
+  ]);
   const loadList = items.map((x) => x.container);
   const ctx = createStowContext({
     vessel,

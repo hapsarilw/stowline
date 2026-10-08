@@ -6,6 +6,7 @@ import { describeError } from '@/state/api';
 import { useViewStore } from '@/state/view-store';
 import { writeUnsaved } from '@/state/unsaved';
 import { fetchPlan, showPlan } from '@/state/workspace-load';
+import { preloadViewport } from '@/features/viewport3d/Viewport3D';
 import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
 import { IconError } from '@/ui/icons';
@@ -37,6 +38,7 @@ export function PlanRoute() {
   // person has started working.
   useEffect(() => {
     let current = true;
+    preloadViewport();
     void (async () => {
       try {
         const loaded = await fetchPlan(planId);
