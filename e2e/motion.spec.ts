@@ -33,13 +33,33 @@ const longest = (page: Page) =>
     return { longest: w.__longest, seen: w.__seen, names: w.__names };
   });
 
-/** Frames the 3D view draws for one action, until it is at rest. */
-async function framesFor(page: Page, action: () => Promise<void>): Promise<number> {
+/**
+ * How long the 3D view keeps drawing for one action: the time from the first to the last frame
+ * it draws, until it is at rest. A 600 ms flight lasts about 600 ms at any frame rate; a jump
+ * draws a frame or two. (Counting frames depended on the machine's speed.)
+ */
+async function drawsFor(page: Page, action: () => Promise<void>): Promise<number> {
   await settle(page);
-  const before = await page.evaluate(() => window.__stowViewport!.frames());
+  await page.evaluate(() => {
+    const w = window as unknown as { __draws: number[]; __drawsOn: boolean };
+    w.__draws = [];
+    w.__drawsOn = true;
+    let last = window.__stowViewport!.frames();
+    const watch = (t: number) => {
+      const now = window.__stowViewport!.frames();
+      if (now !== last) w.__draws.push(t);
+      last = now;
+      if (w.__drawsOn) requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+  });
   await action();
   await settle(page);
-  return (await page.evaluate(() => window.__stowViewport!.frames())) - before;
+  return page.evaluate(() => {
+    const w = window as unknown as { __draws: number[]; __drawsOn: boolean };
+    w.__drawsOn = false;
+    return w.__draws.length < 2 ? 0 : w.__draws.at(-1)! - w.__draws[0]!;
+  });
 }
 
 test('with reduced motion, nothing on either route animates for more than 100 ms (NFR-15)', async ({
@@ -65,12 +85,12 @@ test('with reduced motion, nothing on either route animates for more than 100 ms
   await expect(page.getByRole('region', { name: 'Stability details' })).toBeVisible();
   await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: /^Violations/ }).click();
-  const show = await framesFor(page, () =>
+  const show = await drawsFor(page, () =>
     page.getByRole('button', { name: 'Show error · stack weight at 180488' }).click(),
   );
   await page.keyboard.press('Escape');
   const toolbar = page.getByRole('toolbar', { name: '3D view controls' });
-  const preset = await framesFor(page, () =>
+  const preset = await drawsFor(page, () =>
     toolbar.getByRole('button', { name: 'Top', exact: true }).click(),
   );
   await page.getByRole('button', { name: 'Playback' }).click();
@@ -83,9 +103,9 @@ test('with reduced motion, nothing on either route animates for more than 100 ms
   const { longest: ms, seen, names } = await longest(page);
   expect(seen).toBeGreaterThan(0);
   expect(ms, names.join(', ')).toBeLessThanOrEqual(100);
-  // A 600 ms flight draws about 36 frames; a jump draws a handful.
-  expect(show).toBeLessThanOrEqual(6);
-  expect(preset).toBeLessThanOrEqual(6);
+  // The camera jumps: it stops drawing within 100 ms (FR-66), where a flight takes 600 ms.
+  expect(show).toBeLessThanOrEqual(100);
+  expect(preset).toBeLessThanOrEqual(100);
 });
 
 test('without reduced motion, the same camera move is animated (control)', async ({ page }) => {
@@ -95,8 +115,8 @@ test('without reduced motion, the same camera move is animated (control)', async
   await openPlanFromList(page);
   await wait3D(page);
   const toolbar = page.getByRole('toolbar', { name: '3D view controls' });
-  const preset = await framesFor(page, () =>
+  const preset = await drawsFor(page, () =>
     toolbar.getByRole('button', { name: 'Top', exact: true }).click(),
   );
-  expect(preset).toBeGreaterThan(6);
+  expect(preset).toBeGreaterThanOrEqual(500);
 });
