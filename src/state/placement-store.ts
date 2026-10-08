@@ -55,7 +55,7 @@ export function runCommand(command: Command): CommandResult {
   const r = plan.apply(command);
   const view = useViewStore.getState();
   if (!r.ok) {
-    view.showToast({ kind: 'err', title: 'Not done', message: r.reason });
+    view.showToast({ kind: 'err', title: "Can't make this change", message: r.reason });
     return r;
   }
   const after = usePlanStore.getState();
