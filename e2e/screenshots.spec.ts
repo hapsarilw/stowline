@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { openWorkspace } from './helpers';
+import { openPlans, openWorkspace } from './helpers';
 import type {} from '../src/features/viewport3d/scene/Picking';
 
 // Screens 01 (workspace, 1440 and 1920, dark and light), 03 (bay view), 04 (violations),
-// 05 (stability drawer) and 06 (port playback).
+// 05 (stability drawer), 06 (port playback) and 07 (plans list).
 // Baselines are in e2e/screenshots.spec.ts-snapshots, made on the machine in docs/BUILD_NOTES.md.
 
 const sizes = [
@@ -116,5 +116,25 @@ for (const theme of ['dark', 'light'] as const) {
       `playback-3d-1440-${theme}.png`,
       { maxDiffPixelRatio: 0.02 },
     );
+  });
+}
+
+// 07. The "Updated" column is "N min" since the page opened, so it is masked.
+for (const theme of ['dark', 'light'] as const) {
+  test(`plans list 1440 ${theme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openPlans(page, theme);
+    await expect(
+      page
+        .getByRole('complementary', { name: 'Plan preview' })
+        .getByText('Rina Adiputri validated the plan: 6 errors, 1 warning'),
+    ).toBeVisible();
+    await expect(page).toHaveScreenshot(`plans-1440-${theme}.png`, {
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.002,
+      mask: [
+        page.getByRole('gridcell').filter({ hasText: /^(\d+ (min|h|d)|Yesterday|Just now|—)$/ }),
+      ],
+    });
   });
 }

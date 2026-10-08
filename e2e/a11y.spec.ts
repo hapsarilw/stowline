@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { openWorkspace, wait3D } from './helpers';
+import { loadListFile, openPlans, openWorkspace, switchRole, wait3D } from './helpers';
 
 // NFR-09: no critical or serious axe findings, in both themes. Gate for M2.
 
@@ -86,6 +86,53 @@ for (const theme of ['dark', 'light'] as const) {
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Playback' }).click();
     await page.getByRole('button', { name: 'Pause' }).click();
+    expect(blocking(await scan(page))).toEqual([]);
+  });
+}
+
+for (const theme of ['dark', 'light'] as const) {
+  test(`plans list, dialogs and the account menu, ${theme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openPlans(page, theme);
+    expect(blocking(await scan(page))).toEqual([]);
+    await page.getByRole('button', { name: /^Account:/ }).click();
+    expect(blocking(await scan(page))).toEqual([]);
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'New plan' }).click();
+    await page.getByRole('dialog', { name: 'New plan' }).getByLabel('Voyage').fill('x');
+    await page.getByRole('button', { name: 'Create plan' }).click();
+    await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+    expect(blocking(await scan(page))).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test(`import report, conflict and review states, ${theme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openWorkspace(page, theme);
+    await wait3D(page);
+    await page.getByTestId('import-file').setInputFiles(loadListFile());
+    await expect(page.getByRole('dialog', { name: 'Import load list' })).toBeVisible();
+    expect(blocking(await scan(page))).toEqual([]);
+    await page.getByRole('button', { name: 'Done' }).click();
+    // A conflict, with its review dialog.
+    await page.getByRole('button', { name: /^Account:/ }).click();
+    await page.getByLabel('Next save returns 409').check();
+    await page.keyboard.press('Escape');
+    await page.locator('#bay-cell-180488').click();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: 'Save' }).click();
+    const alert = page.getByRole('alert').filter({ hasText: 'saved version 15' });
+    await expect(alert).toBeVisible();
+    await page.waitForTimeout(300);
+    expect(blocking(await scan(page))).toEqual([]);
+    await alert.getByRole('button', { name: 'Review changes' }).click();
+    expect(blocking(await scan(page))).toEqual([]);
+    await page.keyboard.press('Escape');
+    // The workflow buttons and the read only state.
+    await switchRole(page, 'Senior planner');
+    await page.getByRole('button', { name: 'Return' }).count();
     expect(blocking(await scan(page))).toEqual([]);
   });
 }

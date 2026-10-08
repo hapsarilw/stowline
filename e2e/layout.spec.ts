@@ -18,7 +18,7 @@ for (const [width, height] of [
       expect(box, name).not.toBeNull();
       expect(box!.x + box!.width, name).toBeLessThanOrEqual(width);
     }
-    const avatar = await page.getByRole('img', { name: /^Account/ }).boundingBox();
+    const avatar = await page.getByRole('button', { name: /^Account/ }).boundingBox();
     expect(avatar!.x + avatar!.width).toBeLessThanOrEqual(width);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,

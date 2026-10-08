@@ -7,7 +7,7 @@ import type {} from '../src/features/viewport3d/scene/Picking';
 // task over 50 ms. Uses the dev server, which serves unbundled modules: a conservative setting.
 
 test('full validation of 10,000 containers runs in the worker', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/plans/042W-SGSIN');
   // Let the 3D view finish loading first: its start-up is not part of this measurement.
   await page.waitForFunction(() => window.__stowViewport !== undefined, null, { timeout: 30_000 });
   await page.waitForTimeout(1000);
