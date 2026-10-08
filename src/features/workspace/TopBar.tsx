@@ -1,5 +1,6 @@
 import { PODS, ROTATION } from '@/domain';
 import { runValidation } from '@/state/actions';
+import { redoLast, undoLast } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { CountBadge, PodSwatch, StatusBadge } from '@/ui/Badges';
@@ -148,20 +149,10 @@ export function TopBar() {
       </div>
       <div className="min-w-2 flex-1" />
       <div className="flex flex-none gap-0.5">
-        <IconButton
-          label="Undo"
-          title="Undo (Ctrl+Z)"
-          disabled={!canUndo}
-          onClick={() => usePlanStore.getState().undo()}
-        >
+        <IconButton label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undoLast}>
           <IconUndo size={15} />
         </IconButton>
-        <IconButton
-          label="Redo"
-          title="Redo (Ctrl+Shift+Z)"
-          disabled={!canRedo}
-          onClick={() => usePlanStore.getState().redo()}
-        >
+        <IconButton label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo} onClick={redoLast}>
           <IconRedo size={15} />
         </IconButton>
       </div>
