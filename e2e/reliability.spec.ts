@@ -34,11 +34,13 @@ test('the 3D renderer fails while it starts: the error stays inside the 3D view 
   // Viewport3D.test.tsx instead: it reaches the same error boundary.
   await page.addInitScript(() => {
     const proto = HTMLCanvasElement.prototype;
-    const real = proto.getContext;
+    const real = Object.getOwnPropertyDescriptor(proto, 'getContext')!.value as (
+      ...a: unknown[]
+    ) => object | null;
     proto.getContext = function (this: HTMLCanvasElement, type: string, ...rest: unknown[]) {
-      const ctx = (real as (...a: unknown[]) => unknown).call(this, type, ...rest);
+      const ctx = real.call(this, type, ...rest);
       if (!this.isConnected || type !== 'webgl2' || !ctx) return ctx;
-      return new Proxy(ctx as object, {
+      return new Proxy(ctx, {
         get(target, key) {
           if (key === 'getParameter' || key === 'getShaderPrecisionFormat')
             return () => {
