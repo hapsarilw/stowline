@@ -29,44 +29,97 @@ export const ROLES: readonly RoleInfo[] = [
 
 export const roleInfo = (role: Role): RoleInfo => ROLES.find((r) => r.id === role)!;
 
+/** Every path that can change a plan. Each one asks `canEdit` before it acts (M8). */
+export const EDIT_ACTIONS = [
+  'command',
+  'drag',
+  'pickUp',
+  'applyFix',
+  'import',
+  'save',
+  'undo',
+  'redo',
+  'revise',
+] as const;
+
+export type EditAction = (typeof EDIT_ACTIONS)[number];
+
+export type Gate = { ok: true } | { ok: false; reason: string };
+
+const NO_ROLE = 'Your role cannot change plans.';
+const NO_APPROVED = 'This plan is approved and read only. Revise it to make changes.';
+const NO_REVIEW = 'This plan is in review and read only until it is returned or approved.';
+const NO_REVISE = 'Only an approved plan can be revised.';
+
 /**
- * Approved plans are read only (FR-63). A plan in review is locked too, as design 10 and 11
- * draw it: the decision is the senior planner's, and a change means a Return first. Roles
- * without editing are always read only.
+ * The one gate for every change to a plan (decisions 1, 2 and 4). A Draft can be changed by the
+ * vessel planner and the senior planner. In review and Approved are locked for every role; an
+ * approved plan says so first, whoever looks. Revise is the one action on an approved plan.
  */
-export const canEditPlan = (role: Role, status: PlanStatus): boolean =>
-  roleInfo(role).canEdit && status === 'draft';
-
-/** Why a plan cannot be changed, in the words of design 11, or null when it can. */
-export function readOnlyReason(role: Role, status: PlanStatus): string | null {
-  if (canEditPlan(role, status)) return null;
-  if (status === 'approved')
-    return 'This plan is approved and read only. Revise it to make changes.';
-  if (status === 'in_review')
-    return 'This plan is in review and read only until it is returned or approved.';
-  return 'Your role cannot change plans.';
+export function canEdit(plan: { status: PlanStatus }, role: Role, action: EditAction): Gate {
+  const editor = roleInfo(role).canEdit;
+  if (action === 'revise') {
+    if (plan.status !== 'approved') return { ok: false, reason: NO_REVISE };
+    return editor ? { ok: true } : { ok: false, reason: NO_ROLE };
+  }
+  if (plan.status === 'approved') return { ok: false, reason: NO_APPROVED };
+  if (plan.status === 'in_review') return { ok: false, reason: NO_REVIEW };
+  return editor ? { ok: true } : { ok: false, reason: NO_ROLE };
 }
 
-export const canSendForReview = (role: Role, status: PlanStatus): boolean =>
-  roleInfo(role).canEdit && status === 'draft';
+const remain = (errors: number): string =>
+  errors === 1
+    ? '1 error remains. Return the plan to fix it.'
+    : `${errors} errors remain. Return the plan to fix them.`;
 
-/** Not offered to anyone but the senior planner, then disabled while errors remain (AT-06). */
-export function approveState(
+/** What a role may do with a plan in its status: the design's status × role table (M6). */
+export interface PlanActions {
+  send: boolean;
+  ret: boolean;
+  /** Not offered, blocked with its reason while errors remain (decision 3), or ready. */
+  approve: { state: 'hidden' | 'blocked' | 'ready'; reason: string | null };
+  revise: boolean;
+  export: boolean;
+  /** The primary button in the top bar (design 10): Save on a Draft, the decision in review. */
+  primary: 'save' | 'approve' | 'revise';
+  /** The note under the preview buttons (design 15), or null. */
+  note: string | null;
+}
+
+export function planActions(
+  plan: { status: PlanStatus; errors: number; openable?: boolean },
   role: Role,
-  status: PlanStatus,
-  errors: number,
-): 'hidden' | 'disabled' | 'enabled' {
-  if (role !== 'senior' || status !== 'in_review') return 'hidden';
-  return errors > 0 ? 'disabled' : 'enabled';
+): PlanActions {
+  const { status, errors } = plan;
+  const openable = plan.openable ?? true;
+  const editor = roleInfo(role).canEdit;
+  const senior = role === 'senior';
+  const approve: PlanActions['approve'] =
+    senior && status === 'in_review'
+      ? errors > 0
+        ? { state: 'blocked', reason: remain(errors) }
+        : { state: 'ready', reason: null }
+      : { state: 'hidden', reason: null };
+  const note =
+    approve.state === 'blocked'
+      ? approve.reason
+      : !openable
+        ? null
+        : !editor
+          ? 'Opens read only'
+          : status === 'in_review' && !senior
+            ? 'Opens read only until returned'
+            : null;
+  return {
+    send: editor && status === 'draft',
+    ret: senior && status === 'in_review',
+    approve,
+    revise: canEdit(plan, role, 'revise').ok,
+    export: status === 'approved' && openable,
+    primary: status === 'draft' ? 'save' : status === 'in_review' ? 'approve' : 'revise',
+    note,
+  };
 }
-
-export const canReturn = (role: Role, status: PlanStatus): boolean =>
-  role === 'senior' && status === 'in_review';
-
-export const canRevise = (role: Role, status: PlanStatus): boolean =>
-  roleInfo(role).canEdit && status === 'approved';
-
-export const canExport = (_role: Role, status: PlanStatus): boolean => status === 'approved';
 
 export type TransitionResult =
   { ok: true } | { ok: false; status: 403 | 409 | 422; message: string };
@@ -80,7 +133,8 @@ export function transition(
   comment: string,
 ): TransitionResult {
   if (from === 'draft' && to === 'in_review') {
-    return canSendForReview(role, from)
+    // Allowed with errors (decision 4): the senior planner sees them and returns the plan.
+    return roleInfo(role).canEdit
       ? { ok: true }
       : { ok: false, status: 403, message: 'Your role cannot send this plan for review.' };
   }
@@ -96,14 +150,14 @@ export function transition(
       : { ok: true };
   }
   if (from === 'in_review' && to === 'draft') {
-    if (!canReturn(role, from))
+    if (role !== 'senior')
       return { ok: false, status: 403, message: 'Only a senior planner can return a plan.' };
     return comment.trim() === ''
       ? { ok: false, status: 422, message: 'A comment is required when a plan is returned.' }
       : { ok: true };
   }
   if (from === 'approved' && to === 'draft') {
-    return canRevise(role, from)
+    return canEdit({ status: from }, role, 'revise').ok
       ? { ok: true }
       : { ok: false, status: 403, message: 'Your role cannot revise this plan.' };
   }

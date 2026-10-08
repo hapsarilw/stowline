@@ -12,6 +12,7 @@ export * from './rules/validate';
 export * from './rules/placement';
 export * from './rules/fixes';
 export * from './commands/commands';
+export * from './commands/replay';
 export * from './stability/gauges';
 export * from './stability/model';
 export * from './workflow/permissions';
