@@ -135,3 +135,26 @@ export const IconMoon = (p: IconProps) => (
     <path d="M13.5 9.6A5.8 5.8 0 0 1 6.4 2.5a5.8 5.8 0 1 0 7.1 7.1z" />
   </Svg>
 );
+export const IconEye = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z" />
+    <circle cx="8" cy="8" r="2" />
+  </Svg>
+);
+export const IconRestow = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2 8a6 6 0 0 1 10.2-4.2L14 5.5M14 2v3.5h-3.5M14 8a6 6 0 0 1-10.2 4.2L2 10.5M2 14v-3.5h3.5" />
+  </Svg>
+);
+/** Filled media icons for the port timeline. */
+const Solid = ({ d, size = 13 }: { d: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+    <path d={d} />
+  </svg>
+);
+export const IconPlay = (p: { size?: number }) => <Solid d="M4 2.5v11l9-5.5z" {...p} />;
+export const IconPause = (p: { size?: number }) => <Solid d="M4 3h3v10H4zM9 3h3v10H9z" {...p} />;
+export const IconPrevious = (p: { size?: number }) => (
+  <Solid d="M3 3h2v10H3zM13 3v10L6 8z" {...p} />
+);
+export const IconNext = (p: { size?: number }) => <Solid d="M11 3h2v10h-2zM3 3v10l7-5z" {...p} />;
