@@ -27,11 +27,21 @@ export default defineConfig({
     benchmark: { include: ['src/**/*.bench.ts'] },
     coverage: {
       provider: 'v8',
-      include: ['src/domain/**/*.ts'],
-      exclude: ['src/domain/**/*.test.ts', 'src/domain/**/*.bench.ts', 'src/domain/testing/**'],
-      reporter: ['text-summary', 'text', 'html'],
-      // NFR-23: domain 90% of lines or more.
-      thresholds: { lines: 90 },
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.bench.ts',
+        'src/domain/testing/**',
+        'src/test/**',
+        // Start-up only, covered by every end-to-end test: the entry point and the service
+        // worker start. Nothing else is left out.
+        'src/main.tsx',
+        'src/api/mock/browser.ts',
+        'src/**/*.d.ts',
+      ],
+      reporter: ['text-summary', 'text', 'html', 'json-summary'],
+      // NFR-23: the whole app 70% of lines or more, the domain 90% or more.
+      thresholds: { lines: 70, 'src/domain/**': { lines: 90 } },
     },
   },
 });
