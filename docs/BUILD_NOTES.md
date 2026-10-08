@@ -665,20 +665,20 @@ The 3D view fails safe in each way a test can make it fail: no WebGL (AT-08), a 
 
 `vercel.json` builds with `npm run build`, serves `dist`, sends every route that is not a file to `index.html`, caches hashed assets for a year and never caches `mockServiceWorker.js`. Preview deployments for every branch come from Vercel's Git integration once the repository is imported in Vercel. Not deployed: the Vercel CLI on this machine has no valid login (`vercel whoami`: "The specified token is not valid").
 
-### Decisions for the owner
+### Decisions (Oct 8, 2026)
 
-| ID | Topic | What I did | Please decide |
-| --- | --- | --- | --- |
-| D15 | Which "fast 4G" NFR-07 means | Lighthouse on Chrome DevTools' Fast 4G (165 ms, 9 Mbps), desktop: LCP 1.9 s passes, performance 0.84 misses 90. Lighthouse's own desktop profile (40 ms, 10 Mbps): 1.00. CI fails on LCP and accessibility, warns on the score | Keep 165 ms and accept 0.84 for now, or measure with Lighthouse's desktop profile |
-| D16 | Fonts | Served with the app instead of from Google Fonts (the pre-build review said "Fonts load from Google Fonts, as in the design"). Same files, nothing looks different | Keep |
-| D17 | Ghost button hover | `--hover` instead of `--accentbg`, for contrast; the design has no hover fill | Keep |
+| ID | Topic | Decision |
+| --- | --- | --- |
+| D15 | Which "fast 4G" NFR-07 means | Lighthouse's own desktop profile (40 ms, 10 Mbps), decided by the owner. `lighthouserc.json` uses it and CI fails under a performance score of 90 or an LCP of 2.5 s. Result: 1.00, LCP 0.7 s. The Chrome DevTools Fast 4G numbers (165 ms: 0.84, LCP 1.9 s) stay in the measurements for reference |
+| D16 | Fonts | Served with the app instead of from Google Fonts (the pre-build review said "Fonts load from Google Fonts, as in the design"). Same files, nothing looks different. Kept (owner left it to me) |
+| D17 | Ghost button hover | `--hover` instead of `--accentbg`, for contrast; the design has no hover fill. Kept (owner left it to me) |
+| M6b | A plan in review is read only; the strip says "This plan is in review and read only until it is returned or approved." | Kept as built, from designs 10 and 11 (owner left it to me) |
 
 ### Gate result
 
-Every NFR has a measured result or a written reason (docs/TRACEABILITY.md: 87 of 91 rows done). The four that are not done:
+Every NFR has a measured result or a written reason (docs/TRACEABILITY.md: 88 of 91 rows done). The three that are not done:
 
 - NFR-01, frame rate on a mid-range laptop with integrated graphics: not measured, no such machine here. On the M2 Pro the GPU takes 1.19 ms per frame. To measure: `npm run build && npm run bench:3d` on that laptop.
-- NFR-07, Lighthouse 90: 0.84 on the 165 ms profile, D15.
 - NFR-09 and NFR-14: the screen reader check needs a person; the steps are above.
 
 ### Not done in M7
@@ -700,7 +700,7 @@ All on a MacBook Pro Mac14,9, Apple M2 Pro, 32 GB, macOS 26.6.2, Node 25.9.0.
 | Oct 8, 2026 | NFR-04 full validation in the worker, 5 runs | round trip 17.2 to 25.6 ms, worker 9.1 to 16.5 ms, no long task; seeded plan 7 violations | Chrome for Testing 153, end-to-end build |
 | Oct 8, 2026 | NFR-06 `npm run measure:js` | plans route app 136.2 kB gzip, mock API 156.1, total 292.3: pass; 3D chunk 262.9 kB | Chrome for Testing 153 |
 | Oct 8, 2026 | NFR-07 Lighthouse 12.6.1 on /plans, 3 runs, desktop, 1280 × 720, simulated 165 ms and 9 Mbps | performance 0.84, FCP 1.7 s, LCP 1.9 s, Speed Index 1.7 s, TBT 0 ms, CLS 0.001; accessibility 1.00, best practices 1.00 | Google Chrome 155.0.8059.39 |
-| Oct 8, 2026 | NFR-07 the same with 40 ms and 10 Mbps | performance 1.00, FCP 0.5 s, LCP 0.7 s | Google Chrome 155.0.8059.39 |
+| Oct 8, 2026 | NFR-07 the same with 40 ms and 10 Mbps (D15, the profile CI uses), 3 runs | performance 1.00, FCP 0.5 s, LCP 0.7 s, TBT 0 ms, CLS 0.001; accessibility 1.00, best practices 1.00 | Google Chrome 155.0.8059.39 |
 | Oct 8, 2026 | Workspace load, 3D view ready, first visit, fast 4G (`COLD=1 NETWORK=fast4g`), median of 9 | before the fixes 4,074 ms; vessel and 3D chunk in parallel 3,902 ms; fonts with the app 1,824 ms | Chrome for Testing 153 |
 | Oct 8, 2026 | Workspace load, returning visit, no throttling, median of 15 | 1,145 ms before, 1,112 and 1,150 ms after (within the mock API's random delay) | Chrome for Testing 153 |
 | Oct 8, 2026 | NFR-08 heap, 200 commands and 200 undos | cold 11.13 to 16.07 MB (44%, 3.6 MB optimized code); after warm-up 16.07 to 16.42 MB (2.23%) | Chrome for Testing 153 |

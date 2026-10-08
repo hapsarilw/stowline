@@ -77,7 +77,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # NFR-07: LCP under 2.5 s on fast 4G and a performance score of 90 or more (lighthouserc.json).
+      # NFR-07: LCP under 2.5 s and a performance score of 90 or more, on Lighthouse's desktop
+      # profile, 40 ms and 10 Mbps (D15, lighthouserc.json).
       - run: npm run lighthouse
       - uses: actions/upload-artifact@v4
         if: always()
