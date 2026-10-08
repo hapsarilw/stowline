@@ -582,6 +582,132 @@ With the machine loaded (load average 15 to 44 from other programs), some end-to
 | Oct 8, 2026 | NFR-06 plans route JavaScript (`npm run measure:js`) | app 136.1 kB gzip (limit 200), mock API 156.1, total 292.2 (limit 300 with the mock, D14): pass | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Chrome for Testing 153, Vite 8.3.3 |
 | Oct 8, 2026 | Tests | 470 unit and component tests, domain lines 99.39%; 87 end to end, 2 full runs in a row | same | Vitest 5.0.3, Playwright 1.63 |
 
+## M7 Quality (Oct 8, 2026)
+
+No new feature. An accessibility audit, a performance pass with a profiler, the ten acceptance scenarios on three engines, reliability tests, coverage for the whole app, CI and the deploy setup.
+
+### Accessibility audit: findings and fixes
+
+| Finding | Fix | Test |
+| --- | --- | --- |
+| The two search fields (plans and load list) showed no focus: the input has no outline and the field around it had no focus style (WCAG 2.4.7) | The field shows the 2 px accent ring while the input has focus, as every other control does | `e2e/keyboard.spec.ts` |
+| The load list grid showed no focus when tabbed into before a row was active: `outline-none` with `focus-visible:outline-2` resolves to `outline-style: none` in Tailwind 4 | `focus-visible:outline-solid` | `e2e/keyboard.spec.ts` |
+| Accent text on a hovered ghost button (Save in review, Show, Apply fix) was 4.4998:1 in the light theme. The design gives these buttons no hover fill; I had added `--accentbg` | The hover fill is `--hover` (4.69:1 light, 5.70:1 dark). No token changed | `src/styles/tokens.test.ts` |
+| Under 24 px: the logo links (20 px), the plans search field (17 px), the ETD sort button (16 px), the breadcrumb link | 24 px high, nothing moves | `e2e/target-size.spec.ts` (now both routes, the dialog and the menu) |
+
+Checked and found working: a Tab walk of both routes reaches every control, shows a ring at each stop, wraps round and never goes back to a region it left; dialogs keep focus until Esc and give it back to the opener; every function has a keyboard path (plans rows take Enter and Space, the split bar takes the arrows, Home and End); reduced motion holds on both routes (nothing over 100 ms, the camera jumps); every text pair the components use is 4.5:1 or more and every focus, outline and icon pair 3:1 or more in both themes; axe finds nothing critical or serious on both routes in both themes; Lighthouse accessibility 1.00.
+
+### WCAG 2.2 AA review
+
+| Criteria | How | Result |
+| --- | --- | --- |
+| 1.1.1 Non-text content | Icons are `aria-hidden` next to text or have a label; the 3D canvas has a text alternative pointing to the bay grid | Pass (axe, component tests) |
+| 1.3.1, 1.3.2 Info and relationships, sequence | Landmarks, headings, grids with rows and cells, tables in dialogs; the Tab walk follows the regions in order | Pass (axe, keyboard walk) |
+| 1.4.1 Use of color | Every status has an icon and text; every container shows its POD code in the bay grid | Pass (NFR-12) |
+| 1.4.3, 1.4.11 Contrast | Token test and axe; control borders are the 1.4.11 exception (D9) | Pass |
+| 1.4.4, 1.4.10, 1.4.12 Resize, reflow, text spacing | The app supports 1280 × 720 and up (SRS); reflow to 320 px is not a target of a desktop planning tool | Not tested below 1280 px: out of scope by the SRS |
+| 1.4.13 Content on hover or focus | Tooltips show on hover and focus, stay while hovered, close with Esc | Pass (M4, M6b tests) |
+| 2.1.1, 2.1.2 Keyboard, no trap | Keyboard walk, AT-03 with no pointer, dialogs | Pass |
+| 2.2.1 Timing | Toasts stay while hovered or focused; nothing important is only in a toast | Pass |
+| 2.3.1 Flashes | Nothing flashes; looping animations run once with reduced motion | Pass |
+| 2.4.3, 2.4.7, 2.4.11 Focus order, visible, not obscured | Keyboard walk checks a ring at each stop; the conflict alert and toasts sit bottom centre, away from the focused control | Pass after the fixes above |
+| 2.5.7 Dragging | Every drag has a click and keyboard path (pick up, place) | Pass (AT-03) |
+| 2.5.8 Target size | 24 px test on both routes | Pass after the fixes above |
+| 3.2.x Predictable | No change of context on focus or input | Pass (review) |
+| 3.3.1, 3.3.2, 3.3.3 Errors, labels, suggestions | Field errors in words next to the field (New plan, Return), import reasons per row | Pass (M6 tests) |
+| 4.1.2, 4.1.3 Name, role, value; status messages | axe; slot descriptions polite, refusals assertive | Pass by test. A screen reader listening check needs a person (NFR-14) |
+
+Screen reader check, for a person (NFR-14): with VoiceOver on Safari and NVDA on Firefox, open 042W, Tab to the bay grid, move with the arrows (each slot is read once, politely), press Enter on 18-04 deck and Enter on 18-06 deck (the refusal "Stack limit: 96.4 t of 90.0 t" is read at once), Tab to the 3D view (its text points to the bay grid).
+
+### Performance: the profile and the three largest costs
+
+`npm run profile <scenario>` samples the main thread with the V8 profiler (0.1 ms) in a visible Chromium; with `PROD=1` it runs the production code and maps each frame to its source through the source maps. `node tools/load-waterfall.mjs` times when each request and script starts and ends and when the 3D view is ready, as a median of several loads, optionally on fast 4G (165 ms, 9 Mbps, Chrome DevTools' Fast 4G) and as a first visit (`COLD=1`).
+
+What the profiles showed: /bench is GPU-bound (5.65 s of orbiting uses about 300 ms of main thread); opening the workspace is mostly waiting (the mock API's 150 to 400 ms per request, then the 3D chunk); a command spent most of its time formatting numbers.
+
+| Cost | Cause | Fix | Before | After |
+| --- | --- | --- | --- | --- |
+| 1. First visit: about 2 s before the app starts | The Google Fonts stylesheet is render-blocking, and the module script waits for it | The same IBM Plex files and unicode ranges (Latin, and Greek for Σ) are served with the app (`src/styles/fonts.css`, license in `public/fonts/OFL.txt`) | 3D view ready at 4,074 ms, first visit, fast 4G, median of 9 | 1,824 ms |
+| 2. A command: `fmt1` was the largest self time | `toLocaleString` with options builds a new formatter on every call; a command prints hundreds of weights | One `Intl.NumberFormat`, made once (same output, property test) | 20 moves and 20 undos: 940 to 984 ms on the production code (3 runs); 463 ms of `fmt1` self time on the dev server | 706 to 726 ms; `fmt1` gone from the top 20 |
+| 3. Opening a plan: two waits in a row | The vessel request waited for the load list as well as the plan; the 3D chunk started only after the data rendered | The vessel is requested when the plan arrives; the 3D chunk loads with the data (only with WebGL 2) | 4,074 ms first visit, fast 4G, median of 9 | 3,902 ms (measured before the font fix) |
+
+Not changed, measured: the workspace's own start-up is about 280 ms of script on the production code (React, three.js, the scene); per command the domain work is about 3 ms (`applyCommand`, the stability sums, slot key parsing, bay occupancy), React about 2 ms. Two changes were tried and taken out because Lighthouse showed no gain: rendering before the mock API starts, and the plans list in the main chunk (FCP 1.7 to 1.6 s, LCP 1.9 to 2.2 s, simulated).
+
+### Test reliability: the causes
+
+The M6b notes put the flaky starts down to other programs loading the machine. M7 found the causes in the project:
+
+| Cause | Fix |
+| --- | --- |
+| The end-to-end tests ran on the Vite dev server, which compiles each module on its first request. Four workers opening the workspace on a cold server took over 60 s | Playwright builds once (`vite build --mode e2e`) and serves it with `vite preview`. Test hooks are on in dev and in that build only (`TEST_HOOKS`); the production build has none. The suite runs in 2.3 minutes instead of 11 |
+| Tracing every test (DOM snapshots at each step, with axe scans and the bay grid) made one test take 15 minutes | No trace; a screenshot on failure |
+| The footer was 64.9 px in a 63 px row. The workspace clipped it, but could still be scrolled by 2 px, and a focus did that before some screenshots (5 failures in 6 under load) | The footer clips its own overflow; a test checks nothing overflows the workspace at the three sizes |
+| Fixed waits before screenshots and scans | `settle()`: no finite animation running and the 3D scene has drawn no frame for 3 browser frames (a dev frame counter); the toast test uses the page clock |
+| The reduced motion control counted frames, which depends on the machine's speed | It measures how long the 3D view keeps drawing |
+
+There are no retries. After the fixes: 3 full runs in a row on three engines, 127 tests each, 1 failure in the first (the frame count above), then 42 of 42 motion and axe tests with 6 workers.
+
+### Found by running the tests on the production build
+
+The production CSS minifier writes `rgba()` tokens as 8-digit hex (`--g-edge: #0e172673`), and the scene's color parser read 6 digits: container edges and the waterline were opaque in the shipped app, in both themes. The parser now reads every hex form and `rgb()` with spaces. Dev serves the CSS unminified, so no test had seen it.
+
+### Reliability
+
+The 3D view fails safe in each way a test can make it fail: no WebGL (AT-08), a renderer that throws while it starts, a lost context (`e2e/reliability.spec.ts`), and an import that fails (`Viewport3D.test.tsx`; requests for scripts go through the mock API's service worker, which `page.route` cannot see). Each time the fallback says "3D view unavailable" and a keyboard placement and Validate still work. Unsaved work survives a reload and a tab closed with no unload handler. Every failed request has a message with Retry (M6).
+
+### Memory (NFR-08)
+
+200 keyboard moves and 200 undos, heap read through the DevTools protocol after a forced garbage collection. From cold the heap grows 44% (11.13 to 16.07 MB); a heap snapshot diff shows 3.6 MB of it is optimized code that V8 keeps after the first round. A second identical round grows 2.23% (16.07 to 16.42 MB), which is the activity log and the redo list, both kept by design. The test warms up with one round and measures the next.
+
+### CI and deploy
+
+`.github/workflows/ci.yml` runs four jobs on every push: lint, types, unit tests with both coverage thresholds; end to end with axe on Chromium (every test) and AT-01 to AT-10 on Firefox and WebKit; bundle size; Lighthouse on the plans route. Screenshot comparisons are skipped in CI because the baselines are per machine.
+
+`vercel.json` builds with `npm run build`, serves `dist`, sends every route that is not a file to `index.html`, caches hashed assets for a year and never caches `mockServiceWorker.js`. Preview deployments for every branch come from Vercel's Git integration once the repository is imported in Vercel. Not deployed: the Vercel CLI on this machine has no valid login (`vercel whoami`: "The specified token is not valid").
+
+### Decisions for the owner
+
+| ID | Topic | What I did | Please decide |
+| --- | --- | --- | --- |
+| D15 | Which "fast 4G" NFR-07 means | Lighthouse on Chrome DevTools' Fast 4G (165 ms, 9 Mbps), desktop: LCP 1.9 s passes, performance 0.84 misses 90. Lighthouse's own desktop profile (40 ms, 10 Mbps): 1.00. CI fails on LCP and accessibility, warns on the score | Keep 165 ms and accept 0.84 for now, or measure with Lighthouse's desktop profile |
+| D16 | Fonts | Served with the app instead of from Google Fonts (the pre-build review said "Fonts load from Google Fonts, as in the design"). Same files, nothing looks different | Keep |
+| D17 | Ghost button hover | `--hover` instead of `--accentbg`, for contrast; the design has no hover fill | Keep |
+
+### Gate result
+
+Every NFR has a measured result or a written reason (docs/TRACEABILITY.md: 87 of 91 rows done). The four that are not done:
+
+- NFR-01, frame rate on a mid-range laptop with integrated graphics: not measured, no such machine here. On the M2 Pro the GPU takes 1.19 ms per frame. To measure: `npm run build && npm run bench:3d` on that laptop.
+- NFR-07, Lighthouse 90: 0.84 on the 165 ms profile, D15.
+- NFR-09 and NFR-14: the screen reader check needs a person; the steps are above.
+
+### Not done in M7
+
+- The Vercel deploy and the per-branch previews (needs a Vercel login, or importing the repository in the Vercel dashboard).
+- CI has not run on GitHub yet: the workflow is committed but not pushed.
+- NFR-01 on target hardware, the screen reader check.
+
+### M7 measurements
+
+All on a MacBook Pro Mac14,9, Apple M2 Pro, 32 GB, macOS 26.6.2, Node 25.9.0.
+
+| Date | What | Result | Browser |
+| --- | --- | --- | --- |
+| Oct 8, 2026 | NFR-01 `/bench`, 10,000 containers, 10 s, 1440 × 754 at 2x | 120.0 fps (display refresh cap), frame p95 9.3 ms, GPU 1.19 ms, CPU 0.23 ms per frame, 10 draw calls, 120,144 triangles | Chrome for Testing 153.0.8010.12, ANGLE Metal, visible window |
+| Oct 8, 2026 | NFR-02 `npm run bench:pickup`, 20 runs each | from the list: median 12.5 ms, worst 19.3 ms; from a slot: 10.2, 17.4; drag: 10.1, 21.5 (input to the frame after the marks) | Chrome for Testing 153 |
+| Oct 8, 2026 | NFR-03 rule check after one command, 10,000 containers | mean 1.638 ms, p99 2.346 ms, max 4.030 ms; full validation mean 15.1 ms | Node 25.9.0, Vitest 5.0.3 |
+| Oct 8, 2026 | A command on the production code, 20 moves and 20 undos (`PROD=1 npm run profile commands`), 3 runs | before the formatter fix 940, 984, 947 ms; after 726, 706, 711 ms | Chrome for Testing 153 |
+| Oct 8, 2026 | NFR-04 full validation in the worker, 5 runs | round trip 17.2 to 25.6 ms, worker 9.1 to 16.5 ms, no long task; seeded plan 7 violations | Chrome for Testing 153, end-to-end build |
+| Oct 8, 2026 | NFR-06 `npm run measure:js` | plans route app 136.2 kB gzip, mock API 156.1, total 292.3: pass; 3D chunk 262.9 kB | Chrome for Testing 153 |
+| Oct 8, 2026 | NFR-07 Lighthouse 12.6.1 on /plans, 3 runs, desktop, 1280 × 720, simulated 165 ms and 9 Mbps | performance 0.84, FCP 1.7 s, LCP 1.9 s, Speed Index 1.7 s, TBT 0 ms, CLS 0.001; accessibility 1.00, best practices 1.00 | Google Chrome 155.0.8059.39 |
+| Oct 8, 2026 | NFR-07 the same with 40 ms and 10 Mbps | performance 1.00, FCP 0.5 s, LCP 0.7 s | Google Chrome 155.0.8059.39 |
+| Oct 8, 2026 | Workspace load, 3D view ready, first visit, fast 4G (`COLD=1 NETWORK=fast4g`), median of 9 | before the fixes 4,074 ms; vessel and 3D chunk in parallel 3,902 ms; fonts with the app 1,824 ms | Chrome for Testing 153 |
+| Oct 8, 2026 | Workspace load, returning visit, no throttling, median of 15 | 1,145 ms before, 1,112 and 1,150 ms after (within the mock API's random delay) | Chrome for Testing 153 |
+| Oct 8, 2026 | NFR-08 heap, 200 commands and 200 undos | cold 11.13 to 16.07 MB (44%, 3.6 MB optimized code); after warm-up 16.07 to 16.42 MB (2.23%) | Chrome for Testing 153 |
+| Oct 8, 2026 | NFR-20 `npm run check:secrets` on `dist` | 19 files, no finding | Node 25.9.0 |
+| Oct 8, 2026 | NFR-23 coverage | whole app 74.21% of lines (3,443 of 4,639), statements 73.44%, branches 70.33%, functions 72.72%; domain 99.40% (988 of 994) | Vitest 5.0.3, V8 |
+| Oct 8, 2026 | Tests | 569 unit and component tests; 127 end-to-end tests (Chromium 101, Firefox 13, WebKit 13) in 2.3 min with 4 workers, 3 full runs | Playwright 1.63: Chromium 153.0.8010.12, Firefox 155.0, WebKit 26.6 |
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |
