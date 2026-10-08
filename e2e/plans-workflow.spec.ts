@@ -292,7 +292,9 @@ test('AT-06: Approve is not offered to a planner, is blocked with errors, then a
   const approve = page.getByRole('button', { name: 'Approve' });
   await expect(approve).toHaveAttribute('aria-disabled', 'true');
   await approve.focus();
-  await expect(page.getByRole('tooltip')).toHaveText('6 errors remain: fix them to approve');
+  await expect(page.getByRole('tooltip')).toHaveText(
+    '6 errors remain. Return the plan to fix them.',
+  );
   // The senior planner returns it with a comment; the planner fixes the errors and sends it again.
   await page.getByRole('button', { name: 'Return' }).click();
   await page.getByRole('dialog').getByRole('textbox').fill('Fix the six errors first');
@@ -399,27 +401,48 @@ test('a file that is not JSON is refused with a message (422), and hostile text 
   await expect(dialog.locator('img')).toHaveCount(0);
 });
 
-test('every failed request shows a message with Retry (NFR-18)', async ({ page }) => {
+test('a request that fails is tried up to 3 times, then shows a message with Retry (NFR-18)', async ({
+  page,
+}) => {
   await openPlans(page);
-  // Let the preview's own request finish first, so the forced failure meets the list.
+  // Let the preview's own request finish first, so the forced failures meet the list.
   await expect(
     page
       .getByRole('complementary', { name: 'Plan preview' })
       .getByText('Rina Adiputri validated the plan: 6 errors, 1 warning'),
   ).toBeVisible();
-  await page.evaluate(() =>
-    (
-      window as unknown as {
-        __stowMock: { control: { getState: () => { setFailNext: (s: number) => void } } };
-      }
-    ).__stowMock.control
-      .getState()
-      .setFailNext(503),
-  );
-  await page.getByRole('button', { name: 'Has violations' }).click();
+  const failNext = (times: number) =>
+    page.evaluate(
+      (n) =>
+        (
+          window as unknown as {
+            __stowMock: {
+              control: { getState: () => { setFailNext: (s: number, n: number) => void } };
+            };
+          }
+        ).__stowMock.control
+          .getState()
+          .setFailNext(503, n),
+      times,
+    );
   const alert = page.getByRole('alert').filter({ hasText: 'Request failed' });
+  const rows = page.getByRole('row').filter({ has: page.getByRole('progressbar') });
+
+  // Three failures: attempts 2 and 3 run on their own, then the message stays with Retry.
+  await failNext(3);
+  await page.getByRole('button', { name: 'Has violations' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Retrying…' })).toContainText(
+    /Attempt [23]/,
+  );
   await expect(alert).toContainText('The server failed on purpose (503)');
+  await expect(alert.getByRole('button', { name: 'Retry' })).toBeVisible();
   await alert.getByRole('button', { name: 'Retry' }).click();
   await expect(alert).toHaveCount(0);
-  await expect(page.getByRole('row').filter({ has: page.getByRole('progressbar') })).toHaveCount(6);
+  await expect(rows).toHaveCount(6);
+
+  // One failure: the second attempt answers, and no message is left.
+  await failNext(1);
+  await page.getByRole('button', { name: 'Has violations' }).click();
+  await expect(rows).toHaveCount(12);
+  await expect(alert).toHaveCount(0);
 });

@@ -55,10 +55,30 @@ export function describeError(e: unknown): string {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Runs a request, up to RETRY.attempts times while it fails in a way that may pass. The message
- * shows "Retrying…" with the attempt while it runs again; after the last attempt it shows the
- * message with Retry, which runs `retry`. Returns the result, or the error for the caller that
- * has its own flow for some codes (409, 422).
+ * Runs `fn` up to RETRY.attempts times while it fails in a way that may pass, waiting between
+ * attempts. `onAgain` hears the attempt about to run again (2, then 3). The last error is thrown.
+ */
+export async function withRetries<T>(
+  fn: () => Promise<T>,
+  onAgain: (attempt: number, error: unknown) => void = () => undefined,
+  own: (e: unknown) => boolean = () => false,
+): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (own(error) || !passing(error) || attempt >= RETRY.attempts) throw error;
+      onAgain(attempt + 1, error);
+      await wait(RETRY.delaysMs[attempt - 1] ?? 0);
+    }
+  }
+}
+
+/**
+ * Runs a request with up to RETRY.attempts attempts. The message shows "Retrying…" with the
+ * attempt while it runs again; after the last attempt it shows the message with Retry, which runs
+ * `retry`. Returns the result, or the error for the caller that has its own flow for some codes
+ * (409, 422).
  */
 export async function request<T>(
   fn: () => Promise<T>,
@@ -66,21 +86,20 @@ export async function request<T>(
   own: (e: unknown) => boolean = () => false,
 ): Promise<{ ok: true; data: T } | { ok: false; error: unknown }> {
   const store = useRequestError.getState;
-  for (let attempt = 1; ; attempt++) {
-    try {
-      const data = await fn();
-      store().dismiss();
-      return { ok: true, data };
-    } catch (error) {
-      if (!own(error) && passing(error) && attempt < RETRY.attempts) {
+  try {
+    const data = await withRetries(
+      fn,
+      (attempt, error) => {
         if (!store().error) store().show(describeError(error), retry);
-        store().setRetrying(attempt + 1);
-        await wait(RETRY.delaysMs[attempt - 1] ?? 0);
-        continue;
-      }
-      if (!own(error)) store().show(describeError(error), retry);
-      else store().setRetrying(null);
-      return { ok: false, error };
-    }
+        store().setRetrying(attempt);
+      },
+      own,
+    );
+    store().dismiss();
+    return { ok: true, data };
+  } catch (error) {
+    if (!own(error)) store().show(describeError(error), retry);
+    else store().setRetrying(null);
+    return { ok: false, error };
   }
 }

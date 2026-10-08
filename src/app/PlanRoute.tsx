@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { WorkspacePage } from '@/features/workspace/WorkspacePage';
 import { isApiError } from '@/api/errors';
-import { describeError } from '@/state/api';
+import { describeError, withRetries } from '@/state/api';
 import { useViewStore } from '@/state/view-store';
 import { writeUnsaved } from '@/state/unsaved';
 import { fetchPlan, showPlan } from '@/state/workspace-load';
@@ -41,7 +41,8 @@ export function PlanRoute() {
     preloadViewport();
     void (async () => {
       try {
-        const loaded = await fetchPlan(planId);
+        // Up to 3 attempts on a network or server error (design 14); a 404 is the answer.
+        const loaded = await withRetries(() => fetchPlan(planId));
         if (!current) return;
         const { restored, dropped } = showPlan(planId, loaded);
         setState({ kind: 'ready', planId });

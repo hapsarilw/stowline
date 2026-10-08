@@ -142,7 +142,8 @@ test('the business process, steps 1 to 11', async ({ page }) => {
     .getByRole('button', { name: 'Export' })
     .click();
   const file = await download;
-  expect(file.suggestedFilename()).toBe('stowline-plan-042W-SGSIN.json');
+  // Decision 7: named by plan and version.
+  expect(file.suggestedFilename()).toMatch(/^042W-SGSIN-v\d+\.json$/);
   const text = await (await import('node:fs/promises')).readFile(await file.path(), 'utf8');
   const exported = JSON.parse(text) as {
     schema: string;

@@ -221,7 +221,9 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(preview.getByRole('button', { name: 'Return' })).toBeVisible();
       const approve = preview.getByRole('button', { name: 'Approve' });
       await expect(approve).toHaveAttribute('aria-disabled', 'true');
-      await expect(approve).toHaveAccessibleDescription('6 errors remain: fix them to approve');
+      await expect(approve).toHaveAccessibleDescription(
+        '6 errors remain. Return the plan to fix them.',
+      );
       await switchRole(page, 'Terminal planner');
       await expect(preview).toContainText('Opens read only');
       await page.getByRole('row', { name: /Arafura Dawn/ }).click();
