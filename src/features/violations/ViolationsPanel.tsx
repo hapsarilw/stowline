@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import type { Violation } from '@/domain';
 import { applyFix, fixFor, runValidation, showViolation } from '@/state/actions';
+import { canEditPlan } from '@/domain';
 import { usePlanStore } from '@/state/plan-store';
+import { useSessionStore } from '@/state/session-store';
 import { useViewStore, type SeverityFilter } from '@/state/view-store';
 import { PodBadge } from '@/ui/Badges';
 import { cn } from '@/ui/cn';
@@ -12,7 +14,7 @@ import { buildViolations, type ViolationRow } from './model';
 // The violations panel (FR-42 to FR-45), as design 04: severity filter and Re-run, the time of
 // the last full check, then errors and warnings with the containers involved, Show and Apply fix.
 
-function Row({ r }: { r: ViolationRow }) {
+function Row({ r, editable }: { r: ViolationRow; editable: boolean }) {
   const tone = r.severity === 'error' ? 'text-err' : 'text-warn';
   return (
     <article
@@ -72,6 +74,7 @@ function Row({ r }: { r: ViolationRow }) {
         {r.action ? (
           <button
             type="button"
+            disabled={!editable}
             aria-label={r.action.name}
             onClick={(e) => {
               e.stopPropagation();
@@ -79,7 +82,7 @@ function Row({ r }: { r: ViolationRow }) {
             }}
             // On the surface color, not transparent: on a selected row's --sel the accent text
             // falls to 4.4:1 in the light theme (WCAG AA needs 4.5:1).
-            className="h-6 cursor-pointer rounded-[3px] border border-accent bg-surface px-2 text-[12px] text-accent hover:bg-accentbg"
+            className="h-6 cursor-pointer rounded-[3px] border border-accent bg-surface px-2 text-[12px] text-accent hover:bg-accentbg disabled:cursor-default disabled:opacity-45"
           >
             {r.action.label}
           </button>
@@ -109,6 +112,9 @@ export function ViolationsPanel() {
   const severity = useViewStore((s) => s.severity);
   const focused = useViewStore((s) => s.focusedViolation);
   const newIds = useNewIds(violations);
+  const status = usePlanStore((s) => s.header.status);
+  const role = useSessionStore((s) => s.role);
+  const editable = canEditPlan(role, status);
 
   const m = useMemo(
     () =>
@@ -172,7 +178,7 @@ export function ViolationsPanel() {
                 <span className="font-mono">{g.rows.length}</span>
               </div>
               {g.rows.map((r) => (
-                <Row key={r.id} r={r} />
+                <Row key={r.id} r={r} editable={editable} />
               ))}
             </div>
           );

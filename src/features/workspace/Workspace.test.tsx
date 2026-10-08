@@ -217,10 +217,10 @@ describe('TopBar (FR-09, FR-11)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('has Save and Import off until the mock API exists (M6)', () => {
+  it('has Save off until there is something to save, and Import load list on for a planner', () => {
     renderWorkspace();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Import load list' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Import load list' })).toBeEnabled();
   });
 });
 

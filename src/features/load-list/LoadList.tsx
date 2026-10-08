@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { fmt1, PODS, POD_LIST, slot40Key, type Container } from '@/domain';
+import { canEditPlan, fmt1, PODS, POD_LIST, slot40Key, type Container } from '@/domain';
 import { beginDrag } from '@/features/workspace/drag';
 import { heldContainer } from '@/state/placement';
 import { pickFromList, usePlacementStore } from '@/state/placement-store';
+import { importLoadListFile } from '@/state/import';
 import { usePlanStore } from '@/state/plan-store';
+import { useSessionStore } from '@/state/session-store';
 import { useViewStore } from '@/state/view-store';
 import { IconButton } from '@/ui/Button';
 import { Button } from '@/ui/Button';
@@ -171,6 +173,11 @@ export function LoadList() {
   const slotOf = usePlanStore((s) => s.state.slotOf);
   const planned = usePlanStore((s) => s.planned);
   const { leftOpen, query, checked } = useViewStore();
+  const port = usePlanStore((s) => s.header.port);
+  const status = usePlanStore((s) => s.header.status);
+  const role = useSessionStore((s) => s.role);
+  const canEdit = canEditPlan(role, status);
+  const fileInput = useRef<HTMLInputElement>(null);
   const heldId = usePlacementStore((s) => heldContainer(s.placement));
   const listHeld = usePlacementStore(
     (s) =>
@@ -276,10 +283,29 @@ export function LoadList() {
       <div className="flex h-10 flex-none items-center gap-2 pr-2 pl-3">
         <h2 className="m-0 text-[13px] font-semibold">Load list</h2>
         <span className="font-mono text-[11px] text-text2">
-          SGSIN · {loadList.length.toLocaleString('en-US')}
+          {port} · {loadList.length.toLocaleString('en-US')}
         </span>
         <div className="flex-1" />
-        <IconButton label="Import load list" size="sm" disabled>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          aria-hidden="true"
+          tabIndex={-1}
+          data-testid="import-file"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f) void importLoadListFile(f);
+          }}
+        />
+        <IconButton
+          label="Import load list"
+          size="sm"
+          disabled={!canEdit}
+          onClick={() => fileInput.current?.click()}
+        >
           <IconImport />
         </IconButton>
         <IconButton label="Collapse load list" size="sm" onClick={() => view().toggleLeft()}>

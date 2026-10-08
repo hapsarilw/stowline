@@ -10,6 +10,7 @@ import { dispatch, redoLast, undoLast, usePlacementStore } from '@/state/placeme
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { BayNavigator } from './BayNavigator';
+import { ConflictBanner, ImportReportDialog } from './Dialogs';
 import { CenterToolbar } from './CenterToolbar';
 import { DetailsPanel } from './DetailsPanel';
 import { SplitHandle } from './SplitHandle';
@@ -132,6 +133,8 @@ export function WorkspacePage() {
         <BayNavigator />
         <StabilityStrip />
       </footer>
+      <ConflictBanner />
+      <ImportReportDialog />
       <StabilityDrawer />
       <ToastHost />
       {/* The bay view has its own live region. This one speaks when the bay view is hidden. */}

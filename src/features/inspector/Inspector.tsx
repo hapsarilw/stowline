@@ -6,7 +6,8 @@ import { Kbd } from '@/ui/Kbd';
 import { useMemo } from 'react';
 import { heldContainer } from '@/state/placement';
 import { dispatch, runCommand, usePlacementStore } from '@/state/placement-store';
-import { usePlanStore } from '@/state/plan-store';
+import { canEditNow, usePlanStore } from '@/state/plan-store';
+import { useSessionStore } from '@/state/session-store';
 import { useViewStore } from '@/state/view-store';
 import { actionRules, buildHeldInspector, buildInspector } from './model';
 
@@ -45,7 +46,8 @@ export function inspectorActions(): Action[] {
     ];
   }
   const sel = view.selected;
-  const rules = sel ? actionRules(ctx, state, sel) : null;
+  const editable = canEditNow(usePlanStore.getState().header.status);
+  const rules = sel && editable ? actionRules(ctx, state, sel) : null;
   const swapping = placement.kind === 'swapping';
   return [
     {
@@ -95,6 +97,9 @@ export function Inspector() {
   const violations = usePlanStore((s) => s.violations);
   const selected = useViewStore((s) => s.selected);
   const placement = usePlacementStore((s) => s.placement);
+  // Re-render when the plan becomes read only or the role changes (FR-63).
+  usePlanStore((s) => s.header.status);
+  useSessionStore((s) => s.role);
   const m = useMemo(() => {
     const held = heldContainer(placement);
     const c = held ? ctx.containers.get(held) : undefined;
