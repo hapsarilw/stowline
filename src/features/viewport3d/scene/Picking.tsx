@@ -2,9 +2,12 @@ import { useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Raycaster, Vector2, Vector3 } from 'three';
 import { bay40Of, parseKey, PODS, fmt1, type SlotKey } from '@/domain';
+import { dispatch, usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
+import { setDropPicker } from '../bridge';
 import type { ContainerLayer } from './ContainerLayer';
+import type { TargetLayer } from './targets';
 
 // Hover and click (FR-22) without React renders: pointer moves are kept in a variable, one
 // raycast runs per animation frame, and the tooltip DOM is filled directly.
@@ -72,6 +75,8 @@ declare global {
     /** Dev builds only: lets end-to-end tests find a container on screen. */
     __stowViewport?: {
       findPickable: () => { key: SlotKey; id: string; x: number; y: number } | null;
+      /** A point on screen where a drop target is drawn and picks back to itself. */
+      findTarget: (key: SlotKey) => { x: number; y: number } | null;
     };
   }
 }
@@ -81,9 +86,11 @@ const CLICK_SLOP = 4;
 
 export function Picking({
   layer,
+  targets,
   tooltip,
 }: {
   layer: ContainerLayer;
+  targets: TargetLayer;
   tooltip: React.RefObject<HTMLDivElement | null>;
 }) {
   const gl = useThree((s) => s.gl);
@@ -107,6 +114,18 @@ export function Picking({
       if (!hit || hit.instanceId === undefined) return null;
       return layer.keyAt(hit.object, hit.instanceId) ?? null;
     };
+
+    /** The drop target under a point, while a container is held (FR-32). */
+    const pickTarget = (cx: number, cy: number): SlotKey | null => {
+      if (targets.visibleCount === 0) return null;
+      const r = el.getBoundingClientRect();
+      ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+      ray.setFromCamera(ndc, camera);
+      const hit = ray.intersectObject(targets.mesh, false)[0];
+      if (!hit || hit.instanceId === undefined) return null;
+      return targets.keyAt(hit.object, hit.instanceId) ?? null;
+    };
+    setDropPicker(pickTarget);
 
     const hover = (key: SlotKey | null, cx = 0, cy = 0) => {
       if (key !== hovered) {
@@ -138,8 +157,20 @@ export function Picking({
       const d = down;
       down = null;
       if (!d || Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > CLICK_SLOP) return;
+      // A click while a container is in hand places it on a target; while swapping, it picks
+      // the other container. The same events as the bay grid.
+      const placement = usePlacementStore.getState().placement;
+      if (placement.kind === 'holding' || placement.kind === 'over') {
+        const target = pickTarget(e.clientX, e.clientY);
+        if (target) dispatch({ type: 'drop', key: target });
+        return;
+      }
       const key = pick(e.clientX, e.clientY);
       if (!key) return;
+      if (placement.kind === 'swapping') {
+        dispatch({ type: 'chooseSwap', key });
+        return;
+      }
       const view = useViewStore.getState();
       view.select(key, { bay: bay40Of(parseKey(key).bay) });
       view.setRightTab('inspector');
@@ -152,6 +183,26 @@ export function Picking({
     if (import.meta.env.DEV) {
       // The first deck container whose top face, on screen, picks back to itself.
       window.__stowViewport = {
+        findTarget: (key) => {
+          const r = el.getBoundingClientRect();
+          const box = targets.boxOf(key);
+          if (!box) return null;
+          const v = new Vector3();
+          // Targets can overlap on screen: sample the box until a point picks back to it.
+          for (const dy of [0.45, 0, -0.3])
+            for (const dx of [0, -0.35, 0.35])
+              for (const dz of [0, -0.35, 0.35]) {
+                v.set(
+                  box.center.x + box.size.x * dx,
+                  box.center.y + box.size.y * dy,
+                  box.center.z + box.size.z * dz,
+                ).project(camera);
+                const x = r.left + ((v.x + 1) / 2) * r.width;
+                const y = r.top + ((1 - v.y) / 2) * r.height;
+                if (pickTarget(x, y) === key) return { x, y };
+              }
+          return null;
+        },
         findPickable: () => {
           const r = el.getBoundingClientRect();
           const { state, ctx } = usePlanStore.getState();
@@ -183,13 +234,14 @@ export function Picking({
     el.addEventListener('pointerup', onUp);
     el.addEventListener('pointerleave', onLeave);
     return () => {
+      setDropPicker(null);
       cancelAnimationFrame(frame);
       el.removeEventListener('pointermove', onMove);
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointerleave', onLeave);
     };
-  }, [gl, camera, invalidate, layer, tooltip]);
+  }, [gl, camera, invalidate, layer, targets, tooltip]);
 
   return null;
 }

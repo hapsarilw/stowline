@@ -12,6 +12,7 @@ export interface SceneTheme extends Palette {
   water: string;
   accent: string;
   text: string;
+  ok: string;
 }
 
 const cssVar = (name: string, fallback: string): string =>
@@ -29,6 +30,7 @@ export function readSceneTheme(): SceneTheme {
     water: cssVar('--g-water', 'rgba(59, 158, 255, 0.75)'),
     accent: cssVar('--g-accent', '#3b9eff'),
     text: cssVar('--g-text', '#e6edf7'),
+    ok: cssVar('--g-ok', '#2fd08a'),
   };
 }
 

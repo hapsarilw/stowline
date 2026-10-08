@@ -3,14 +3,17 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { Camera } from 'three';
 import { Vector3 } from 'three';
 import { pad, type SlotKey } from '@/domain';
+import { heldContainer, marksFor } from '@/state/placement';
+import { usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { prefersReducedMotion, CameraRig } from './CameraRig';
 import { ContainerLayer, type ColorInput } from './ContainerLayer';
 import { hullFor, shipBounds } from './hull';
-import { easeInOut, gapOffset, toScene } from './mapping';
+import { easeInOut, gapOffset, sizeClassOf, toScene } from './mapping';
 import { Picking } from './Picking';
 import { ShipModel } from './ShipModel';
+import { TargetLayer } from './targets';
 import { onThemeChange, readSceneTheme, type SceneTheme } from './theme';
 
 /** Numbers the /bench route reads (NFR-01, NFR-05). */
@@ -83,11 +86,13 @@ export function Scene({
   const bounds = useMemo(() => shipBounds(sections), [sections]);
   const layer = useMemo(() => new ContainerLayer(ctx), [ctx]);
   const ship = useMemo(() => new ShipModel(sections, ctx.vessel.deckhouseX), [sections, ctx]);
+  const targets = useMemo(() => new TargetLayer(ctx), [ctx]);
   const bayPoint = useRef(new Vector3());
   const gapMove = useRef<{ from: Map<number, number>; target: number; t0: number } | null>(null);
 
   useEffect(() => () => layer.dispose(), [layer]);
   useEffect(() => () => ship.dispose(), [ship]);
+  useEffect(() => () => targets.dispose(), [targets]);
 
   const placeLabel = () => {
     const bay = useViewStore.getState().bay;
@@ -112,10 +117,28 @@ export function Scene({
       };
     };
     const applyTheme = () => {
+      targets.setColors({ ok: theme.ok, warn: theme.warn, err: theme.err });
       ship.setTheme(theme);
       layer.setEdge(theme.edge);
       layer.setOutlineColors(theme);
       layer.recolor(colorInput());
+    };
+
+    // FR-32, FR-38: targets in the selected bay and the ghost, while a container is held.
+    const syncTargets = () => {
+      const placement = usePlacementStore.getState().placement;
+      const { state } = usePlanStore.getState();
+      const held = heldContainer(placement);
+      const c = held ? ctx.containers.get(held) : undefined;
+      if (!c || placement.kind === 'swapping') {
+        targets.update(new Map(), '40', layer.gaps);
+        targets.setGhost(null, false, layer.gaps);
+        return;
+      }
+      const marks = marksFor(placement, { state, ctx, bay: useViewStore.getState().bay });
+      targets.update(marks, sizeClassOf(c), layer.gaps);
+      const over = placement.kind === 'over' && placement.check.target ? placement : null;
+      targets.setGhost(over ? over.target : null, over ? over.check.valid : false, layer.gaps);
     };
 
     const plan = usePlanStore.getState();
@@ -131,10 +154,20 @@ export function Scene({
     layer.setSelected(view.selected);
     layer.setFocus(view.highlight);
     placeLabel();
+    syncTargets();
     invalidate();
 
+    const offPlacement = usePlacementStore.subscribe((s, prev) => {
+      if (s.placement === prev.placement) return;
+      syncTargets();
+      invalidate();
+    });
+
     const offPlan = usePlanStore.subscribe((s, prev) => {
-      if (s.state !== prev.state) layer.sync(s.state);
+      if (s.state !== prev.state) {
+        layer.sync(s.state);
+        syncTargets();
+      }
       if (s.violationIndex !== prev.violationIndex) {
         const keys = new Set<SlotKey>([
           ...prev.violationIndex.bySlot.keys(),
@@ -161,12 +194,14 @@ export function Scene({
       if (s.hullTransparent !== prev.hullTransparent) ship.setTransparent(s.hullTransparent);
       if (s.bay !== prev.bay) {
         placeLabel();
+        syncTargets();
         const b = ctx.geometry.bayByNum(s.bay);
         if (b) {
           if (prefersReducedMotion()) {
             layer.gaps = new Map([[b.index, 1]]);
             layer.applyGaps();
             layer.updateOutlines();
+            targets.applyGaps(layer.gaps);
             placeLabel();
           } else
             gapMove.current = { from: new Map(layer.gaps), target: b.index, t0: performance.now() };
@@ -182,13 +217,14 @@ export function Scene({
     });
 
     return () => {
+      offPlacement();
       offPlan();
       offView();
       offTheme();
     };
     // placeLabel only reads refs and stores.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layer, ship, ctx, invalidate]);
+  }, [layer, ship, targets, ctx, invalidate]);
 
   const bowPoint = useMemo(() => toScene(bounds.maxX + 4, 0, 4), [bounds]);
   const sternPoint = useMemo(() => toScene(bounds.minX + 2, 0, 4), [bounds]);
@@ -215,6 +251,7 @@ export function Scene({
     layer.gaps = gaps;
     layer.applyGaps();
     layer.updateOutlines();
+    targets.applyGaps(layer.gaps);
     placeLabel();
     if (t < 1) invalidate();
     else gapMove.current = null;
@@ -224,8 +261,9 @@ export function Scene({
     <>
       <primitive object={ship.group} />
       <primitive object={layer.group} />
+      <primitive object={targets.group} />
       <CameraRig bounds={bounds} autoRotate={bench !== undefined} />
-      <Picking layer={layer} tooltip={tooltip} />
+      <Picking layer={layer} targets={targets} tooltip={tooltip} />
       {bench ? <BenchProbe sink={bench} layer={layer} /> : null}
     </>
   );

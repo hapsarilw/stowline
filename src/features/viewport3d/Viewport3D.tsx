@@ -3,6 +3,7 @@ import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { Button } from '@/ui/Button';
 import { IconError } from '@/ui/icons';
+import { VIEWPORT_ATTR } from './bridge';
 import { ErrorBoundary } from './ErrorBoundary';
 import type { BenchSink } from './scene/Scene';
 import { hasWebGL2 } from './webgl';
@@ -26,7 +27,10 @@ export function Skeleton() {
         <span className="h-[30px] w-[220px] rounded border border-border bg-surface" />
         <span className="h-[30px] w-[230px] rounded border border-border bg-surface" />
       </div>
-      <div aria-hidden="true" className="flex animate-pulse items-end gap-[3px]">
+      <div
+        aria-hidden="true"
+        className="flex animate-pulse items-end gap-[3px] motion-reduce:animate-none"
+      >
         {bars.map((h, i) => (
           <span
             key={i}
@@ -84,7 +88,11 @@ export function Viewport3D({ bench }: { bench?: BenchSink }) {
     hasWebGL2() ? null : 'nowebgl',
   );
   return (
-    <section aria-label="3D view" className="relative min-h-0 flex-1 overflow-hidden bg-bg">
+    <section
+      aria-label="3D view"
+      {...{ [VIEWPORT_ATTR]: '' }}
+      className="relative min-h-0 flex-1 overflow-hidden bg-bg"
+    >
       {failed ? (
         <Unavailable reason={failed} />
       ) : (
