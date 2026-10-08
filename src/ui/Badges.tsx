@@ -67,7 +67,7 @@ export function CountBadge({
   children,
   label,
 }: {
-  tone: 'err' | 'errSoft';
+  tone: 'err' | 'errSoft' | 'warnSoft';
   children: ReactNode;
   /** What the number counts, read by screen readers after it: "violations". */
   label?: string;
@@ -78,7 +78,9 @@ export function CountBadge({
         'inline-flex items-center rounded-[3px] font-mono font-semibold',
         tone === 'err'
           ? 'h-[18px] bg-err px-[5px] text-[11px] text-onerr'
-          : 'bg-errbg px-[5px] py-px text-[11px] text-err',
+          : tone === 'warnSoft'
+            ? 'bg-warnbg px-[5px] py-px text-[11px] text-warn'
+            : 'bg-errbg px-[5px] py-px text-[11px] text-err',
       )}
     >
       {children}

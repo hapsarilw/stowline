@@ -158,3 +158,39 @@ export const IconPrevious = (p: { size?: number }) => (
   <Solid d="M3 3h2v10H3zM13 3v10L6 8z" {...p} />
 );
 export const IconNext = (p: { size?: number }) => <Solid d="M11 3h2v10h-2zM3 3v10l7-5z" {...p} />;
+export const IconSend = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2 8h8M7 4.5 10.5 8 7 11.5M13.5 2.5v11" />
+  </Svg>
+);
+export const IconApprove = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m3 8.5 3.2 3.2L13 4.8" />
+  </Svg>
+);
+export const IconReturn = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6 3 2.5 6.5 6 10M2.5 6.5H10a3.5 3.5 0 0 1 0 7H7" />
+  </Svg>
+);
+export const IconRevise = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m10.5 2.5 3 3L5.5 13.5l-3.5.5.5-3.5z" />
+  </Svg>
+);
+export const IconExport = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8 2v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11" />
+  </Svg>
+);
+export const IconInfo = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="8" cy="8" r="6.3" />
+    <path d="M8 7.2v3.6M8 4.9v.4" />
+  </Svg>
+);
+export const IconSpinner = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8 1.7a6.3 6.3 0 1 0 6.3 6.3" />
+  </Svg>
+);

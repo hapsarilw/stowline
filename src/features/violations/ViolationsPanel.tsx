@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Violation } from '@/domain';
 import { applyFix, fixFor, runValidation, showViolation } from '@/state/actions';
-import { canEditPlan } from '@/domain';
+import { canEditPlan, readOnlyReason } from '@/domain';
 import { usePlanStore } from '@/state/plan-store';
 import { useSessionStore } from '@/state/session-store';
 import { useViewStore, type SeverityFilter } from '@/state/view-store';
@@ -14,7 +14,15 @@ import { buildViolations, type ViolationRow } from './model';
 // The violations panel (FR-42 to FR-45), as design 04: severity filter and Re-run, the time of
 // the last full check, then errors and warnings with the containers involved, Show and Apply fix.
 
-function Row({ r, editable }: { r: ViolationRow; editable: boolean }) {
+function Row({
+  r,
+  editable,
+  reason,
+}: {
+  r: ViolationRow;
+  editable: boolean;
+  reason: string | null;
+}) {
   const tone = r.severity === 'error' ? 'text-err' : 'text-warn';
   return (
     <article
@@ -75,6 +83,7 @@ function Row({ r, editable }: { r: ViolationRow; editable: boolean }) {
           <button
             type="button"
             disabled={!editable}
+            title={reason ?? undefined}
             aria-label={r.action.name}
             onClick={(e) => {
               e.stopPropagation();
@@ -115,6 +124,7 @@ export function ViolationsPanel() {
   const status = usePlanStore((s) => s.header.status);
   const role = useSessionStore((s) => s.role);
   const editable = canEditPlan(role, status);
+  const reason = readOnlyReason(role, status);
 
   const m = useMemo(
     () =>
@@ -178,7 +188,7 @@ export function ViolationsPanel() {
                 <span className="font-mono">{g.rows.length}</span>
               </div>
               {g.rows.map((r) => (
-                <Row key={r.id} r={r} editable={editable} />
+                <Row key={r.id} r={r} editable={editable} reason={reason} />
               ))}
             </div>
           );

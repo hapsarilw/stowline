@@ -33,11 +33,11 @@ describe('WorkflowButtons (FR-62, FR-63, AT-06)', () => {
     expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
     act(() => useSessionStore.getState().setRole('senior'));
     const approve = screen.getByRole('button', { name: 'Approve' });
-    expect(approve).toBeDisabled();
-    expect(approve).toHaveAttribute('title', '6 errors remain: fix them to approve');
+    expect(approve).toHaveAttribute('aria-disabled', 'true');
+    expect(approve).toHaveAccessibleDescription('6 errors remain: fix them to approve');
     expect(screen.getByRole('button', { name: 'Return' })).toBeEnabled();
     act(() => usePlanStore.getState().setViolations([]));
-    expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Approve' })).not.toHaveAttribute('aria-disabled');
   });
 
   it('Return asks for a comment before it goes ahead', async () => {
@@ -57,7 +57,7 @@ describe('WorkflowButtons (FR-62, FR-63, AT-06)', () => {
   it('an approved plan offers Revise and Export, and a terminal planner only Export', () => {
     set('approved');
     render(<WorkflowButtons />);
-    expect(names()).toEqual(['Revise', 'Export']);
+    expect(names()).toEqual(['Export', 'Revise']);
     act(() => useSessionStore.getState().setRole('terminal'));
     expect(names()).toEqual(['Export']);
   });
@@ -69,16 +69,18 @@ describe('AccountMenu', () => {
     render(<AccountMenu />);
     const button = screen.getByRole('button', { name: 'Account: Rina Adiputri, vessel planner' });
     await user.click(button);
-    await user.click(screen.getByRole('radio', { name: /^Senior planner/ }));
+    await user.click(screen.getByRole('menuitemradio', { name: /^Senior planner/ }));
     expect(useSessionStore.getState().role).toBe('senior');
     expect(
       screen.getByRole('button', { name: 'Account: Hendra Wirawan, senior planner' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /^Terminal planner/ })).toHaveTextContent('Read only');
-    await user.click(screen.getByLabelText('Next save returns 409'));
+    expect(screen.getByRole('menuitemradio', { name: /^Terminal planner/ })).toHaveTextContent(
+      'Read only',
+    );
+    await user.click(screen.getByRole('menuitemcheckbox', { name: /Next save returns/ }));
     expect(useMockControl.getState().force409).toBe(true);
     await user.keyboard('{Escape}');
-    expect(screen.queryByRole('group', { name: 'Account menu' })).toBeNull();
+    expect(screen.queryByRole('menu', { name: 'Account' })).toBeNull();
   });
 });
 

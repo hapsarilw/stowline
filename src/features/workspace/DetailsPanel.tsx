@@ -17,7 +17,7 @@ export function DetailsPanel() {
     return (
       <aside
         aria-label="Details"
-        className="col-start-3 row-start-2 flex min-h-0 min-w-0 flex-col items-center gap-2.5 overflow-hidden border-l border-border bg-surface py-2"
+        className="col-start-3 row-start-3 flex min-h-0 min-w-0 flex-col items-center gap-2.5 overflow-hidden border-l border-border bg-surface py-2"
       >
         <IconButton
           label="Expand details panel"
@@ -39,7 +39,7 @@ export function DetailsPanel() {
   return (
     <aside
       aria-label="Details"
-      className="col-start-3 row-start-2 flex min-h-0 min-w-0 flex-col overflow-hidden border-l border-border bg-surface"
+      className="col-start-3 row-start-3 flex min-h-0 min-w-0 flex-col overflow-hidden border-l border-border bg-surface"
     >
       <div className="flex flex-none items-stretch border-b border-border">
         <Tabs

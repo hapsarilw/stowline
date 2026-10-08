@@ -9,18 +9,29 @@ import {
   canReturn,
   canRevise,
   canSendForReview,
+  roleInfo,
   type PlanStatus,
 } from '@/domain';
 import { ToastHost } from '@/features/workspace/ToastHost';
 import { ReturnDialog } from '@/features/workspace/Dialogs';
 import { api, request } from '@/state/api';
 import { exportPlanFile } from '@/state/export';
+import { statusToast } from '@/state/workflow';
 import { useSessionStore } from '@/state/session-store';
 import { useViewStore } from '@/state/view-store';
 import { StatusBadge } from '@/ui/Badges';
 import { Button, IconButton } from '@/ui/Button';
 import { cn } from '@/ui/cn';
-import { IconCheckCircle, IconError, IconMoon, IconSearch, IconSun, IconWarning } from '@/ui/icons';
+import {
+  IconCheckCircle,
+  IconError,
+  IconInfo,
+  IconLock,
+  IconMoon,
+  IconSearch,
+  IconSun,
+  IconWarning,
+} from '@/ui/icons';
 import { Tabs } from '@/ui/Tabs';
 import { NewPlanDialog } from './NewPlanDialog';
 import {
@@ -105,15 +116,7 @@ function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void
     if (r.ok) {
       view.showToast({
         kind: 'ok',
-        title:
-          to === 'approved'
-            ? 'Approved'
-            : to === 'in_review'
-              ? 'Sent for review'
-              : plan.status === 'approved'
-                ? 'Revised'
-                : 'Returned to Draft',
-        message: `Plan ${plan.id}`,
+        ...statusToast(to, plan.status === 'approved', r.data.version, plan.planner, plan.id),
       });
       onChanged();
     } else if (isApiError(r.error))
@@ -121,6 +124,17 @@ function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void
   };
 
   const approval = approveState(role, plan.status, plan.errors);
+  // The note under the buttons (design 15): what opening the plan means for this role.
+  const note =
+    approval === 'disabled'
+      ? `${plan.errors === 1 ? '1 error remains' : `${plan.errors} errors remain`}: fix them to approve`
+      : !plan.openable
+        ? null
+        : !roleInfo(role).canEdit
+          ? 'Opens read only'
+          : plan.status === 'in_review' && role === 'planner'
+            ? 'Opens read only until returned'
+            : null;
   const s = plan.preview;
   const newest = log?.[0]?.at ?? '';
   return (
@@ -139,6 +153,18 @@ function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void
           Voy {plan.voyage} · {plan.port} · ETD {formatEtd(plan.etd)}
         </span>
       </div>
+      {!plan.openable ? (
+        <p
+          id="cannot-open"
+          role="note"
+          className="m-0 flex items-start gap-2 border-b border-border px-4 py-3 text-[12px] text-text2"
+        >
+          <span className="mt-px grid flex-none">
+            <IconInfo size={14} />
+          </span>
+          This voyage has no vessel geometry in the demo, so it cannot be opened.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-2 border-b border-border px-4 py-3.5">
         <div className="flex justify-between text-[12px]">
           <span className="text-text2">Bay fill, bow to stern</span>
@@ -228,9 +254,10 @@ function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void
       <div className="sticky bottom-0 flex flex-wrap gap-2 border-t border-border bg-surface px-4 py-3">
         <Button
           variant="primary"
-          className="h-8 min-w-24 flex-1"
-          disabled={!plan.openable}
-          onClick={() => void navigate(`/plans/${plan.id}`)}
+          className={cn('h-8 min-w-24 flex-1', !plan.openable && 'cursor-not-allowed opacity-45')}
+          aria-disabled={!plan.openable || undefined}
+          aria-describedby={!plan.openable ? 'cannot-open' : undefined}
+          onClick={() => plan.openable && void navigate(`/plans/${plan.id}`)}
         >
           Open plan
         </Button>
@@ -239,18 +266,19 @@ function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void
             Send for review
           </Button>
         ) : null}
-        {approval !== 'hidden' ? (
-          <Button
-            className="h-8"
-            disabled={approval === 'disabled'}
-            onClick={() => void change('approved')}
-          >
-            Approve
-          </Button>
-        ) : null}
         {canReturn(role, plan.status) ? (
           <Button className="h-8" onClick={() => setReturning(true)}>
             Return
+          </Button>
+        ) : null}
+        {approval !== 'hidden' ? (
+          <Button
+            className={cn('h-8', approval === 'disabled' && 'cursor-not-allowed opacity-45')}
+            aria-disabled={approval === 'disabled' || undefined}
+            aria-describedby={approval === 'disabled' ? 'approve-why' : undefined}
+            onClick={() => approval === 'enabled' && void change('approved')}
+          >
+            Approve
           </Button>
         ) : null}
         {canRevise(role, plan.status) ? (
@@ -263,9 +291,13 @@ function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void
             Export
           </Button>
         ) : null}
-        {!plan.openable ? (
-          <p className="m-0 basis-full text-[11.5px] text-text2">
-            This voyage has no vessel geometry in the demo, so it cannot be opened.
+        {note ? (
+          <p
+            id={approval === 'disabled' ? 'approve-why' : undefined}
+            className="m-0 flex basis-full items-center gap-1.5 text-[11.5px] text-text2"
+          >
+            <IconLock size={11} strokeWidth={1.6} />
+            {note}
           </p>
         ) : null}
       </div>
@@ -455,145 +487,155 @@ export function PlansPage() {
           <div className="flex-1" />
           <span className="text-[12px] text-text3">ETD next 14 days · UTC+8</span>
         </div>
-        <div
-          role="grid"
-          aria-label="Voyages"
-          aria-rowcount={plans.length + 1}
-          className="min-h-0 flex-1 overflow-auto border-t border-border"
-        >
-          <div
-            role="row"
-            className={cn(
-              COLS,
-              'sticky top-0 z-[1] h-8 border-b border-border bg-surface text-[11.5px] text-text2',
-            )}
-          >
-            <span role="columnheader">Vessel</span>
-            <span role="columnheader">Voyage</span>
-            <span role="columnheader">Port</span>
-            <span role="columnheader" aria-sort={asc ? 'ascending' : 'descending'}>
-              <button
-                type="button"
-                onClick={() => setAsc(!asc)}
-                className="flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-[11.5px] text-text"
-              >
-                ETD{' '}
-                <span aria-hidden="true" className="text-[8px]">
-                  {asc ? '▲' : '▼'}
-                </span>
-              </button>
-            </span>
-            <span role="columnheader">Progress</span>
-            <span role="columnheader">Violations</span>
-            <span role="columnheader">Status</span>
-            <span role="columnheader">Planner</span>
-            <span role="columnheader" className="text-right">
-              Updated
-            </span>
-          </div>
-          {plans.map((p, i) => {
-            const sel = current?.id === p.id;
-            const pct = percent(p);
-            const due = dueText(p.etd);
-            return (
-              <div
-                key={p.id}
-                role="row"
-                tabIndex={0}
-                aria-selected={sel}
-                aria-rowindex={i + 2}
-                aria-label={`${p.vessel}, voyage ${p.voyage}, ${p.port}`}
-                data-plan={p.id}
-                onClick={() => setSelected(p.id)}
-                onDoubleClick={() => p.openable && void navigate(`/plans/${p.id}`)}
-                onKeyDown={(e) => onRowKey(e, p)}
-                className={cn(
-                  COLS,
-                  'h-12 cursor-pointer border-b border-border -outline-offset-2 hover:bg-hover',
-                  sel && 'bg-sel shadow-[inset_2px_0_0_var(--accent)]',
-                )}
-              >
-                <span role="gridcell" className="flex min-w-0 flex-col gap-px">
-                  <span className="truncate font-semibold">{p.vessel}</span>
-                  <span className="font-mono text-[11px] text-text2">
-                    {p.teu.toLocaleString('en-US')} TEU · IMO {p.imo}
+        <div className="min-h-0 flex-1 overflow-auto border-t border-border">
+          {/* The grid holds only rows; the empty and loading states sit after it (axe). */}
+          <div role="grid" aria-label="Voyages" aria-rowcount={plans.length + 1}>
+            <div
+              role="row"
+              className={cn(
+                COLS,
+                'sticky top-0 z-[1] h-8 border-b border-border bg-surface text-[11.5px] text-text2',
+              )}
+            >
+              <span role="columnheader">Vessel</span>
+              <span role="columnheader">Voyage</span>
+              <span role="columnheader">Port</span>
+              <span role="columnheader" aria-sort={asc ? 'ascending' : 'descending'}>
+                <button
+                  type="button"
+                  onClick={() => setAsc(!asc)}
+                  className="flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-[11.5px] text-text"
+                >
+                  ETD{' '}
+                  <span aria-hidden="true" className="text-[8px]">
+                    {asc ? '▲' : '▼'}
                   </span>
-                </span>
-                <span role="gridcell" className="font-mono text-[12px]">
-                  {p.voyage}
-                </span>
-                <span role="gridcell" className="font-mono text-[12px]">
-                  {p.port}
-                </span>
-                <span role="gridcell" className="flex flex-col gap-px">
-                  <span className="font-mono text-[12px]">{formatEtd(p.etd)}</span>
-                  <span className={cn('text-[11px]', due.soon ? 'text-warn' : 'text-text2')}>
-                    {due.text}
-                  </span>
-                </span>
-                <span role="gridcell" className="flex min-w-0 flex-col gap-1">
-                  <span className="flex justify-between font-mono text-[11.5px]">
-                    <span>
-                      {p.planned.toLocaleString('en-US')} / {p.total.toLocaleString('en-US')}
+                </button>
+              </span>
+              <span role="columnheader">Progress</span>
+              <span role="columnheader">Violations</span>
+              <span role="columnheader">Status</span>
+              <span role="columnheader">Planner</span>
+              <span role="columnheader" className="text-right">
+                Updated
+              </span>
+            </div>
+            {plans.map((p, i) => {
+              const sel = current?.id === p.id;
+              const pct = percent(p);
+              const due = dueText(p.etd);
+              return (
+                <div
+                  key={p.id}
+                  role="row"
+                  tabIndex={0}
+                  aria-selected={sel}
+                  aria-rowindex={i + 2}
+                  aria-label={`${p.vessel}, voyage ${p.voyage}, ${p.port}`}
+                  data-plan={p.id}
+                  onClick={() => setSelected(p.id)}
+                  onDoubleClick={() => p.openable && void navigate(`/plans/${p.id}`)}
+                  onKeyDown={(e) => onRowKey(e, p)}
+                  className={cn(
+                    COLS,
+                    'h-12 cursor-pointer border-b border-border -outline-offset-2 hover:bg-hover',
+                    sel && 'bg-sel shadow-[inset_2px_0_0_var(--accent)]',
+                  )}
+                >
+                  <span role="gridcell" className="flex min-w-0 flex-col gap-px">
+                    <span className="truncate font-semibold">{p.vessel}</span>
+                    <span className="font-mono text-[11px] text-text2">
+                      {p.teu.toLocaleString('en-US')} TEU · IMO {p.imo}
                     </span>
-                    <span className="text-text2">{pct}%</span>
                   </span>
-                  <span
-                    role="progressbar"
-                    aria-label="Planned"
-                    aria-valuenow={pct}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    className="h-1 overflow-hidden rounded-[2px] bg-track"
-                  >
+                  <span role="gridcell" className="font-mono text-[12px]">
+                    {p.voyage}
+                  </span>
+                  <span role="gridcell" className="font-mono text-[12px]">
+                    {p.port}
+                  </span>
+                  <span role="gridcell" className="flex flex-col gap-px">
+                    <span className="font-mono text-[12px]">{formatEtd(p.etd)}</span>
+                    <span className={cn('text-[11px]', due.soon ? 'text-warn' : 'text-text2')}>
+                      {due.text}
+                    </span>
+                  </span>
+                  <span role="gridcell" className="flex min-w-0 flex-col gap-1">
+                    <span className="flex justify-between font-mono text-[11.5px]">
+                      <span>
+                        {p.planned.toLocaleString('en-US')} / {p.total.toLocaleString('en-US')}
+                      </span>
+                      <span className="text-text2">{pct}%</span>
+                    </span>
                     <span
-                      className="block h-full"
-                      style={{
-                        width: `${pct}%`,
-                        background: pct === 100 ? 'var(--ok)' : 'var(--accent)',
-                      }}
-                    />
+                      role="progressbar"
+                      aria-label="Planned"
+                      aria-valuenow={pct}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      className="h-1 overflow-hidden rounded-[2px] bg-track"
+                    >
+                      <span
+                        className="block h-full"
+                        style={{
+                          width: `${pct}%`,
+                          background: pct === 100 ? 'var(--ok)' : 'var(--accent)',
+                        }}
+                      />
+                    </span>
                   </span>
-                </span>
-                <span role="gridcell">
-                  <Violations p={p} />
-                </span>
-                <span role="gridcell">
-                  {/* On the surface color, so the tint of the badge does not lower its contrast. */}
-                  <span className="inline-flex rounded bg-surface">
-                    <StatusBadge status={p.status} />
+                  <span role="gridcell">
+                    <Violations p={p} />
                   </span>
-                </span>
-                <span role="gridcell" className="flex min-w-0 items-center gap-1.5">
-                  <span
-                    aria-hidden="true"
-                    className="grid size-5 flex-none place-items-center rounded-full border border-border2 bg-raised text-[9px] font-semibold text-text2"
-                  >
-                    {initials(p.planner)}
+                  <span role="gridcell">
+                    {/* On the surface color, so the tint of the badge does not lower its contrast. */}
+                    <span className="inline-flex rounded bg-surface">
+                      <StatusBadge status={p.status} />
+                    </span>
                   </span>
-                  <span
-                    className={cn('truncate text-[12px]', p.planner ? 'text-text' : 'text-text3')}
-                  >
-                    {p.planner ?? 'Unassigned'}
+                  <span role="gridcell" className="flex min-w-0 items-center gap-1.5">
+                    <span
+                      aria-hidden="true"
+                      className="grid size-5 flex-none place-items-center rounded-full border border-border2 bg-raised text-[9px] font-semibold text-text2"
+                    >
+                      {initials(p.planner)}
+                    </span>
+                    <span
+                      className={cn('truncate text-[12px]', p.planner ? 'text-text' : 'text-text3')}
+                    >
+                      {p.planner ?? 'Unassigned'}
+                    </span>
                   </span>
-                </span>
-                <span role="gridcell" className="text-right text-[12px] text-text2">
-                  {updatedText(p.updatedAt)}
-                </span>
-              </div>
-            );
-          })}
+                  <span role="gridcell" className="text-right text-[12px] text-text2">
+                    {updatedText(p.updatedAt)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
           {data && plans.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-5 py-12 text-text2">
               <span className="font-semibold text-text">No plans match these filters</span>
               <span>Try another status, or clear the search.</span>
-              <Button onClick={clear}>Clear filters</Button>
+              <Button autoFocus onClick={clear}>
+                Clear filters
+              </Button>
             </div>
           ) : null}
           {!data && !failed ? (
-            <p role="status" className="m-0 px-5 py-6 text-text2">
-              Loading plans…
-            </p>
+            <div role="status" aria-busy="true" aria-label="Loading plans">
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} aria-hidden="true" className={cn(COLS, 'h-12 border-b border-border')}>
+                  {Array.from({ length: 7 }, (_, j) => (
+                    <span
+                      key={j}
+                      className="h-3 rounded-[3px] bg-raised motion-safe:animate-[stw-pulse_1.4s_ease-in-out_infinite]"
+                      style={{ width: j === 0 ? `${60 + ((i * 13) % 35)}%` : '70%' }}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
           ) : null}
           {!data && failed ? (
             <p className="m-0 px-5 py-6 text-text2">
@@ -623,7 +665,8 @@ export function PlansPage() {
             useViewStore.getState().showToast({
               kind: 'ok',
               title: 'Plan created',
-              message: `${p.vessel} · Voy ${p.voyage} · ${p.port} is a new Draft`,
+              message: `${p.vessel} · ${p.id} · starts from the arrival condition`,
+              action: { label: 'Open plan', run: () => void navigate(`/plans/${p.id}`) },
             });
             void load();
           }}

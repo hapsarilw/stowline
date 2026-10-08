@@ -149,13 +149,24 @@ describe('TopBar (FR-09, FR-11)', () => {
     const bar = screen.getByRole('banner');
     expect(within(bar).getByText('MV Nusantara Pioneer')).toBeInTheDocument();
     expect(within(bar).getByText('Voy 042W · 8,500 TEU')).toBeInTheDocument();
-    const rotation = within(bar).getByRole('list', { name: 'Port rotation' });
+    // Two lists: the compact one under 1600 px and the full one, shown by CSS.
+    const [compact, rotation] = within(bar).getAllByRole('list', { name: 'Port rotation' });
     expect(
-      within(rotation)
+      within(compact!)
+        .getAllByRole('listitem')
+        .map((li) =>
+          li.textContent
+            ?.replace(/,.*$/, '')
+            .replace(/Now$/, '')
+            .replace(/^\+3.*/, '+3'),
+        ),
+    ).toEqual(['SGSIN', 'LKCMB', '+3']);
+    expect(
+      within(rotation!)
         .getAllByRole('listitem')
         .map((li) => li.textContent?.replace(/,.*$/, '').replace(/Now$/, '')),
     ).toEqual(['IDJKT', 'SGSIN', 'LKCMB', 'AEJEA', 'NLRTM', 'DEHAM'].map((c) => c));
-    expect(within(rotation).getByText('SGSIN').closest('[aria-current]')).toHaveAttribute(
+    expect(within(rotation!).getByText('SGSIN').closest('[aria-current]')).toHaveAttribute(
       'aria-current',
       'step',
     );

@@ -138,6 +138,26 @@
   }
 }
 
+/* Loading (design 14): the skeleton pulses, the bar sweeps. Both are still with reduced motion. */
+@keyframes stw-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes stw-indet {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 @keyframes stw-in {
   0% {
     transform: translate(-50%, -6px);

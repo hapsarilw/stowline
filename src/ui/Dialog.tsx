@@ -10,13 +10,15 @@ const FOCUSABLE =
 
 interface DialogProps {
   title: string;
+  /** Mono text after the title, such as the plan id. */
+  subtitle?: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
   width?: number;
 }
 
-export function Dialog({ title, onClose, children, footer, width = 480 }: DialogProps) {
+export function Dialog({ title, subtitle, onClose, children, footer, width = 480 }: DialogProps) {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const before = document.activeElement as HTMLElement | null;
@@ -65,7 +67,12 @@ export function Dialog({ title, onClose, children, footer, width = 480 }: Dialog
         style={{ maxWidth: width }}
       >
         <div className="flex h-11 flex-none items-center gap-2 border-b border-border pr-2 pl-4">
-          <h2 className="m-0 flex-1 text-[14px] font-semibold">{title}</h2>
+          <h2 className="m-0 flex flex-1 items-baseline gap-2 text-[14px] font-semibold">
+            {title}
+            {subtitle ? (
+              <span className="font-mono text-[12px] font-normal text-text2">{subtitle}</span>
+            ) : null}
+          </h2>
           <IconButton label="Close dialog" size="sm" onClick={onClose}>
             <IconClose size={12} />
           </IconButton>

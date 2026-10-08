@@ -251,7 +251,7 @@ export function LoadList() {
     return (
       <aside
         aria-label="Load list"
-        className="row-start-2 col-start-1 flex min-h-0 min-w-0 flex-col items-center gap-2.5 overflow-hidden border-r border-border bg-surface py-2"
+        className="row-start-3 col-start-1 flex min-h-0 min-w-0 flex-col items-center gap-2.5 overflow-hidden border-r border-border bg-surface py-2"
       >
         <IconButton
           label="Expand load list"
@@ -278,7 +278,7 @@ export function LoadList() {
   return (
     <aside
       aria-label="Load list"
-      className="row-start-2 col-start-1 flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-border bg-surface"
+      className="row-start-3 col-start-1 flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-border bg-surface"
     >
       <div className="flex h-10 flex-none items-center gap-2 pr-2 pl-3">
         <h2 className="m-0 text-[13px] font-semibold">Load list</h2>

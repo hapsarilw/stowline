@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { canEditPlan, PODS, ROTATION } from '@/domain';
 import { AccountMenu } from '@/app/AccountMenu';
-import { saveCurrent } from '@/state/save';
+import { saveCurrent, useConflict } from '@/state/save';
 import { useSessionStore } from '@/state/session-store';
 import { WorkflowButtons } from './WorkflowButtons';
 import { runValidation } from '@/state/actions';
@@ -11,7 +12,15 @@ import { useViewStore } from '@/state/view-store';
 import { CountBadge, PodSwatch, StatusBadge } from '@/ui/Badges';
 import { Button, IconButton } from '@/ui/Button';
 import { cn } from '@/ui/cn';
-import { IconCheckCircle, IconMoon, IconRedo, IconSun, IconUndo } from '@/ui/icons';
+import {
+  IconCheckCircle,
+  IconChevronDown,
+  IconError,
+  IconMoon,
+  IconRedo,
+  IconSun,
+  IconUndo,
+} from '@/ui/icons';
 
 const Divider = () => (
   <div aria-hidden="true" className="hidden h-6 w-px flex-none bg-border min-[1360px]:block" />
@@ -34,11 +43,120 @@ function Logo() {
   );
 }
 
-function Rotation() {
+function Chevron() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      aria-hidden="true"
+      className="text-text3"
+    >
+      <path d="m6 4 4 4-4 4" />
+    </svg>
+  );
+}
+
+/** Under 1600 px: now, the next port and a "+3" menu with the rest (design 10, proposed). */
+function CompactRotation() {
+  const [open, setOpen] = useState(false);
+  const now = ROTATION.find((p) => p.state === 'current')!;
+  const ahead = ROTATION.filter((p) => p.state === 'next');
+  const [next, ...rest] = ahead;
+  const chip = 'flex h-6 items-center gap-1.5 rounded border px-[7px] font-mono text-[11.5px]';
   return (
     <ol
       aria-label="Port rotation"
-      className="m-0 flex min-w-0 flex-none list-none items-center gap-0.5 p-0"
+      className="relative m-0 flex min-w-0 flex-none list-none items-center gap-0.5 p-0 min-[1600px]:hidden"
+    >
+      <li className="flex items-center gap-0.5">
+        <span
+          title={`${now.name} · ${now.when}`}
+          aria-current="step"
+          className={cn(chip, 'border-accent bg-accentbg font-semibold text-text')}
+        >
+          <span>{now.code}</span>
+          <span className="sr-only">
+            , {now.name}, {now.when}
+          </span>
+          <span className="rounded-[2px] bg-accent px-1 font-sans text-[10px] font-semibold uppercase tracking-[0.04em] text-onaccent">
+            Now
+          </span>
+        </span>
+      </li>
+      {next ? (
+        <li className="flex items-center gap-0.5">
+          <Chevron />
+          <span
+            title={`${next.name} · ${next.when}`}
+            className={cn(chip, 'border-border font-medium text-text')}
+          >
+            <PodSwatch pod={next.code} />
+            <span>{next.code}</span>
+            <span className="sr-only">
+              , {next.name}, {next.when}
+            </span>
+          </span>
+        </li>
+      ) : null}
+      {rest.length ? (
+        <li className="flex items-center gap-0.5">
+          <Chevron />
+          <button
+            type="button"
+            aria-haspopup="true"
+            aria-expanded={open}
+            title={rest.map((p) => p.name).join(' · ')}
+            onClick={() => setOpen(!open)}
+            onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+            className={cn(
+              chip,
+              'cursor-pointer border-border font-medium text-text2 hover:text-text',
+            )}
+          >
+            +{rest.length}
+            <IconChevronDown size={10} strokeWidth={1.6} />
+          </button>
+          {open ? (
+            <ul className="absolute top-8 left-24 z-30 m-0 flex list-none flex-col gap-0.5 rounded-md border border-border2 bg-surface p-1.5 shadow-lg">
+              {rest.map((p) => (
+                <li
+                  key={p.code}
+                  className="flex items-center gap-2 px-2 py-1 font-mono text-[11.5px]"
+                >
+                  <PodSwatch pod={p.code} />
+                  <span>{p.code}</span>
+                  <span className="font-sans text-text2">
+                    {p.name} · {p.when}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </li>
+      ) : null}
+    </ol>
+  );
+}
+
+function Rotation() {
+  return (
+    <>
+      <CompactRotation />
+      <FullRotation />
+    </>
+  );
+}
+
+function FullRotation() {
+  return (
+    <ol
+      aria-label="Port rotation"
+      className="m-0 hidden min-w-0 flex-none list-none items-center gap-0.5 p-0 min-[1600px]:flex"
     >
       {ROTATION.map((p, i) => {
         const current = p.state === 'current';
@@ -112,12 +230,18 @@ export function TopBar() {
   const total = usePlanStore((s) => s.loadList.length);
   const planned = usePlanStore((s) => s.planned);
   const violations = usePlanStore((s) => s.violations.length);
-  const canUndo = usePlanStore((s) => s.history.length > 0);
-  const canRedo = usePlanStore((s) => s.future.length > 0);
+  const editable = canEditPlan(
+    useSessionStore((s) => s.role),
+    usePlanStore((s) => s.header.status),
+  );
+  const canUndo = usePlanStore((s) => s.history.length > 0) && editable;
+  const canRedo = usePlanStore((s) => s.future.length > 0) && editable;
   const theme = useViewStore((s) => s.theme);
   const role = useSessionStore((s) => s.role);
   const unsaved = usePlanStore((s) => s.history.length);
   const canSave = unsaved > 0 && canEditPlan(role, header.status);
+  const conflict = useConflict((s) => s.conflict);
+  const errors = usePlanStore((s) => s.violations.filter((v) => v.severity === 'error').length);
   const pct = total === 0 ? 0 : (planned / total) * 100;
 
   return (
@@ -144,12 +268,21 @@ export function TopBar() {
       <Divider />
       <div className="flex flex-none items-center gap-2.5">
         <StatusBadge status={header.status} />
-        <span
-          className="hidden font-mono text-[11px] text-text3 min-[1360px]:inline"
-          title={`Version ${header.version}`}
-        >
-          v{header.version}
-        </span>
+        {conflict ? (
+          <span
+            className="flex items-center gap-1 font-mono text-[11px] text-err"
+            title={`The server has version ${conflict.currentVersion}; your changes are on version ${header.version}`}
+          >
+            <IconError size={11} strokeWidth={1.8} />v{header.version} → v{conflict.currentVersion}
+          </span>
+        ) : (
+          <span
+            className="font-mono text-[11px] text-text3"
+            title={`Version ${header.version} on the server`}
+          >
+            v{header.version}
+          </span>
+        )}
         <div className="flex flex-col gap-1">
           <span className="font-mono text-[11.5px] text-text2">
             <span className="font-semibold text-text">{planned.toLocaleString('en-US')}</span> /{' '}
@@ -161,7 +294,7 @@ export function TopBar() {
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(pct * 10) / 10}
-            className="hidden h-[3px] w-12 overflow-hidden rounded-[2px] bg-track min-[1600px]:block min-[1600px]:w-[132px]"
+            className="h-[3px] w-24 overflow-hidden rounded-[2px] bg-track min-[1600px]:w-[132px]"
           >
             <div className="h-full bg-accent" style={{ width: `${pct.toFixed(1)}%` }} />
           </div>
@@ -178,20 +311,20 @@ export function TopBar() {
       </div>
       <Button className="flex-none pr-1.5 pl-2.5" onClick={() => void runValidation()}>
         <IconCheckCircle size={14} />
-        <span className="sr-only min-[1600px]:not-sr-only">Validate</span>
-        <CountBadge tone="errSoft" label="violations">
+        <span>Validate</span>
+        <CountBadge tone={errors > 0 ? 'errSoft' : 'warnSoft'} label="violations">
           {violations}
         </CountBadge>
       </Button>
-      <WorkflowButtons />
       <Button
-        variant="primary"
-        className="flex-none px-2.5 min-[1360px]:px-3.5"
+        variant={header.status === 'draft' ? 'primary' : 'ghost'}
+        className={cn('flex-none px-3.5', header.status !== 'draft' && 'border-accent')}
         disabled={!canSave}
         onClick={() => void saveCurrent()}
       >
-        Save
+        Save{conflict ? <span className="font-normal"> · {unsaved}</span> : null}
       </Button>
+      <WorkflowButtons />
       <IconButton
         label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
         className="flex-none"

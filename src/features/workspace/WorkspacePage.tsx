@@ -15,6 +15,7 @@ import { CenterToolbar } from './CenterToolbar';
 import { DetailsPanel } from './DetailsPanel';
 import { SplitHandle } from './SplitHandle';
 import { ToastHost } from './ToastHost';
+import { ReadOnlyStrip } from './ReadOnlyStrip';
 import { TopBar } from './TopBar';
 
 function Center() {
@@ -26,7 +27,7 @@ function Center() {
   return (
     <main
       aria-label="Plan workspace"
-      className="relative col-start-2 row-start-2 flex min-h-0 min-w-0 flex-col"
+      className="relative col-start-2 row-start-3 flex min-h-0 min-w-0 flex-col"
     >
       <CenterToolbar />
       <div ref={area} className="flex min-h-0 flex-1 flex-col">
@@ -120,16 +121,17 @@ export function WorkspacePage() {
 
   return (
     <div
-      className="relative grid h-full min-h-[640px] grid-rows-[48px_minmax(0,1fr)_64px] overflow-hidden bg-bg"
+      className="relative grid h-full min-h-[640px] grid-rows-[48px_auto_minmax(0,1fr)_64px] overflow-hidden bg-bg"
       style={{
         gridTemplateColumns: `${leftOpen ? '320px' : '40px'} minmax(0,1fr) ${rightOpen ? '320px' : '40px'}`,
       }}
     >
       <TopBar />
+      <ReadOnlyStrip />
       <LoadList />
       <Center />
       <DetailsPanel />
-      <footer className="col-span-full row-start-3 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] border-t border-border bg-surface">
+      <footer className="col-span-full row-start-4 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] border-t border-border bg-surface">
         <BayNavigator />
         <StabilityStrip />
       </footer>

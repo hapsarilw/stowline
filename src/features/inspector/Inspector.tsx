@@ -4,6 +4,7 @@ import { cn } from '@/ui/cn';
 import { IconLock } from '@/ui/icons';
 import { Kbd } from '@/ui/Kbd';
 import { useMemo } from 'react';
+import { readOnlyReason } from '@/domain';
 import { heldContainer } from '@/state/placement';
 import { dispatch, runCommand, usePlacementStore } from '@/state/placement-store';
 import { canEditNow, usePlanStore } from '@/state/plan-store';
@@ -98,8 +99,8 @@ export function Inspector() {
   const selected = useViewStore((s) => s.selected);
   const placement = usePlacementStore((s) => s.placement);
   // Re-render when the plan becomes read only or the role changes (FR-63).
-  usePlanStore((s) => s.header.status);
-  useSessionStore((s) => s.role);
+  const status = usePlanStore((s) => s.header.status);
+  const role = useSessionStore((s) => s.role);
   const m = useMemo(() => {
     const held = heldContainer(placement);
     const c = held ? ctx.containers.get(held) : undefined;
@@ -131,6 +132,7 @@ export function Inspector() {
     );
   }
 
+  const readOnly = m.mode === 'Container' ? readOnlyReason(role, status) : null;
   const stackBar = { err: 'var(--err)', warn: 'var(--warn)', accent: 'var(--accent)' }[
     m.stack.tone
   ];
@@ -244,25 +246,37 @@ export function Inspector() {
       </div>
 
       <div className="flex-1" />
-      <div
-        className={cn(
-          'sticky bottom-0 grid gap-1.5 border-t border-border bg-surface px-3 py-2.5',
-          actions.length === 3 ? 'grid-cols-3' : 'grid-cols-2',
-        )}
-      >
-        {actions.map((a) => (
-          <Button
-            key={a.key}
-            disabled={a.disabled}
-            aria-keyshortcuts={a.shortcut}
-            onClick={a.run}
-            className="h-[30px] gap-1.5 text-[12.5px]"
-          >
-            <span>{a.label}</span>
-            <Kbd>{a.key}</Kbd>
-          </Button>
-        ))}
-      </div>
+      {readOnly ? (
+        <div
+          role="note"
+          className="sticky bottom-0 flex items-start gap-2 border-t border-border bg-surface px-3 py-2.5 text-[12px] text-text2"
+        >
+          <span className="mt-px grid flex-none">
+            <IconLock size={13} strokeWidth={1.6} />
+          </span>
+          {readOnly}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            'sticky bottom-0 grid gap-1.5 border-t border-border bg-surface px-3 py-2.5',
+            actions.length === 3 ? 'grid-cols-3' : 'grid-cols-2',
+          )}
+        >
+          {actions.map((a) => (
+            <Button
+              key={a.key}
+              disabled={a.disabled}
+              aria-keyshortcuts={a.shortcut}
+              onClick={a.run}
+              className="h-[30px] gap-1.5 text-[12.5px]"
+            >
+              <span>{a.label}</span>
+              <Kbd>{a.key}</Kbd>
+            </Button>
+          ))}
+        </div>
+      )}
     </>
   );
 }
