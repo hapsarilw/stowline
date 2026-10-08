@@ -387,20 +387,20 @@ One pure controller in `src/state/placement.ts`: `step(state, event, plan) → {
 | Reduced motion (FR-66) | Shake, settle and the held ghost play through `ui/motion.ts`, which plays a 100 ms fade instead when reduced motion is set. The drag ghost fades in 100 ms instead of travelling back. The toast fades instead of sliding. The global reduced-motion rule now also limits animations to one run: before, it made the 3D skeleton pulse every 100 ms, a flash. |
 | Measuring NFR-02 | The bay view records `performance.measure('nfr-02 target marks')` from the pick-up to two frames after the marks render (the first frame callback runs before the paint, the second after it, so it errs long). `npm run bench:pickup` reads it on the production build, and also times from the input event's own timestamp. |
 
-### New copy for approval
+### New copy (decided Oct 8, 2026)
 
-The design has no text for these cases. They follow the design's voice. Please confirm or give me other words.
+The design has no text for these cases. The owner left the choice to me: all approved as listed, with one change, "Not done" became "Can't make this change", in the voice of "Can't place … at …".
 
 | Where | Text |
 | --- | --- |
 | Result message, FR-49 | "… · counts as a restow" after a move or swap of a container loaded at an earlier port |
 | Live region | "Move to a slot first. Still holding {id}." · "{id} put back at {slot}." · "Picked up {id}. {n} more rows selected." · "{id} is already planned at {slot}." · "Swap cancelled." · "{slot} is empty. Pick a container to swap with." · "{slot} is empty. Nothing to swap." · "{id} at {slot} is locked. Unlock it first." · "Cannot swap. {reason}." · "Undone: {line}." · "Redone: {line}." |
-| Messages | "Can't swap {a} and {b}" (title, with the reason) · "Undone" and "Redone" (with the command's line) · "Not done" (a command the plan refused) · "Unlocked {slot}" |
+| Messages | "Can't swap {a} and {b}" (title, with the reason) · "Undone" and "Redone" (with the command's line) · "Can't make this change" (a command the plan refused) · "Unlocked {slot}" |
 | Activity log lines | "Placed {id} at {slot}", "Moved {id} from {a} to {b}", "Unplaced {id} from {slot}", "Swapped {id} at {a} with {id} at {b}", "Locked / Unlocked {id} at {slot}", "Undid: …", "Redid: …" |
 
-### Accessibility findings for decision
+### Accessibility findings, decided
 
-A new axe scan of the held state (`e2e/a11y.spec.ts`, both themes) found two places where the design itself is under 4.5:1. They are excluded from that scan by name until you decide; anything else still fails it.
+A new axe scan of the held state (`e2e/a11y.spec.ts`, both themes) found two places where the design itself is under 4.5:1. **Decision (owner, Oct 8, 2026): both recommendations applied.** The row in hand keeps the accent background and dashed outline without the fade; the "Picked up" pill and the preview deltas use `--text` on `--accentbg`. No token changed. The scan now runs with no exclusions and passes in both themes.
 
 | # | Where | Finding | Recommendation |
 | --- | --- | --- | --- |
@@ -415,7 +415,7 @@ A new axe scan of the held state (`e2e/a11y.spec.ts`, both themes) found two pla
 
 ### Not done in M4
 
-- The Bay tab with both side panels open at 1440 px: the legend wraps and the cells get too small for "POD weight", so text overflows. Screen 03 has the panels collapsed. Present since M2. Proposal: collapse both panels when the Bay tab opens, as screen 03 shows, or let the legend wrap without shrinking the grid. Needs your call.
+- Fixed after review (owner, Oct 8, 2026): the Bay tab with both side panels open at 1440 px overflowed the cell text (since M2). The Bay tab now collapses both panels to rails, as screen 03 shows, and leaving it restores them unless a panel was opened in the meantime. A cell under 56 px wide (a panel reopened in the Bay tab) shows the POD without the weight, by a container query, rather than overflowing or cutting a number; the cell label still reads the weight. The reefer, plug and DG corner icons can touch the POD text at that width.
 - Activity log display (FR-58) and the restow count in the plan header (FR-49): M6. Apply fix (the first half of AT-04): M5.
 - Touch: a press on a list row and a move scrolls the list, which cancels the drag. Pointer and keyboard work. Not in the SRS for version 1.
 - A pick-up runs the rule check for the bay's targets about five times (controller, runner, bay view, 3D view, Inspector). It fits NFR-02 with room to spare; one shared result would cut it (M7 if needed).
