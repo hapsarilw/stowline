@@ -9,6 +9,13 @@ export type Theme = 'dark' | 'light';
 export type CenterTab = '3d' | 'bay' | 'split';
 export type RightTab = 'inspector' | 'violations';
 export type ToastKind = 'ok' | 'info' | 'warn' | 'err';
+export type SeverityFilter = 'all' | 'error' | 'warning';
+
+/** Port playback (FR-56): the stop shown, 0 for the departure, and whether Play is on. */
+export interface Playback {
+  port: number;
+  playing: boolean;
+}
 
 export interface Toast {
   kind: ToastKind;
@@ -60,14 +67,25 @@ export interface ViewStore {
   toast: Toast | null;
   /** 3D view: color mode (FR-20), last camera preset asked for (FR-19), hull and POD filter (FR-21). */
   colorMode: ColorMode;
-  /** seq changes on every request, so asking for the same preset again moves the camera back. */
-  camera: { preset: CameraPreset; seq: number };
+  /**
+   * seq changes on every request, so asking for the same preset again moves the camera back.
+   * With a bay, the camera looks at that bay instead (Show, FR-43).
+   */
+  camera: { preset: CameraPreset; seq: number; bay: number | null };
   hullTransparent: boolean;
   onlyPod: string | null;
   /** Containers shown at full color, every other one dimmed. Show uses it (FR-43). */
   highlight: readonly SlotKey[] | null;
   /** Bumped to ask the bay grid to take the keyboard focus (FR-17). */
   gridFocusSeq: number;
+  /** Violations panel: severity filter and the violation in focus (FR-42, FR-43). */
+  severity: SeverityFilter;
+  focusedViolation: string | null;
+  /** The stability drawer (FR-53). */
+  drawerOpen: boolean;
+  playback: Playback | null;
+  /** The center tab before playback switched to 3D, to go back to. */
+  tabBeforePlayback: CenterTab | null;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   toggleLeft: () => void;
@@ -91,7 +109,24 @@ export interface ViewStore {
   setOnlyPod: (pod: string | null) => void;
   setHighlight: (keys: readonly SlotKey[] | null) => void;
   requestGridFocus: () => void;
+  setSeverity: (severity: SeverityFilter) => void;
+  /** Focus on a violation: select it, dim the rest, move the camera to its bay. */
+  focusViolation: (v: {
+    id: string;
+    bay: number;
+    slot: SlotKey;
+    slotKeys: readonly SlotKey[];
+  }) => void;
+  clearViolationFocus: () => void;
+  setDrawerOpen: (open: boolean) => void;
+  openPlayback: () => void;
+  closePlayback: () => void;
+  setPlaybackPort: (port: number) => void;
+  setPlaying: (playing: boolean) => void;
 }
+
+/** The last stop of the port timeline: the departure and four ports. */
+export const LAST_STOP = 4;
 
 export const SPLIT_MIN = 0.25;
 export const SPLIT_MAX = 0.8;
@@ -131,11 +166,16 @@ export function initialView(
     announcement: '',
     toast: null,
     colorMode: 'pod',
-    camera: { preset: 'iso', seq: 0 },
+    camera: { preset: 'iso', seq: 0, bay: null },
     hullTransparent: true,
     onlyPod: null,
     highlight: null,
     gridFocusSeq: 0,
+    severity: 'all',
+    focusedViolation: null,
+    drawerOpen: false,
+    playback: null,
+    tabBeforePlayback: null,
   };
 }
 
@@ -220,11 +260,68 @@ export const useViewStore = create<ViewStore>()((set, get) => ({
     set({ toast: null });
   },
   setColorMode: (colorMode) => set({ colorMode }),
-  setCameraPreset: (preset) => set((s) => ({ camera: { preset, seq: s.camera.seq + 1 } })),
+  setCameraPreset: (preset) =>
+    set((s) => ({ camera: { preset, seq: s.camera.seq + 1, bay: null } })),
   toggleHull: () => set((s) => ({ hullTransparent: !s.hullTransparent })),
   setOnlyPod: (onlyPod) => set({ onlyPod }),
   setHighlight: (highlight) => set({ highlight }),
   requestGridFocus: () => set((s) => ({ gridFocusSeq: s.gridFocusSeq + 1 })),
+  setSeverity: (severity) => set({ severity }),
+  focusViolation(v) {
+    // Show needs the 3D view and the bay grid (design 04).
+    if (get().centerTab === 'bay') get().setCenterTab('split');
+    const s = get();
+    set({
+      focusedViolation: v.id,
+      bay: v.bay,
+      selected: v.slot,
+      focus: v.slot,
+      highlight: [...v.slotKeys],
+      rightTab: 'violations',
+      rightOpen: true,
+      camera: { ...s.camera, seq: s.camera.seq + 1, bay: v.bay },
+    });
+  },
+  clearViolationFocus() {
+    const s = get();
+    if (!s.focusedViolation && !s.highlight) return;
+    set({
+      focusedViolation: null,
+      highlight: null,
+      camera: { ...s.camera, seq: s.camera.seq + 1, bay: null },
+    });
+  },
+  setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
+  openPlayback() {
+    const s = get();
+    if (s.playback) return;
+    // Playback runs in the 3D view (design 06), with any violation focus cleared.
+    s.setCenterTab('3d');
+    set({
+      playback: { port: 1, playing: true },
+      tabBeforePlayback: s.centerTab,
+      focusedViolation: null,
+      highlight: null,
+    });
+  },
+  closePlayback() {
+    const s = get();
+    if (!s.playback) return;
+    set({ playback: null, tabBeforePlayback: null });
+    if (s.tabBeforePlayback) s.setCenterTab(s.tabBeforePlayback);
+  },
+  setPlaybackPort(port) {
+    const p = get().playback;
+    if (!p) return;
+    set({ playback: { ...p, port: Math.max(0, Math.min(LAST_STOP, port)) } });
+  },
+  setPlaying(playing) {
+    const p = get().playback;
+    if (!p) return;
+    // Play at the last stop starts again from the first port.
+    const port = playing && p.port >= LAST_STOP ? 1 : p.port;
+    set({ playback: { port, playing } });
+  },
 }));
 
 /** The key of the same row and tier in another view of the same 40ft bay. */

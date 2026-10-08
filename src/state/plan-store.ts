@@ -58,6 +58,8 @@ export interface PlanStore extends PlanData {
   future: Command[];
   /** Newest last. */
   activity: ActivityEntry[];
+  /** When the whole plan was last checked (Date.now()): at load and on Validate. */
+  checkedAt: number;
   apply: (command: Command) => CommandResult;
   undo: () => boolean;
   redo: () => boolean;
@@ -107,6 +109,7 @@ export function initialPlanStore(): Omit<
     history: [],
     future: [],
     activity: [],
+    checkedAt: Date.now(),
   };
 }
 
@@ -160,7 +163,7 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
       return true;
     },
     setViolations(violations) {
-      set({ violations, violationIndex: indexViolations(violations) });
+      set({ violations, violationIndex: indexViolations(violations), checkedAt: Date.now() });
     },
     load(data, state) {
       set({
@@ -169,6 +172,7 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
         history: [],
         future: [],
         activity: [],
+        checkedAt: Date.now(),
       });
     },
   };

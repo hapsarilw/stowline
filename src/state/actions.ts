@@ -1,6 +1,14 @@
-import { toPlacements } from '@/domain';
-import { plural } from '@/domain';
+import {
+  pad,
+  plural,
+  suggestFix,
+  toPlacements,
+  type FixSuggestion,
+  type StowState,
+  type Violation,
+} from '@/domain';
 import type { ValidationClient } from '@/worker/client';
+import { runCommand } from './placement-store';
 import { usePlanStore } from './plan-store';
 import { useViewStore } from './view-store';
 
@@ -29,6 +37,9 @@ export async function runValidation(): Promise<void> {
       placements: toPlacements(state),
     });
     usePlanStore.getState().setViolations(report.violations);
+    // The result is in the violations panel (design: Validate opens it).
+    view.setRightTab('violations');
+    if (!useViewStore.getState().rightOpen) view.toggleRight();
     const total = report.errors + report.warnings;
     view.showToast({
       kind: report.errors ? 'err' : 'ok',
@@ -45,4 +56,48 @@ export async function runValidation(): Promise<void> {
       message: 'The check could not run. Try Validate again.',
     });
   }
+}
+
+const fixCache = new WeakMap<StowState, Map<string, FixSuggestion>>();
+
+/** The suggested fix for a violation on the plan as it is now (FR-44). Cached per plan state. */
+export function fixFor(v: Violation): FixSuggestion {
+  const { state, ctx } = usePlanStore.getState();
+  let byId = fixCache.get(state);
+  if (!byId) {
+    byId = new Map();
+    fixCache.set(state, byId);
+  }
+  let fix = byId.get(v.id);
+  if (!fix) {
+    fix = suggestFix(v, state, ctx);
+    byId.set(v.id, fix);
+  }
+  return fix;
+}
+
+/** Show (FR-43): select the violation, dim the rest, move the camera to its bay. */
+export function showViolation(id: string): void {
+  const v = usePlanStore.getState().violations.find((x) => x.id === id);
+  if (!v) return;
+  const view = useViewStore.getState();
+  view.closePlayback();
+  view.focusViolation(v);
+  view.announce(
+    `Focused on ${plural(v.slotKeys.length, 'container')} in bay ${pad(v.bay)}: ${v.message}. Others dimmed.`,
+  );
+}
+
+/**
+ * Apply fix (FR-44): the fix, or the alternative when there is no fix, as one command. The
+ * result message says what was resolved and offers Undo (FR-45).
+ */
+export function applyFix(id: string): void {
+  const v = usePlanStore.getState().violations.find((x) => x.id === id);
+  if (!v) return;
+  const fix = fixFor(v);
+  const command = fix.kind === 'fix' ? fix.command : fix.alternative?.command;
+  if (!command) return;
+  const r = runCommand(command);
+  if (r.ok) useViewStore.getState().clearViolationFocus();
 }
