@@ -66,12 +66,12 @@ describe('read only plans (FR-63)', () => {
     expect(canEditNow('approved')).toBe(false);
     expect(plan().apply({ kind: 'move', from: '180688', to: '180488' })).toMatchObject({
       ok: false,
-      reason: 'This plan is read only.',
+      reason: 'This plan is approved and read only. Revise it to make changes.',
     });
     expect(plan().undo()).toBe(false);
     dispatch({ type: 'pickFromSlot', key: '180486', via: 'keyboard' });
     expect(useViewStore.getState().announcement).toBe(
-      'This plan is approved and read only. Revise it to make changes.',
+      '180486: NSPU 482913 5, Rotterdam, 28.4 t. This plan is approved and read only. Revise it to make changes.',
     );
   });
 
@@ -80,7 +80,9 @@ describe('read only plans (FR-63)', () => {
     expect(canEditNow('draft')).toBe(false);
     expect(plan().apply(MOVE).ok).toBe(false);
     dispatch({ type: 'pickFromSlot', key: '180486', via: 'keyboard' });
-    expect(useViewStore.getState().announcement).toBe('Your role cannot change plans.');
+    expect(useViewStore.getState().announcement).toBe(
+      '180486: NSPU 482913 5, Rotterdam, 28.4 t. Your role cannot change plans.',
+    );
   });
 
   it('keeps the role in the browser, and copes with a bad stored value', () => {

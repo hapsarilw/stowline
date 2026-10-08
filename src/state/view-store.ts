@@ -22,7 +22,12 @@ export interface Toast {
   title: string;
   message?: string;
   undo?: boolean;
+  /** One more button, such as Export on "Approved" or Discard on "Unsaved changes restored". */
+  action?: { label: string; run: () => void };
 }
+
+/** A toast goes after 5 s, unless the pointer or the focus is on it (design 16). */
+export const TOAST_MS = 5000;
 
 const THEME_KEY = 'stowline.theme';
 
@@ -103,6 +108,8 @@ export interface ViewStore {
   announce: (text: string) => void;
   showToast: (toast: Toast) => void;
   dismissToast: () => void;
+  /** Pauses the timer of the toast while it is hovered or focused, and restarts it after. */
+  holdToast: (held: boolean) => void;
   setColorMode: (mode: ColorMode) => void;
   setCameraPreset: (preset: CameraPreset) => void;
   toggleHull: () => void;
@@ -253,7 +260,11 @@ export const useViewStore = create<ViewStore>()((set, get) => ({
   showToast(toast) {
     clearTimeout(toastTimer);
     set({ toast });
-    toastTimer = setTimeout(() => set({ toast: null }), 5200);
+    toastTimer = setTimeout(() => set({ toast: null }), TOAST_MS);
+  },
+  holdToast(held) {
+    clearTimeout(toastTimer);
+    if (!held && get().toast) toastTimer = setTimeout(() => set({ toast: null }), TOAST_MS);
   },
   dismissToast() {
     clearTimeout(toastTimer);

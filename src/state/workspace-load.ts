@@ -1,6 +1,6 @@
 import { createStowContext, createStowState, type Command, type StowState } from '@/domain';
 import { api } from './api';
-import { usePlanStore } from './plan-store';
+import { usePlanStore, type PlanData } from './plan-store';
 import { readUnsaved } from './unsaved';
 import { resetViewStore, useViewStore } from './view-store';
 import { resetPlacementStore } from './placement-store';
@@ -19,8 +19,13 @@ export function replay(commands: readonly Command[]): { applied: number; dropped
   return { applied, dropped };
 }
 
-/** Loads a plan from the API into the plan store. Throws ApiError. */
-export async function fetchPlanInto(planId: string): Promise<void> {
+export interface LoadedPlan {
+  data: PlanData;
+  state: StowState;
+}
+
+/** Fetches a plan, its load list and its vessel. Touches no store. Throws ApiError. */
+export async function fetchPlan(planId: string): Promise<LoadedPlan> {
   const [detail, items] = await Promise.all([api.getPlan(planId), api.getLoadList(planId)]);
   const { vessel } = await api.getVessel(detail.vesselId);
   const loadList = items.map((x) => x.container);
@@ -40,23 +45,29 @@ export async function fetchPlanInto(planId: string): Promise<void> {
     ...header
   } = detail;
   void [_p, _s, _c, _u, _b];
-  usePlanStore.getState().load({ header, ctx, loadList, base: stabilityBase }, state);
+  return { data: { header, ctx, loadList, base: stabilityBase }, state };
+}
+
+/** Loads a plan from the API into the plan store, keeping the view as it is (a rebase). */
+export async function fetchPlanInto(planId: string): Promise<void> {
+  const { data, state } = await fetchPlan(planId);
+  usePlanStore.getState().load(data, state);
 }
 
 /**
- * Opens a plan in the workspace. Unsaved commands from an earlier visit are put back on top
- * (FR-61). Returns a message when some could not be applied.
+ * Puts a fetched plan in the workspace, with a fresh view. Unsaved commands from an earlier
+ * visit are put back on top (FR-61). Returns how many came back, and why any did not.
  */
-export async function openWorkspace(
+export function showPlan(
   planId: string,
-): Promise<{ restored: number; dropped: string[] }> {
-  await fetchPlanInto(planId);
+  loaded: LoadedPlan,
+): { restored: number; dropped: string[] } {
+  usePlanStore.getState().load(loaded.data, loaded.state);
   resetViewStore();
   resetPlacementStore();
   const saved = readUnsaved(planId);
   if (!saved) return { restored: 0, dropped: [] };
   const { applied, dropped } = replay(saved.commands);
-  // The history now holds what was restored; the base is the version on the server.
   return { restored: applied, dropped };
 }
 

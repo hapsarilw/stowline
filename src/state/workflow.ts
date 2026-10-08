@@ -1,6 +1,8 @@
 import { plural, type PlanStatus } from '@/domain';
 import { isApiError } from '@/api/errors';
 import { api, request } from './api';
+import { exportPlanFile } from './export';
+import { currentSession } from './session-store';
 import { usePlanStore } from './plan-store';
 import { saveCurrent, unsavedCommands } from './save';
 import { useViewStore } from './view-store';
@@ -8,11 +10,31 @@ import { useViewStore } from './view-store';
 // Send for review, Approve, Return, Revise (FR-62, FR-63): the status changes on the server and
 // the workspace follows it.
 
-const LINES: Record<string, string> = {
-  in_review: 'Sent for review',
-  approved: 'Approved',
-  draft: 'Returned to Draft',
-};
+/** The message after a status change (design 16). */
+export function statusToast(
+  to: PlanStatus,
+  revising: boolean,
+  version: number,
+  planner: string | null,
+  id: string,
+): { title: string; message: string; action?: { label: string; run: () => void } } {
+  if (revising) return { title: 'Revised', message: `Version ${version} is a new Draft` };
+  if (to === 'in_review')
+    return {
+      title: 'Sent for review',
+      message: `Version ${version} is with the senior planners. It is read only until it is returned or approved.`,
+    };
+  if (to === 'approved')
+    return {
+      title: 'Approved',
+      message: `Version ${version} is approved and read only.`,
+      action: { label: 'Export', run: () => void exportPlanFile(id) },
+    };
+  return {
+    title: 'Returned to Draft',
+    message: `Version ${version} is back with ${planner ?? 'the planner'}, with your comment.`,
+  };
+}
 
 async function change(to: PlanStatus, comment?: string): Promise<boolean> {
   const plan = usePlanStore.getState();
@@ -29,16 +51,19 @@ async function change(to: PlanStatus, comment?: string): Promise<boolean> {
       view.showToast({ kind: 'err', title: "Can't change the status", message: e.message });
     return false;
   }
-  usePlanStore.getState().setStatus(r.data.status, r.data.version);
-  const title = revising ? 'Revised' : (LINES[to] ?? 'Status changed');
-  view.showToast({
-    kind: 'ok',
-    title,
-    message: revising
-      ? `Version ${r.data.version} is a new Draft`
-      : `Plan ${r.data.id} is now ${r.data.status === 'in_review' ? 'in review' : r.data.status}`,
-  });
-  view.announce(`${title}. Plan ${r.data.id}.`);
+  const who = currentSession().user;
+  usePlanStore
+    .getState()
+    .setStatus(r.data.status, r.data.version, { user: who, at: new Date().toISOString() });
+  const toast = statusToast(
+    to,
+    revising,
+    r.data.version,
+    usePlanStore.getState().header.planner,
+    r.data.id,
+  );
+  view.showToast({ kind: 'ok', ...toast });
+  view.announce(`${toast.title}. ${toast.message}`);
   return true;
 }
 

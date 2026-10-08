@@ -23,5 +23,9 @@ export async function exportPlanFile(id: string): Promise<void> {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  view.showToast({ kind: 'ok', title: 'Plan exported', message: r.data.filename });
+  view.showToast({
+    kind: 'ok',
+    title: 'Plan exported',
+    message: `File downloaded: ${r.data.filename}`,
+  });
 }

@@ -12,6 +12,8 @@ import { useViewStore } from './view-store';
 export interface Conflict extends ConflictDetails {
   /** The changes kept here: one line each. */
   kept: string[];
+  /** The version these changes were made on. */
+  madeOn: number;
 }
 
 interface ConflictStore {
@@ -54,7 +56,7 @@ export async function saveCurrent(): Promise<SaveOutcome> {
     view.showToast({
       kind: 'ok',
       title: 'Draft saved',
-      message: `Plan ${id} · ${s.planned.toLocaleString('en-US')} of ${s.loadList.length.toLocaleString('en-US')} planned · version ${r.data.version}`,
+      message: `${id} · version ${r.data.version} · ${s.planned.toLocaleString('en-US')} of ${s.loadList.length.toLocaleString('en-US')} planned`,
     });
     view.announce(`Saved. Version ${r.data.version}.`);
     return 'saved';
@@ -62,9 +64,12 @@ export async function saveCurrent(): Promise<SaveOutcome> {
   const e = r.error;
   if (isApiError(e) && e.status === 409) {
     const d = e.details as unknown as ConflictDetails;
+    // One message at a time (design 16): the conflict alert replaces any toast.
+    view.dismissToast();
     useConflict.getState().setConflict({
       ...d,
       kept: usePlanStore.getState().history.map((h) => h.text),
+      madeOn: plan.baseVersion,
     });
     view.announce(`${e.message} Your ${plural(commands.length, 'change')} are kept.`);
     return 'conflict';
@@ -80,7 +85,11 @@ export async function saveCurrent(): Promise<SaveOutcome> {
   return 'failed';
 }
 
-/** Review changes, then put my changes on the newest version (FR-60). */
+/**
+ * Apply my changes to version N (design 12): load the newest plan, put my changes on top with
+ * the rule check, and save them. Nothing is saved when a change no longer fits: the ones that
+ * do are applied, and a message says which did not.
+ */
 export async function rebaseOnServer(): Promise<void> {
   const view = useViewStore.getState();
   const id = usePlanStore.getState().header.id;
@@ -92,17 +101,13 @@ export async function rebaseOnServer(): Promise<void> {
   if (!r.ok) return;
   const { applied, dropped } = replay(mine);
   useConflict.getState().setConflict(null);
-  view.showToast(
-    dropped.length === 0
-      ? {
-          kind: 'ok',
-          title: 'Your changes are on the newest version',
-          message: `${plural(applied, 'change')} applied. Save to publish them.`,
-        }
-      : {
-          kind: 'warn',
-          title: `${plural(dropped.length, 'change')} could not be applied`,
-          message: `${dropped[0]}. ${plural(applied, 'change')} applied. Save to publish them.`,
-        },
-  );
+  if (dropped.length === 0) {
+    await saveCurrent();
+    return;
+  }
+  view.showToast({
+    kind: 'warn',
+    title: `${plural(dropped.length, 'change')} could not be applied`,
+    message: `${dropped[0]}. ${plural(applied, 'change')} applied. Save to publish them.`,
+  });
 }

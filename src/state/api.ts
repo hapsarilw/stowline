@@ -9,14 +9,28 @@ export const api = createApi(currentSession);
 
 interface RequestErrorStore {
   error: { message: string; retry: () => void } | null;
+  /** The attempt that is running after Retry, for "Retrying… Attempt 2" (design 14). */
+  retrying: number | null;
+  attempts: number;
   show: (message: string, retry: () => void) => void;
   dismiss: () => void;
+  /** Runs the request again, showing that it is running. */
+  retry: () => void;
 }
 
-export const useRequestError = create<RequestErrorStore>()((set) => ({
+export const useRequestError = create<RequestErrorStore>()((set, get) => ({
   error: null,
-  show: (message, retry) => set({ error: { message, retry } }),
-  dismiss: () => set({ error: null }),
+  retrying: null,
+  attempts: 1,
+  show: (message, retry) => set({ error: { message, retry }, retrying: null }),
+  dismiss: () => set({ error: null, retrying: null, attempts: 1 }),
+  retry() {
+    const e = get().error;
+    if (!e) return;
+    const attempt = get().attempts + 1;
+    set({ retrying: attempt, attempts: attempt });
+    e.retry();
+  },
 }));
 
 /** What a person reads when a request failed. */

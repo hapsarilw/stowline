@@ -22,7 +22,7 @@ import {
   type Violation,
   type ViolationIndex,
 } from '@/domain';
-import { canEditPlan } from '@/domain';
+import { canEditPlan, readOnlyReason } from '@/domain';
 import { activityText } from './messages';
 import { useSessionStore } from './session-store';
 import { writeUnsaved } from './unsaved';
@@ -30,7 +30,13 @@ import { writeUnsaved } from './unsaved';
 // The plan store holds the plan being edited. Every change goes through a command: it passes
 // the placement check, has an inverse, and re-checks only the stacks it touched.
 
-export type PlanHeader = Omit<Plan, 'placements' | 'shiftCount'>;
+export type PlanHeader = Omit<Plan, 'placements' | 'shiftCount'> & {
+  /** The planner's name, for "back with Rina Adiputri". */
+  planner: string | null;
+  /** Who last changed the status, and when: "Approved by Lena Vos · 07 Oct 2026 16:05". */
+  statusBy: string | null;
+  statusAt: string | null;
+};
 
 /** A command in the history, with its line for the activity log. */
 export interface HistoryItem extends HistoryEntry {
@@ -76,7 +82,11 @@ export interface PlanStore extends PlanData {
   /** After a save: the history is what the server has now, and starts again from here. */
   markSaved: (version: number) => void;
   /** After a status change on the server. */
-  setStatus: (status: PlanHeader['status'], version: number) => void;
+  setStatus: (
+    status: PlanHeader['status'],
+    version: number,
+    by?: { user: string; at: string },
+  ) => void;
   /** Adds containers to the load list, after an import (FR-64). */
   addToLoadList: (containers: Container[]) => void;
 }
@@ -85,7 +95,9 @@ export interface PlanStore extends PlanData {
 export const canEditNow = (status: PlanHeader['status']): boolean =>
   canEditPlan(useSessionStore.getState().role, status);
 
-export const READ_ONLY_REASON = 'This plan is read only.';
+/** The reason a command is refused on a plan that cannot be changed (design 11 words). */
+export const readOnlyNow = (status: PlanHeader['status']): string =>
+  readOnlyReason(useSessionStore.getState().role, status) ?? 'This plan is read only.';
 
 export function createPlanData(): { data: PlanData; state: StowState } {
   const call = generateSampleCall();
@@ -96,7 +108,8 @@ export function createPlanData(): { data: PlanData; state: StowState } {
     placements: call.plan.placements,
   });
   const state = createStowState(call.plan.placements, call.plan.shiftCount);
-  const { placements: _placements, shiftCount: _shiftCount, ...header } = call.plan;
+  const { placements: _placements, shiftCount: _shiftCount, ...rest } = call.plan;
+  const header: PlanHeader = { ...rest, planner: 'Rina Adiputri', statusBy: null, statusAt: null };
   void _placements;
   void _shiftCount;
   return { data: { header, ctx, loadList, base: calibrateStability(state, ctx) }, state };
@@ -150,7 +163,7 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
     ...initialPlanStore(),
     apply(command) {
       const s = get();
-      if (!canEditNow(s.header.status)) return { ok: false, reason: READ_ONLY_REASON };
+      if (!canEditNow(s.header.status)) return { ok: false, reason: readOnlyNow(s.header.status) };
       const r = applyCommand(s.state, s.ctx, command);
       if (!r.ok) return r;
       const text = activityText(command, s.state);
@@ -209,9 +222,16 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
       set({ header: { ...s.header, version }, baseVersion: version, history: [], future: [] });
       writeUnsaved(s.header.id, null);
     },
-    setStatus(status, version) {
+    setStatus(status, version, by) {
       const s = get();
-      set({ header: { ...s.header, status, version } });
+      set({
+        header: {
+          ...s.header,
+          status,
+          version,
+          ...(by ? { statusBy: by.user, statusAt: by.at } : {}),
+        },
+      });
       if (s.history.length === 0) set({ baseVersion: version });
     },
     addToLoadList(containers) {

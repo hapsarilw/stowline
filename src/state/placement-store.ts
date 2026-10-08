@@ -3,6 +3,7 @@ import {
   bay40Of,
   halfOfKey,
   parseKey,
+  readOnlyReason,
   type Command,
   type CommandResult,
   type SlotKey,
@@ -11,12 +12,14 @@ import { resultMessage } from './messages';
 import {
   heldContainer,
   IDLE,
+  slotText,
   step,
   targetsInBay,
   type PlacementEvent,
   type PlacementState,
 } from './placement';
 import { canEditNow, usePlanStore } from './plan-store';
+import { useSessionStore } from './session-store';
 import { useViewStore } from './view-store';
 
 // Runs the placement controller: keeps its state, and carries out what step() asks for through
@@ -112,11 +115,8 @@ export function dispatch(event: PlacementEvent): void {
       event.type === 'startSwap') &&
     !canEditNow(plan.header.status)
   ) {
-    view.announce(
-      plan.header.status === 'approved'
-        ? 'This plan is approved and read only. Revise it to make changes.'
-        : 'Your role cannot change plans.',
-    );
+    const why = readOnlyReason(useSessionStore.getState().role, plan.header.status) ?? '';
+    view.announce(event.type === 'pickFromSlot' ? `${slotText(plan, event.key)}. ${why}` : why);
     return;
   }
   const prev = usePlacementStore.getState().placement;

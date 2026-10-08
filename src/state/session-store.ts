@@ -19,10 +19,15 @@ function stored(): Role {
 interface SessionStore {
   role: Role;
   setRole: (role: Role) => void;
+  /** Bumped to ask the account menu to open, from "Switch role" in the read only strip. */
+  menuSeq: number;
+  openMenu: () => void;
 }
 
 export const useSessionStore = create<SessionStore>()((set) => ({
   role: stored(),
+  menuSeq: 0,
+  openMenu: () => set((s) => ({ menuSeq: s.menuSeq + 1 })),
   setRole(role) {
     try {
       localStorage.setItem(KEY, role);
