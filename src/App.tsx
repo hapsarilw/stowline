@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RouterProvider } from 'react-router/dom';
 import { createRouter } from './app/router';
+import { RequestErrorHost } from './app/RequestErrorHost';
 import { ThemeSync } from './app/ThemeSync';
 
 export function App() {
@@ -9,6 +10,7 @@ export function App() {
     <>
       <ThemeSync />
       <RouterProvider router={router} />
+      <RequestErrorHost />
     </>
   );
 }

@@ -10,6 +10,8 @@ interface ToastProps {
   title: string;
   message?: string;
   onUndo?: () => void;
+  /** For a failed request (NFR-18). */
+  onRetry?: () => void;
   onDismiss?: () => void;
 }
 
@@ -17,7 +19,7 @@ interface ToastProps {
  * A result message (FR-45). Errors are announced at once, the others politely (NFR-14).
  * The icon and the title always come together.
  */
-export function Toast({ tone, title, message, onUndo, onDismiss }: ToastProps) {
+export function Toast({ tone, title, message, onUndo, onRetry, onDismiss }: ToastProps) {
   const Icon = tone === 'err' ? IconError : tone === 'warn' ? IconWarning : IconCheckCircle;
   return (
     <div
@@ -46,6 +48,15 @@ export function Toast({ tone, title, message, onUndo, onDismiss }: ToastProps) {
           onClick={onUndo}
         >
           Undo
+        </Button>
+      ) : null}
+      {onRetry ? (
+        <Button
+          variant="secondary"
+          className="h-[26px] border-border2 bg-transparent px-2.5 text-[12px] font-normal"
+          onClick={onRetry}
+        >
+          Retry
         </Button>
       ) : null}
       {onDismiss ? (
