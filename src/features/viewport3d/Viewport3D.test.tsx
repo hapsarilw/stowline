@@ -67,7 +67,7 @@ describe('3D toolbar (FR-19 to FR-21)', () => {
     const iso = screen.getByRole('button', { name: 'Iso' });
     expect(iso).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Top' }));
-    expect(useViewStore.getState().camera).toEqual({ preset: 'top', seq: 1 });
+    expect(useViewStore.getState().camera).toEqual({ preset: 'top', seq: 1, bay: null });
     expect(screen.getByRole('button', { name: 'Top' })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Top' }));
     expect(useViewStore.getState().camera.seq).toBe(2);

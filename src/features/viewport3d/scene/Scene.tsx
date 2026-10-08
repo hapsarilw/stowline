@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Camera } from 'three';
 import { Vector3 } from 'three';
-import { pad, type SlotKey } from '@/domain';
+import { liftOrder, pad, PODS, POD_LIST, type SlotKey } from '@/domain';
+import { LIFT_M, liftDuration, liftProgress } from '@/features/playback/model';
 import { heldContainer, marksFor } from '@/state/placement';
 import { usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
@@ -89,6 +90,8 @@ export function Scene({
   const targets = useMemo(() => new TargetLayer(ctx), [ctx]);
   const bayPoint = useRef(new Vector3());
   const gapMove = useRef<{ from: Map<number, number>; target: number; t0: number } | null>(null);
+  /** The containers of the current port lifting off (FR-56), in lift order. */
+  const lift = useRef<{ keys: SlotKey[]; t0: number; shown: Float32Array } | null>(null);
 
   useEffect(() => () => layer.dispose(), [layer]);
   useEffect(() => () => ship.dispose(), [ship]);
@@ -149,12 +152,49 @@ export function Scene({
     ship.setTransparent(view.hullTransparent);
     ship.setDrafts(plan.stability.draftFwd, plan.stability.draftAft);
     const start = ctx.geometry.bayByNum(view.bay);
-    layer.gaps = new Map(start ? [[start.index, 1]] : []);
+    layer.gaps = new Map(start && !view.playback ? [[start.index, 1]] : []);
     layer.applyGaps();
     layer.setSelected(view.selected);
     layer.setFocus(view.highlight);
     placeLabel();
     syncTargets();
+    invalidate();
+
+    // Port playback (FR-56): ports before the stop are gone, the stop's containers lift off.
+    // The bay gap closes while it runs, as in design 06.
+    const moveGap = (target: number) => {
+      if (prefersReducedMotion()) {
+        layer.gaps = new Map(target >= 0 ? [[target, 1]] : []);
+        layer.applyGaps();
+        layer.updateOutlines();
+        targets.applyGaps(layer.gaps);
+        placeLabel();
+      } else gapMove.current = { from: new Map(layer.gaps), target, t0: performance.now() };
+    };
+    const applyPlayback = (restart: boolean) => {
+      const p = useViewStore.getState().playback;
+      layer.clearPoses();
+      if (!p) {
+        lift.current = null;
+        return;
+      }
+      const { state } = usePlanStore.getState();
+      for (const [key, pl] of state.placements) {
+        const pod = ctx.containers.get(pl.containerId)?.pod as keyof typeof PODS | undefined;
+        if (pod && PODS[pod] && PODS[pod].order < p.port) layer.setPose(key, 0, 1);
+      }
+      const pod = POD_LIST[p.port - 1];
+      const keys = pod ? liftOrder(state, ctx, pod) : [];
+      if (prefersReducedMotion()) {
+        // Removed at once with reduced motion.
+        for (const key of keys) layer.setPose(key, 0, 1);
+        lift.current = null;
+        return;
+      }
+      const t0 = restart || !lift.current ? performance.now() : lift.current.t0;
+      lift.current = { keys, t0, shown: new Float32Array(keys.length) };
+    };
+    applyPlayback(true);
     invalidate();
 
     const offPlacement = usePlacementStore.subscribe((s, prev) => {
@@ -167,6 +207,7 @@ export function Scene({
       if (s.state !== prev.state) {
         layer.sync(s.state);
         syncTargets();
+        if (useViewStore.getState().playback) applyPlayback(false);
       }
       if (s.violationIndex !== prev.violationIndex) {
         const keys = new Set<SlotKey>([
@@ -174,6 +215,7 @@ export function Scene({
           ...s.violationIndex.bySlot.keys(),
         ]);
         layer.recolor(colorInput(), keys);
+        layer.reapplyPoses();
       }
       if (s.stability !== prev.stability)
         ship.setDrafts(s.stability.draftFwd, s.stability.draftAft);
@@ -188,15 +230,23 @@ export function Scene({
         s.highlight !== prev.highlight
       ) {
         layer.recolor(colorInput());
+        layer.reapplyPoses();
       }
       if (s.highlight !== prev.highlight) layer.setFocus(s.highlight);
       if (s.selected !== prev.selected) layer.setSelected(s.selected);
       if (s.hullTransparent !== prev.hullTransparent) ship.setTransparent(s.hullTransparent);
+      const pb = s.playback;
+      const pbPrev = prev.playback;
+      if (pb?.port !== pbPrev?.port || (pb === null) !== (pbPrev === null)) applyPlayback(true);
+      if ((pb === null) !== (pbPrev === null)) {
+        const b = ctx.geometry.bayByNum(s.bay);
+        moveGap(pb ? -1 : (b?.index ?? -1));
+      }
       if (s.bay !== prev.bay) {
         placeLabel();
         syncTargets();
         const b = ctx.geometry.bayByNum(s.bay);
-        if (b) {
+        if (b && !s.playback) {
           if (prefersReducedMotion()) {
             layer.gaps = new Map([[b.index, 1]]);
             layer.applyGaps();
@@ -213,6 +263,7 @@ export function Scene({
     const offTheme = onThemeChange(() => {
       theme = readSceneTheme();
       applyTheme();
+      layer.reapplyPoses();
       invalidate();
     });
 
@@ -235,6 +286,8 @@ export function Scene({
     placeDom(l.bow, bowPoint, camera, size.width, size.height);
     placeDom(l.stern, sternPoint, camera, size.width, size.height);
     placeDom(l.bay, bayPoint.current, camera, size.width, size.height);
+    // No bay label during playback (design 06).
+    if (l.bay && useViewStore.getState().playback) l.bay.hidden = true;
   });
 
   // The bay gap opens at the selected bay in 400 ms (FR-23), while the old one closes.
@@ -246,8 +299,10 @@ export function Scene({
     const gaps = new Map<number, number>();
     for (const [k, a] of m.from)
       if (k !== m.target && a * (1 - e) > 0.001) gaps.set(k, a * (1 - e));
-    const start = m.from.get(m.target) ?? 0;
-    gaps.set(m.target, start + (1 - start) * e);
+    if (m.target >= 0) {
+      const start = m.from.get(m.target) ?? 0;
+      gaps.set(m.target, start + (1 - start) * e);
+    }
     layer.gaps = gaps;
     layer.applyGaps();
     layer.updateOutlines();
@@ -255,6 +310,22 @@ export function Scene({
     placeLabel();
     if (t < 1) invalidate();
     else gapMove.current = null;
+  });
+
+  // The lift (FR-56): each container rises and fades over 500 ms, 20 ms after the one before.
+  // Only containers whose progress changed are written.
+  useFrame(() => {
+    const l = lift.current;
+    if (!l) return;
+    const elapsed = performance.now() - l.t0;
+    l.keys.forEach((key, k) => {
+      const p = liftProgress(k, elapsed);
+      if (p === l.shown[k]) return;
+      l.shown[k] = p;
+      layer.setPose(key, LIFT_M * (1 - (1 - p) ** 3), p);
+    });
+    if (elapsed < liftDuration(l.keys.length, false)) invalidate();
+    else lift.current = null;
   });
 
   return (

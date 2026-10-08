@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { PODS, POD_LIST } from '@/domain';
+import { podCounts, PODS, POD_LIST } from '@/domain';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { cn } from '@/ui/cn';
+import { IconPlay } from '@/ui/icons';
 import { CAMERA_PRESETS } from './camera';
 import { COLOR_MODES, legendFor, type Palette } from './colors';
 
@@ -30,7 +31,7 @@ const button = (on: boolean) =>
 
 /** Camera presets (FR-19), color modes (FR-20), hull transparency and "show only" (FR-21). */
 export function Toolbar() {
-  const { camera, colorMode, hullTransparent, onlyPod } = useViewStore();
+  const { camera, colorMode, hullTransparent, onlyPod, playback } = useViewStore();
   const view = useViewStore.getState;
   return (
     <div
@@ -114,6 +115,20 @@ export function Toolbar() {
           ))}
         </select>
       </label>
+      {/* Opens the port timeline (FR-55). The design shows the timeline but no control for it. */}
+      <button
+        type="button"
+        aria-pressed={playback !== null}
+        title="Port playback"
+        onClick={() => (playback ? view().closePlayback() : view().openPlayback())}
+        className={cn(
+          'pointer-events-auto flex h-[30px] cursor-pointer items-center gap-1.5 rounded border border-border px-2 text-[12px]',
+          playback ? 'bg-accentbg text-text' : 'bg-surface text-text2',
+        )}
+      >
+        <IconPlay size={11} />
+        <span>Playback</span>
+      </button>
     </div>
   );
 }
@@ -124,12 +139,9 @@ export function Legend() {
   const state = usePlanStore((s) => s.state);
   const ctx = usePlanStore((s) => s.ctx);
   const violations = usePlanStore((s) => s.violations);
+  const playback = useViewStore((s) => s.playback !== null);
   const legend = useMemo(() => {
-    const pods: Record<string, number> = {};
-    for (const p of state.placements.values()) {
-      const pod = ctx.containers.get(p.containerId)?.pod;
-      if (pod) pods[pod] = (pods[pod] ?? 0) + 1;
-    }
+    const pods = podCounts(state, ctx);
     const errors = violations.filter((v) => v.severity === 'error').length;
     return legendFor(mode, { pods, errors, warnings: violations.length - errors }, CSS_PALETTE);
   }, [mode, state, ctx, violations]);
@@ -138,7 +150,11 @@ export function Legend() {
     <div
       role="group"
       aria-label={`Legend: ${legend.title}`}
-      className="absolute bottom-2 left-2 flex max-w-[calc(100%-16px)] flex-wrap items-center gap-2.5 rounded border border-border bg-surface px-2 py-[5px] text-[11.5px]"
+      className={cn(
+        'absolute left-2 flex max-w-[calc(100%-16px)] flex-wrap items-center gap-2.5 rounded border border-border bg-surface px-2 py-[5px] text-[11.5px]',
+        // Above the port timeline while it is open (design 06).
+        playback ? 'bottom-[112px]' : 'bottom-2',
+      )}
     >
       <span className="text-[11px] text-text3">{legend.title}</span>
       {legend.items.map((i) => (

@@ -3,6 +3,8 @@ import { Canvas } from '@react-three/fiber';
 import type { WebGLRenderer } from 'three';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
+import { FocusBanner } from '@/features/violations/FocusBanner';
+import { PortTimeline } from '@/features/playback/PortTimeline';
 import { Hints, Legend, Toolbar, TooltipBox } from '../Overlays';
 import { Scene, type BenchSink, type SceneLabels } from './Scene';
 
@@ -121,7 +123,9 @@ export default function ViewportScene({ bench, onLost }: ViewportSceneProps) {
         </div>
       </div>
       <Toolbar />
+      <FocusBanner />
       <Legend />
+      <PortTimeline />
       {split ? <Hints /> : null}
       <TooltipBox ref={tooltip} />
     </div>

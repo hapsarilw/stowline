@@ -2,6 +2,7 @@ import { useEffect, useRef, type ComponentRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrthographicCamera } from 'three';
+import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { prefersReducedMotion } from '@/ui/motion';
 import type { ShipBounds } from './hull';
@@ -20,6 +21,12 @@ import {
 export const CAMERA_MOVE_MS = 600;
 
 export { prefersReducedMotion };
+
+/** Show (FR-43, design 04): the view of one bay, as the prototype's showViol flies to it. */
+function bayView(bay: number): CameraView | null {
+  const b = usePlanStore.getState().ctx.geometry.bayByNum(bay);
+  return b ? { yaw: 214, pitch: 30, zoom: 2.7, tx: b.x - 6, ty: 0, tz: 4 } : null;
+}
 
 export function CameraRig({
   bounds,
@@ -77,7 +84,7 @@ export function CameraRig({
     () =>
       useViewStore.subscribe((s, prev) => {
         if (s.camera.seq === prev.camera.seq || !lastSize.current) return;
-        const to = PRESETS[s.camera.preset];
+        const to = (s.camera.bay !== null && bayView(s.camera.bay)) || PRESETS[s.camera.preset];
         if (prefersReducedMotion()) {
           fly.current = null;
           apply(to);

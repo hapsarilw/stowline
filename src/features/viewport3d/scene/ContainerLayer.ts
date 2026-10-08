@@ -143,6 +143,8 @@ export class ContainerLayer {
   private selectKey: SlotKey | null = null;
   private focusKeys: SlotKey[] = [];
   private focusColors = { err: '#ff5d5d', warn: '#ffb020' };
+  /** Playback poses (FR-56): lift in metres and fade from 0 to 1. A fade of 1 is hidden. */
+  private readonly poses = new Map<SlotKey, { lift: number; fade: number }>();
 
   constructor(private readonly ctx: StowContext) {
     const slots40 = ctx.geometry.slotCount40();
@@ -319,6 +321,49 @@ export class ContainerLayer {
     const [l, h, w] = boxSize(cls);
     size.set(l, h, w);
     return { center: out, size };
+  }
+
+  /**
+   * Lifts and fades one container for playback: up by `lift` metres, its color mixed toward the
+   * background by `fade`. At a fade of 1 it is hidden (scaled to nothing, so picking skips it).
+   */
+  setPose(key: SlotKey, lift: number, fade: number): void {
+    if (lift === 0 && fade === 0) this.poses.delete(key);
+    else this.poses.set(key, { lift, fade });
+    this.writePose(key);
+  }
+
+  /** Puts every posed container back. */
+  clearPoses(): void {
+    const keys = [...this.poses.keys()];
+    this.poses.clear();
+    for (const key of keys) this.writePose(key);
+  }
+
+  /** Writes the poses again, after sync or recolor rewrote the instances. */
+  reapplyPoses(): void {
+    for (const key of this.poses.keys()) this.writePose(key);
+  }
+
+  private writePose(key: SlotKey): void {
+    const cls = this.classOf.get(key);
+    if (!cls) return;
+    const d = this.classes.get(cls)!;
+    const i = d.table.index.get(key)!;
+    const pose = this.poses.get(key);
+    slotMatrix(this.ctx.geometry, key, cls, gapOffset(d.bayIndex[i]!, this.gaps), tmpMatrix);
+    if (pose) {
+      if (pose.fade >= 1) tmpMatrix.makeScale(0, 0, 0);
+      else tmpMatrix.elements[13] = tmpMatrix.elements[13] + pose.lift;
+    }
+    d.mesh.setMatrixAt(i, tmpMatrix);
+    const color = this.colorFor(key);
+    if (pose && pose.fade > 0 && this.colors) {
+      tmpColor.copy(color).lerp(this.color(this.colors.palette.bg), Math.min(1, pose.fade));
+      d.mesh.setColorAt(i, tmpColor);
+    } else d.mesh.setColorAt(i, color);
+    this.markInstance(d, i);
+    d.mesh.boundingSphere = null;
   }
 
   /** The 40ft bay number of a slot drawn here. */

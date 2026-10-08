@@ -120,3 +120,43 @@ describe('ContainerLayer (FR-18)', () => {
     void new Vector3();
   });
 });
+
+describe('playback poses (FR-56)', () => {
+  const matrixOf = (key: string) => {
+    for (const mesh of layer.meshes)
+      for (let i = 0; i < mesh.count; i++)
+        if (layer.keyAt(mesh, i) === key) return mesh.getMatrixAt(i, new Matrix4());
+    return null;
+  };
+  const yOf = (key: string) => new Vector3().setFromMatrixPosition(matrixOf(key)!).y;
+  const scaleOf = (key: string) => new Vector3().setFromMatrixScale(matrixOf(key)!).x;
+
+  it('lifts a container and fades it toward the background', () => {
+    const y0 = yOf('180488');
+    const color0 = colorOf(layer, '180488');
+    layer.setPose('180488', 15, 0.5);
+    expect(yOf('180488')).toBeCloseTo(y0 + 15, 5);
+    expect(colorOf(layer, '180488')).not.toBe(color0);
+    const mid = new Color(color0!).lerp(new Color(palette.bg), 0.5).getHexString();
+    expect(colorOf(layer, '180488')).toBe(`#${mid}`);
+  });
+
+  it('hides a container at full fade, so it is not drawn or picked, and puts it back', () => {
+    const y0 = yOf('180488');
+    layer.setPose('180488', 30, 1);
+    expect(scaleOf('180488')).toBe(0);
+    layer.clearPoses();
+    expect(scaleOf('180488')).toBeGreaterThan(0);
+    expect(yOf('180488')).toBeCloseTo(y0, 5);
+    expect(colorOf(layer, '180488')).toBe(
+      containerColor('pod', ctx.containers.get('NSPU 771032 1')!, 'error', palette),
+    );
+  });
+
+  it('keeps poses after a recolor', () => {
+    layer.setPose('180488', 0, 1);
+    layer.recolor(input({ mode: 'weight' }));
+    layer.reapplyPoses();
+    expect(scaleOf('180488')).toBe(0);
+  });
+});
