@@ -6,6 +6,7 @@ import {
   canReturn,
   canSendForReview,
   canExport,
+  readOnlyReason,
   ROLES,
   transition,
 } from './permissions';
@@ -18,12 +19,28 @@ describe('roles', () => {
 });
 
 describe('editing (FR-63)', () => {
-  it('lets planner roles edit a draft or a plan in review, never an approved one', () => {
+  it('lets planner roles edit a draft only: a plan in review or approved is read only', () => {
     expect(canEditPlan('planner', 'draft')).toBe(true);
-    expect(canEditPlan('senior', 'in_review')).toBe(true);
+    expect(canEditPlan('senior', 'draft')).toBe(true);
+    expect(canEditPlan('senior', 'in_review')).toBe(false);
     expect(canEditPlan('planner', 'approved')).toBe(false);
     expect(canEditPlan('terminal', 'draft')).toBe(false);
     expect(canEditPlan('officer', 'draft')).toBe(false);
+  });
+});
+
+describe('why a plan is read only (design 11)', () => {
+  it('says so in the words of the design', () => {
+    expect(readOnlyReason('planner', 'draft')).toBeNull();
+    expect(readOnlyReason('planner', 'approved')).toBe(
+      'This plan is approved and read only. Revise it to make changes.',
+    );
+    expect(readOnlyReason('senior', 'in_review')).toBe(
+      'This plan is in review and read only until it is returned or approved.',
+    );
+    expect(readOnlyReason('terminal', 'draft')).toBe('Your role cannot change plans.');
+    // An approved plan says approved first, whoever looks.
+    expect(readOnlyReason('terminal', 'approved')).toContain('approved');
   });
 });
 

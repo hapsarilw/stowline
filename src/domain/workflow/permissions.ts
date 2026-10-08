@@ -29,9 +29,23 @@ export const ROLES: readonly RoleInfo[] = [
 
 export const roleInfo = (role: Role): RoleInfo => ROLES.find((r) => r.id === role)!;
 
-/** Approved plans are read only (FR-63). Roles without editing are always read only. */
+/**
+ * Approved plans are read only (FR-63). A plan in review is locked too, as design 10 and 11
+ * draw it: the decision is the senior planner's, and a change means a Return first. Roles
+ * without editing are always read only.
+ */
 export const canEditPlan = (role: Role, status: PlanStatus): boolean =>
-  roleInfo(role).canEdit && status !== 'approved';
+  roleInfo(role).canEdit && status === 'draft';
+
+/** Why a plan cannot be changed, in the words of design 11, or null when it can. */
+export function readOnlyReason(role: Role, status: PlanStatus): string | null {
+  if (canEditPlan(role, status)) return null;
+  if (status === 'approved')
+    return 'This plan is approved and read only. Revise it to make changes.';
+  if (status === 'in_review')
+    return 'This plan is in review and read only until it is returned or approved.';
+  return 'Your role cannot change plans.';
+}
 
 export const canSendForReview = (role: Role, status: PlanStatus): boolean =>
   roleInfo(role).canEdit && status === 'draft';

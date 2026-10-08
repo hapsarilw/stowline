@@ -65,7 +65,7 @@ function checkRow(
     return { reason: 'The row is not an object.' };
   const id = own(raw, 'id');
   if (typeof id !== 'string' || !ID_FORMAT.test(id))
-    return { reason: 'ID must be 4 letters, 6 digits and 1 check digit, like NSPU 482913 5.' };
+    return { reason: 'A container ID is 4 letters, 6 digits and a check digit.' };
   if (seen.has(id)) return { reason: 'ID is repeated in the file.' };
   if (o.existingIds.has(id)) return { reason: 'ID is already on this plan.' };
   const type = own(raw, 'type');
@@ -76,7 +76,9 @@ function checkRow(
     return { reason: 'Weight must be between 2.0 and 35.0 t.' };
   const pod = own(raw, 'pod');
   const rank = (code: unknown) => ROTATION.findIndex((p) => p.code === code);
-  if (typeof pod !== 'string' || rank(pod) < 0 || rank(pod) <= rank(o.port))
+  if (typeof pod !== 'string' || rank(pod) < 0)
+    return { reason: `POD ${shown(pod)} is not in the rotation.` };
+  if (rank(pod) <= rank(o.port))
     return { reason: `POD must be a port after ${o.port} in the rotation.` };
   const temp = own(raw, 'reeferSetPointC');
   if (type === 'RF' && (typeof temp !== 'number' || !Number.isFinite(temp)))

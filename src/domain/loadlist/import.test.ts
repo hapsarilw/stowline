@@ -67,7 +67,7 @@ describe('row checks (FR-64)', () => {
       42,
       null,
     ])
-      expect(reason(row({ id }))).toMatch(/^ID /);
+      expect(reason(row({ id }))).toBe('A container ID is 4 letters, 6 digits and a check digit.');
   });
 
   it('checks the type, the weight range 2.0 to 35.0 and the POD', () => {
@@ -81,7 +81,8 @@ describe('row checks (FR-64)', () => {
     expect(reason(row({ weightT: 35 }))).toBeNull();
     expect(reason(row({ pod: 'SGSIN' }))).toBe('POD must be a port after SGSIN in the rotation.');
     expect(reason(row({ pod: 'IDJKT' }))).toBe('POD must be a port after SGSIN in the rotation.');
-    expect(reason(row({ pod: 'XXXXX' }))).toBe('POD must be a port after SGSIN in the rotation.');
+    expect(reason(row({ pod: 'DEBRV' }))).toBe('POD DEBRV is not in the rotation.');
+    expect(reason(row({ pod: 7 }))).toBe('POD 7 is not in the rotation.');
     expect(reason(row({ pod: 'LKCMB' }), { ...opts, port: 'LKCMB' })).toBe(
       'POD must be a port after LKCMB in the rotation.',
     );
