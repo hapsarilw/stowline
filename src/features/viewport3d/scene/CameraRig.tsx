@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrthographicCamera } from 'three';
 import { useViewStore } from '@/state/view-store';
+import { prefersReducedMotion } from '@/ui/motion';
 import type { ShipBounds } from './hull';
 import {
   cameraPose,
@@ -18,8 +19,7 @@ import {
 
 export const CAMERA_MOVE_MS = 600;
 
-export const prefersReducedMotion = (): boolean =>
-  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+export { prefersReducedMotion };
 
 export function CameraRig({
   bounds,

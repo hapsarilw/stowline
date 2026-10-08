@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-
-const reducedMotion = (): boolean =>
-  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+import { prefersReducedMotion as reducedMotion } from '@/ui/motion';
 
 /**
  * Counts from the numbers on screen to new numbers over `ms` (FR-52: 300 ms, ease-out).

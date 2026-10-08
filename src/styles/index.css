@@ -95,10 +95,22 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    /* FR-66: at most a 100 ms change, once. A looping animation would flash. */
     * {
       animation-duration: 100ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 100ms !important;
     }
+  }
+}
+
+/* Reduced motion (FR-66): a 100 ms fade instead of a move. */
+@keyframes stw-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }
 
