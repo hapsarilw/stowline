@@ -431,6 +431,47 @@ A new axe scan of the held state (`e2e/a11y.spec.ts`, both themes) found two pla
 | Oct 8, 2026 | Bundles | main 413.63 kB, 128.71 kB gzip; 3D chunk 976.57 kB, 262.66 kB gzip (limit 350 kB) | same | Vite 8.3.3 |
 | Oct 8, 2026 | Tests | 371 unit and component tests in 34 files, domain lines 99.43%; 35 end to end, 7 of them for M4 | same | Vitest 5.0.3, Playwright 1.63 |
 
+## M5 Violations, stability drawer and port playback (Oct 8, 2026)
+
+### What was decided while building
+
+| Topic | Decision |
+| --- | --- |
+| Domain | New in `domain/plan/ports.ts`: `podCounts` (the legend and the timeline count the same way), `portStops` (discharge count per port and restows summed from the overstow violations, BR-08) and `liftOrder` (deck before hold, then bow to stern, then top down, as `stow3d.js` prepLift). `strengthPosition` places a bay on the strength axis for the chart band. Tests first. |
+| Violations panel | `features/violations/model.ts` builds the rows from the plan; the fixes come from `suggestFix`, cached per plan state. Show selects the violation, opens bay and slot, dims the rest with outlines, and flies the camera to the bay with the prototype's view (yaw 214, pitch 30, zoom 2.7). From the Bay tab it switches to Split, since Show needs the 3D view. The design's banner "Focused on 4 containers · … · Clear focus Esc" is over the 3D view; its border and icon follow the severity. |
+| No fix | The row gives the reason and, when the domain offers it, an Unplace button for the alternative (SRS "Fix suggestions"). For the sample: "No free slot with a reefer plug on board", Unplace NSPU 220417 3. The design's "Review manually" is not used. |
+| New and resolved | A violation that was not there before the last change slides in over 160 ms (the design reuses the toast keyframe, which moves rows sideways; a slide keyframe is used instead) and the "New violation" message announces it. A resolved one gives the "Resolved" message with Undo (M4). |
+| Validate | Runs in the worker as before, then opens the violations panel, as the design's validate does. The summary shows the time of the last full check: at load and on Validate. |
+| Esc | In the design's order: a container in hand, then a violation focus, then the drawer. |
+| Drawer | `features/stability/drawer.ts` turns the model's numbers into the chart paths, peaks, bay band, draft diagram, dials and trim bar; `computeStability` stays the only model. The design's fixed colors are tokens, so the light theme works. The status lines (OK · min 1.20 m, Check · crane limit 0.3°, OK · limit ±1.50 m) and the hydrostatics follow the plan. Seagoing and Harbour limits stay out (D6). Numbers and needles count over 300 ms with `useTween`; the curves change at once. |
+| Stability button | Pressed: `--text` on `--accentbg`, the same contrast rule as M3 and M4. |
+| Playback entry | **New control, not in the design:** a "Playback" toggle in the 3D toolbar, styled as the Hull button, opens and closes the timeline. The design shows the timeline but nothing that opens it. Opening switches to the 3D tab, as design 06, and closing goes back to the tab before. Please confirm or tell me where it should go. |
+| Timeline | As design 06, with the "1×" control left out (D6). The track is a slider (arrows, Home, End, `aria-valuenow`), which fixes prototype gap 19; each stop is also a button. The departure stop can be chosen and shows the full ship. Play moves on after each port's lift and a 1.7 s rest (the prototype's cycle), stops at Hamburg, and Play there starts from Colombo again. |
+| Lift | In the 3D frame loop: each container of the port rises 30 m with an ease-out over 500 ms, 20 ms after the one before, and fades to the background color, then is hidden (scaled to nothing, so picking skips it). Containers for earlier ports are hidden. Only containers whose progress changed are written each frame. The prototype fades with transparency; color is used here, as dimming already does, so nothing needs sorting. With reduced motion the port's containers are removed at once. The bay gap closes and the bay label is hidden during playback, as design 06. |
+| Apply fix contrast | In the light theme, the accent "Apply fix" label on a selected row's `--sel` was 4.4:1. The button now has the surface color behind it instead of being transparent. No token changed. |
+| Copy | Summary grammar: "1 error blocks approval", and "No errors block approval" when there are none (the design always says "errors block"). Now playing: "1 restow move" (the design prints "1 restow moves"). Banner: "1 container" for a one-slot violation. |
+
+### Gate result
+
+**The screens match designs 04, 05 and 06.** Checked by eye against renders of the design at 1440 x 900 (the drawer and the playback timeline also in the light theme, which the design does not have), and kept as screenshot baselines in `e2e/screenshots.spec.ts`: violations with Show on the stack weight (page and 3D view), the open drawer and strip, and playback at Jebel Ali (page and 3D view), dark and light. The values agree with the design: 7 violations (6 errors, 1 warning), 4 containers in the stack weight focus; BM 78%, SF +64%, drafts 12.10, 12.41 and 12.72 m, 0.62 m by stern, 98,420 t and 71,260 t; Colombo 562 with 2 restows, Jebel Ali 674 with 1. Differences on purpose: the fix texts come from the live plan (Move NSPU 771032 1 to 180688, where the design says 181686), the reefer row says why there is no fix and offers Unplace, and the controls listed in D6 are left out. Kept as designed: the stability preview labels sit over the gauge units, and on the timeline the "2 restows" badge of Colombo touches Jebel Ali's "−674".
+
+AT-04 (Apply fix: 7 to 6 violations, 18-04 at 79.3 t, Undo gives 7) and AT-07 (Colombo 2 restows, Jebel Ali 1) pass in Playwright.
+
+### Not done in M5
+
+- The 3D lift has no end-to-end timing check; its timing is unit tested (`playback/model.test.ts`, `ContainerLayer.test.ts`) and was checked by eye.
+- The focus banner, placed as in the design, covers the toolbar's second row while a violation is in focus, now including the new Playback toggle. Esc or Clear focus frees it.
+- Fix suggestions for all violations take about 25 ms after each command while the violations panel is open (measured below). Fine for the sample; with many violations they could move to the worker (M7 if needed).
+
+### M5 measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 8, 2026 | `suggestFix` for the 7 golden violations, 30 runs | median 25.3 ms, max 36.0 ms | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Node 25.9.0, Vitest 5.0.3 |
+| Oct 8, 2026 | `portStops` and `liftOrder` (Rotterdam, 837 containers), 30 runs | median 0.6 ms, max 1.6 ms | same | same |
+| Oct 8, 2026 | Bundles | main 433.27 kB, 133.62 kB gzip; 3D chunk 984.70 kB, 265.00 kB gzip (limit 350 kB) | same | Vite 8.3.3 |
+| Oct 8, 2026 | Tests | 410 unit and component tests in 40 files, domain lines 99.45%; 50 end to end | same | Vitest 5.0.3, Playwright 1.63 |
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |
