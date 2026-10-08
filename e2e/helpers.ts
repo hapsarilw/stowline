@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /** Opens the workspace in a theme and waits until the fonts and the layout are ready. */
 export async function openWorkspace(page: Page, theme: 'dark' | 'light' = 'dark') {
@@ -38,8 +38,11 @@ export async function openPlanFromList(page: Page, name: RegExp = /MV Nusantara 
 /** Switches the role in the account menu. */
 export async function switchRole(page: Page, label: string) {
   await page.getByRole('button', { name: /^Account:/ }).click();
-  await page.getByRole('radio', { name: new RegExp(`^${label}`) }).click();
+  const item = page.getByRole('menuitemradio', { name: new RegExp(`^${label}`) });
+  await item.click();
+  await expect(item).toHaveAttribute('aria-checked', 'true');
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu', { name: 'Account' })).toHaveCount(0);
 }
 
 /** 10 rows, 3 of them invalid: a weight of 80 t, an unknown type, and a POD at the port itself. */

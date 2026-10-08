@@ -4,7 +4,7 @@ import { loadListFile, openPlanFromList, openPlans, openWorkspace, switchRole } 
 // M6: AT-01, AT-03 in full, AT-05, AT-06, AT-10, and the plans list (FR-01 to FR-05).
 
 const planned = (page: Page) => page.getByText(/[\d,]+ \/ 1,240 planned/);
-const version = (page: Page) => page.getByTitle(/^Version \d+$/);
+const version = (page: Page) => page.getByTitle(/^Version \d+ on the server$/);
 const violationsTab = (page: Page) =>
   page.getByRole('tab', { name: /^Violations/ }).getByText(/^\d+ violations$/);
 const bayStatus = (page: Page) =>
@@ -106,10 +106,13 @@ test.describe('plans list (FR-01 to FR-05)', () => {
     await dialog.getByLabel('Voyage').fill('043W');
     await dialog.getByRole('button', { name: 'Create plan' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Plan created' })).toContainText(
-      'Voy 043W · LKCMB is a new Draft',
+      'MV Nusantara Pioneer · 043W-LKCMB · starts from the arrival condition',
     );
     await expect(page.getByText('13 voyages')).toBeVisible();
-    await page.getByRole('button', { name: 'Open plan' }).click();
+    await page
+      .getByRole('complementary', { name: 'Plan preview' })
+      .getByRole('button', { name: 'Open plan' })
+      .click();
     await expect(page).toHaveURL(/\/plans\/043W-LKCMB$/);
     await expect(page.getByText(/[\d,]+ \/ [\d,]+ planned/)).toBeVisible();
   });
@@ -152,7 +155,7 @@ test('AT-03 in full: keyboard only, pick up, place and save: planned 313 and ver
   await expect(save).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(toastWith(page, 'Draft saved')).toContainText(
-    'Plan 042W-SGSIN · 313 of 1,240 planned · version 15',
+    '042W-SGSIN · version 15 · 313 of 1,240 planned',
   );
   await expect(version(page)).toHaveText('v15');
   await expect(save).toBeDisabled();
@@ -171,7 +174,7 @@ test('unsaved commands survive a reload and are saved after it (FR-61, NFR-16)',
   await page.reload();
   await page.getByRole('heading', { name: 'Load list' }).waitFor();
   await expect(toastWith(page, 'Unsaved changes restored')).toContainText(
-    '1 change from your last visit',
+    '1 change from your last session is back. Save to keep it.',
   );
   await expect(page.getByTitle('Undo (Ctrl+Z)')).toBeEnabled();
   await page.getByRole('button', { name: 'Save' }).click();
@@ -189,7 +192,7 @@ test('AT-05: a forced conflict shows who saved and when, and the commands stay i
 }) => {
   await openWorkspace(page);
   await page.getByRole('button', { name: /^Account:/ }).click();
-  await page.getByLabel('Next save returns 409').check();
+  await page.getByRole('menuitemcheckbox', { name: /Next save returns/ }).click();
   await page.keyboard.press('Escape');
   await page.locator('#bay-cell-180488').click();
   await page.keyboard.press('Enter');
@@ -199,23 +202,28 @@ test('AT-05: a forced conflict shows who saved and when, and the commands stay i
   await expect(alert).toContainText(/Dimas Hartono saved version 15 at \d\d:\d\d/);
   await expect(alert).toContainText('Your 1 change is kept here and not saved.');
   await expect(page.getByTitle('Undo (Ctrl+Z)')).toBeEnabled();
-  await expect(version(page)).toHaveText('v14');
+  // The top bar shows the version gap, and Save counts the kept change.
+  await expect(page.getByText('v14 → v15')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Save/ })).toContainText('Save · 1');
   // Review changes, then put them on the newest version and save.
   await alert.getByRole('button', { name: 'Review changes' }).click();
   const dialog = page.getByRole('dialog', { name: 'Review changes' });
-  await expect(dialog).toContainText('Dimas Hartono saved version 15');
+  await expect(dialog).toContainText('v15 · Dimas Hartono');
   await expect(dialog).toContainText('Moved NSPU 771032 1 from 180488 to');
+  await expect(
+    dialog.getByRole('button', { name: 'Apply my changes to version 15' }),
+  ).toBeFocused();
+  await expect(dialog).toContainText('Nothing is saved until you confirm.');
   await dialog.getByRole('button', { name: 'Apply my changes to version 15' }).click();
-  await expect(toastWith(page, 'Your changes are on the newest version')).toBeVisible();
-  await expect(version(page)).toHaveText('v15');
-  await page.getByRole('button', { name: 'Save' }).click();
+  // Apply loads version 15, puts the change on top with the rule check, and saves it.
   await expect(toastWith(page, 'Draft saved')).toContainText('version 16');
+  await expect(version(page)).toHaveText('v16');
 });
 
 test('AT-05: Retry saves again after a conflict', async ({ page }) => {
   await openWorkspace(page);
   await page.getByRole('button', { name: /^Account:/ }).click();
-  await page.getByLabel('Next save returns 409').check();
+  await page.getByRole('menuitemcheckbox', { name: /Next save returns/ }).click();
   await page.keyboard.press('Escape');
   await page.locator('#bay-cell-180488').click();
   await page.keyboard.press('Enter');
@@ -228,7 +236,7 @@ test('AT-05: Retry saves again after a conflict', async ({ page }) => {
     .click();
   // The base is still version 14, so the server refuses again, until the changes are reviewed.
   await expect(page.getByRole('alert').filter({ hasText: 'saved version 15' })).toBeVisible();
-  await expect(version(page)).toHaveText('v14');
+  await expect(page.getByText('v14 → v15')).toBeVisible();
 });
 
 async function applyFix(page: Page, name: RegExp) {
@@ -255,33 +263,54 @@ async function fixAllErrors(page: Page) {
   await expect(panel.getByRole('article')).toHaveCount(1);
 }
 
-test('AT-06: Approve is not offered to a planner, is disabled with errors, then approves and locks the plan', async ({
+test('AT-06: Approve is not offered to a planner, is blocked with errors, then approves and locks the plan', async ({
   page,
 }) => {
   await openWorkspace(page);
   await expect(page.getByRole('button', { name: 'Approve' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Send for review' }).click();
-  await expect(toastWith(page, 'Sent for review')).toBeVisible();
+  await expect(toastWith(page, 'Sent for review')).toContainText(
+    'read only until it is returned or approved',
+  );
   await expect(page.getByText('In review', { exact: true }).first()).toBeVisible();
-  // As a planner there is still no Approve.
+  // In review the plan is locked, as design 11, and a planner still has no Approve.
+  await expect(page.getByRole('note', { name: 'Read only' })).toContainText(
+    'This plan is in review and read only until it is returned or approved.',
+  );
   await expect(page.getByRole('button', { name: 'Approve' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
   await switchRole(page, 'Senior planner');
   const approve = page.getByRole('button', { name: 'Approve' });
-  await expect(approve).toBeDisabled();
-  await expect(approve).toHaveAttribute('title', /6 errors remain/);
+  await expect(approve).toHaveAttribute('aria-disabled', 'true');
+  await approve.focus();
+  await expect(page.getByRole('tooltip')).toHaveText('6 errors remain: fix them to approve');
+  // The senior planner returns it with a comment; the planner fixes the errors and sends it again.
+  await page.getByRole('button', { name: 'Return' }).click();
+  await page.getByRole('dialog').getByRole('textbox').fill('Fix the six errors first');
+  await page.getByRole('dialog').getByRole('button', { name: 'Return to Draft' }).click();
+  await expect(toastWith(page, 'Returned to Draft')).toContainText(
+    'back with Rina Adiputri, with your comment',
+  );
+  await switchRole(page, 'Vessel planner');
   await fixAllErrors(page);
-  await expect(approve).toBeEnabled();
+  await page.getByRole('button', { name: 'Send for review' }).click();
+  await expect(toastWith(page, 'Sent for review')).toBeVisible();
+  await switchRole(page, 'Senior planner');
+  await expect(approve).not.toHaveAttribute('aria-disabled', 'true');
   await approve.click();
-  await expect(toastWith(page, 'Approved')).toBeVisible();
+  await expect(toastWith(page, 'Approved')).toContainText('is approved and read only.');
   await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible();
-  // Read only: no Approve, and the actions that change the plan are off.
+  // Read only: no Approve, the strip says who approved, and the actions that change the plan are off.
   await expect(approve).toHaveCount(0);
+  await expect(page.getByRole('note', { name: 'Read only' })).toContainText(
+    'Approved by Hendra Wirawan',
+  );
   await expect(page.getByRole('button', { name: 'Import load list' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
   await page.locator('#bay-cell-180486').click();
   await page.keyboard.press('Enter');
-  await expect(bayStatus(page)).toContainText('approved and read only');
-  await expect(page.getByRole('button', { name: 'Revise' })).toBeVisible();
+  await expect(bayStatus(page)).toContainText('This plan is approved and read only.');
+  await expect(page.getByRole('button', { name: 'Revise' }).first()).toBeVisible();
 });
 
 test('Return needs a comment; Revise makes a new Draft version (FR-62, FR-63)', async ({
@@ -297,7 +326,9 @@ test('Return needs a comment; Revise makes a new Draft version (FR-62, FR-63)', 
   await expect(dialog.getByRole('alert')).toContainText('A comment is required');
   await dialog.getByRole('textbox').fill('Fix the DG first');
   await dialog.getByRole('button', { name: 'Return to Draft' }).click();
-  await expect(toastWith(page, 'Returned to Draft')).toBeVisible();
+  await expect(toastWith(page, 'Returned to Draft')).toContainText(
+    'Version 14 is back with Rina Adiputri, with your comment.',
+  );
   await expect(page.getByRole('button', { name: 'Approve' })).toHaveCount(0);
   // The comment is in the activity log the plans list shows.
   await page.getByRole('link', { name: /all plans/ }).click();
@@ -320,6 +351,10 @@ test('AT-10: a file with 10 rows, 3 invalid: 7 accepted and 3 listed with a reas
   await expect(table).toContainText('Weight must be between 2.0 and 35.0 t.');
   await expect(table).toContainText('Type must be one of 20GP, 40GP, 40HC, RF, TK, OT.');
   await expect(table).toContainText('POD must be a port after SGSIN in the rotation.');
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await dialog.getByRole('button', { name: 'Copy report' }).click();
+  await expect(dialog.getByRole('button', { name: 'Copied' })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Row 3');
   await dialog.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText('PRO · 1,247').or(page.getByText(/SGSIN · 1,247/))).toBeVisible();
 });

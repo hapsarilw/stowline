@@ -26,6 +26,9 @@ const centre = async (page: Page, selector: string) => {
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openWorkspace(page);
+  // The lazy 3D view loads in long tasks; a drag or a key press in the middle of them is not
+  // what these tests measure. Wait for it once, here.
+  await wait3D(page);
 });
 
 test('AT-02: a drag of NSPU 551208 4 onto 180688 is refused, with the reason, and the list is unchanged', async ({

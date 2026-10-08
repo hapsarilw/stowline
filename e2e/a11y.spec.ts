@@ -4,6 +4,9 @@ import { loadListFile, openPlans, openWorkspace, switchRole, wait3D } from './he
 
 // NFR-09: no critical or serious axe findings, in both themes. Gate for M2.
 
+// A full axe scan with the 3D view loaded takes seconds; some tests run four of them.
+test.describe.configure({ timeout: 60_000 });
+
 const scan = (page: Page) =>
   new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
@@ -117,7 +120,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.getByRole('button', { name: 'Done' }).click();
     // A conflict, with its review dialog.
     await page.getByRole('button', { name: /^Account:/ }).click();
-    await page.getByLabel('Next save returns 409').check();
+    await page.getByRole('menuitemcheckbox', { name: /Next save returns/ }).click();
     await page.keyboard.press('Escape');
     await page.locator('#bay-cell-180488').click();
     await page.keyboard.press('Enter');

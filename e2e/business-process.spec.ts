@@ -120,9 +120,14 @@ test('the business process, steps 1 to 11', async ({ page }) => {
 
   // 10. Review (senior planner): approves, and the plan is locked.
   await switchRole(page, 'Senior planner');
-  await expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
+  // Approve stays focusable when blocked (aria-disabled), so check that it is not blocked.
+  await expect(page.getByRole('button', { name: 'Approve' })).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
   await page.getByRole('button', { name: 'Approve' }).click();
-  await expect(toast(page, 'Approved')).toBeVisible();
+  await expect(toast(page, /^Approved/)).toContainText('is approved and read only.');
+  await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Import load list' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
@@ -132,7 +137,10 @@ test('the business process, steps 1 to 11', async ({ page }) => {
   await page.getByRole('row', { name: /MV Nusantara Pioneer/ }).click();
   await expect(page.getByRole('row', { name: /MV Nusantara Pioneer/ })).toContainText('Approved');
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export' }).click();
+  await page
+    .getByRole('complementary', { name: 'Plan preview' })
+    .getByRole('button', { name: 'Export' })
+    .click();
   const file = await download;
   expect(file.suggestedFilename()).toBe('stowline-plan-042W-SGSIN.json');
   const text = await (await import('node:fs/promises')).readFile(await file.path(), 'utf8');

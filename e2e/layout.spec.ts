@@ -47,8 +47,9 @@ test('keyboard only: arrow keys move through the bay grid and the Inspector foll
   await openWorkspace(page);
   const grid = page.getByRole('grid', { name: /cross section/ });
   await grid.focus();
+  await expect(grid).toBeFocused();
   await page.keyboard.press('ArrowUp');
-  await expect(page.getByText('NSPU 771032 1', { exact: true })).toBeVisible();
+  await expect(page.getByText('NSPU 771032 1', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('region', { name: 'Bay view' }).getByRole('status')).toContainText(
     '180488, NSPU 771032 1, Colombo, 17.1 tonnes',
   );
