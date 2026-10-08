@@ -22,9 +22,9 @@ import {
   type Violation,
   type ViolationIndex,
 } from '@/domain';
-import { canEditPlan, readOnlyReason } from '@/domain';
+import type { ServerChange } from '@/api/types';
+import { editGate } from './edit-gate';
 import { activityText } from './messages';
-import { useSessionStore } from './session-store';
 import { writeUnsaved } from './unsaved';
 
 // The plan store holds the plan being edited. Every change goes through a command: it passes
@@ -57,6 +57,24 @@ export interface PlanData {
   base: StabilityBase;
 }
 
+/**
+ * A save the server refused because it has a newer version (decision 6, design 12). The kept
+ * changes are the history; this says what they were made on and what the server has now.
+ */
+export interface Conflict {
+  /** The version the kept changes were made on. */
+  baseVersion: number;
+  serverVersion: number;
+  savedBy: string;
+  savedAt: string;
+  /** What the server saved after the base version, oldest first. */
+  changes: ServerChange[];
+  /** The kept change that could not go on the server version, with the rule's reason. */
+  refused: { index: number; reason: string } | null;
+  /** The review dialog is open. */
+  reviewing: boolean;
+}
+
 export interface PlanStore extends PlanData {
   state: StowState;
   violations: Violation[];
@@ -72,6 +90,9 @@ export interface PlanStore extends PlanData {
   checkedAt: number;
   /** The version on the server that the history starts from (FR-59). */
   baseVersion: number;
+  /** A refused save that waits for the planner (FR-60), or null. */
+  conflict: Conflict | null;
+  setConflict: (conflict: Conflict | null) => void;
   apply: (command: Command) => CommandResult;
   undo: () => boolean;
   redo: () => boolean;
@@ -90,14 +111,6 @@ export interface PlanStore extends PlanData {
   /** Adds containers to the load list, after an import (FR-64). */
   addToLoadList: (containers: Container[]) => void;
 }
-
-/** Whether this role can change this plan now: not when approved, not for a read only role. */
-export const canEditNow = (status: PlanHeader['status']): boolean =>
-  canEditPlan(useSessionStore.getState().role, status);
-
-/** The reason a command is refused on a plan that cannot be changed (design 11 words). */
-export const readOnlyNow = (status: PlanHeader['status']): string =>
-  readOnlyReason(useSessionStore.getState().role, status) ?? 'This plan is read only.';
 
 export function createPlanData(): { data: PlanData; state: StowState } {
   const call = generateSampleCall();
@@ -131,7 +144,15 @@ export function derive(data: PlanData, state: StowState, violations: Violation[]
 
 export function initialPlanStore(): Omit<
   PlanStore,
-  'apply' | 'undo' | 'redo' | 'setViolations' | 'load' | 'markSaved' | 'setStatus' | 'addToLoadList'
+  | 'apply'
+  | 'undo'
+  | 'redo'
+  | 'setViolations'
+  | 'load'
+  | 'markSaved'
+  | 'setStatus'
+  | 'addToLoadList'
+  | 'setConflict'
 > {
   const { data, state } = createPlanData();
   return {
@@ -142,6 +163,7 @@ export function initialPlanStore(): Omit<
     activity: [],
     checkedAt: Date.now(),
     baseVersion: data.header.version,
+    conflict: null,
   };
 }
 
@@ -161,9 +183,11 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
   };
   return {
     ...initialPlanStore(),
+    setConflict: (conflict) => set({ conflict }),
     apply(command) {
       const s = get();
-      if (!canEditNow(s.header.status)) return { ok: false, reason: readOnlyNow(s.header.status) };
+      const gate = editGate.check('command');
+      if (!gate.ok) return { ok: false, reason: gate.reason };
       const r = applyCommand(s.state, s.ctx, command);
       if (!r.ok) return r;
       const text = activityText(command, s.state);
@@ -176,7 +200,7 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
     },
     undo() {
       const s = get();
-      if (!canEditNow(s.header.status)) return false;
+      if (!editGate.check('undo').ok) return false;
       const last = s.history[s.history.length - 1];
       if (!last) return false;
       const r = applyCommand(s.state, s.ctx, last.inverse, { check: false });
@@ -190,7 +214,7 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
     },
     redo() {
       const s = get();
-      if (!canEditNow(s.header.status)) return false;
+      if (!editGate.check('redo').ok) return false;
       const command = s.future[s.future.length - 1];
       if (!command) return false;
       const r = applyCommand(s.state, s.ctx, command, { check: false });
@@ -215,11 +239,18 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
         activity: [],
         checkedAt: Date.now(),
         baseVersion: data.header.version,
+        conflict: null,
       });
     },
     markSaved(version) {
       const s = get();
-      set({ header: { ...s.header, version }, baseVersion: version, history: [], future: [] });
+      set({
+        header: { ...s.header, version },
+        baseVersion: version,
+        history: [],
+        future: [],
+        conflict: null,
+      });
       writeUnsaved(s.header.id, null);
     },
     setStatus(status, version, by) {

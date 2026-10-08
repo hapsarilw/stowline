@@ -3,7 +3,6 @@ import {
   bay40Of,
   halfOfKey,
   parseKey,
-  readOnlyReason,
   type Command,
   type CommandResult,
   type SlotKey,
@@ -18,8 +17,9 @@ import {
   type PlacementEvent,
   type PlacementState,
 } from './placement';
-import { canEditNow, usePlanStore } from './plan-store';
-import { useSessionStore } from './session-store';
+import { allowed } from './allowed';
+import { whenReadOnly } from './edit-gate';
+import { usePlanStore } from './plan-store';
 import { useViewStore } from './view-store';
 
 // Runs the placement controller: keeps its state, and carries out what step() asks for through
@@ -45,6 +45,11 @@ export const usePlacementStore = create<PlacementStore>()(() => ({
 export function resetPlacementStore(): void {
   usePlacementStore.setState({ placement: IDLE, pickedAt: null, shake: null, settle: null });
 }
+
+// A role switch that makes the plan read only puts a container in hand back (design 09).
+whenReadOnly(() => {
+  if (usePlacementStore.getState().placement.kind !== 'idle') resetPlacementStore();
+});
 
 let seq = 0;
 
@@ -73,6 +78,7 @@ export function runCommand(command: Command): CommandResult {
 }
 
 export function undoLast(): void {
+  if (!allowed('undo')) return;
   const view = useViewStore.getState();
   const text = usePlanStore.getState().history.at(-1)?.text;
   dispatch({ type: 'cancel' });
@@ -82,6 +88,7 @@ export function undoLast(): void {
 }
 
 export function redoLast(): void {
+  if (!allowed('redo')) return;
   const view = useViewStore.getState();
   dispatch({ type: 'cancel' });
   if (!usePlanStore.getState().redo()) return;
@@ -108,17 +115,18 @@ function firstValidTarget(containerId: string, from: SlotKey | null): SlotKey | 
 export function dispatch(event: PlacementEvent): void {
   const plan = usePlanStore.getState();
   const view = useViewStore.getState();
-  // A read only plan (approved, or a role that cannot edit) lifts nothing (FR-63).
+  // A read only plan lifts nothing (FR-63): a pointer pick-up is a drag, the others a pick-up.
+  // The bay grid says the slot, then why (design 11).
   if (
     (event.type === 'pickFromList' ||
       event.type === 'pickFromSlot' ||
       event.type === 'startSwap') &&
-    !canEditNow(plan.header.status)
-  ) {
-    const why = readOnlyReason(useSessionStore.getState().role, plan.header.status) ?? '';
-    view.announce(event.type === 'pickFromSlot' ? `${slotText(plan, event.key)}. ${why}` : why);
+    !allowed(
+      event.type !== 'startSwap' && event.via === 'pointer' ? 'drag' : 'pickUp',
+      event.type === 'pickFromSlot' ? slotText(plan, event.key) : undefined,
+    )
+  )
     return;
-  }
   const prev = usePlacementStore.getState().placement;
   const out = step(prev, event, { state: plan.state, ctx: plan.ctx, bay: view.bay });
   const patch: Partial<PlacementStore> = { placement: out.next };

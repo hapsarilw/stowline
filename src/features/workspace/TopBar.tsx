@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { canEditPlan, PODS, ROTATION } from '@/domain';
+import { PODS, ROTATION } from '@/domain';
 import { AccountMenu } from '@/app/AccountMenu';
-import { saveCurrent, useConflict } from '@/state/save';
-import { useSessionStore } from '@/state/session-store';
+import { useEditGate, usePlanActions } from '@/state/edit-gate';
+import { saveCurrent } from '@/state/save';
 import { WorkflowButtons } from './WorkflowButtons';
 import { runValidation } from '@/state/actions';
 import { redoLast, undoLast } from '@/state/placement-store';
@@ -230,17 +230,17 @@ export function TopBar() {
   const total = usePlanStore((s) => s.loadList.length);
   const planned = usePlanStore((s) => s.planned);
   const violations = usePlanStore((s) => s.violations.length);
-  const editable = canEditPlan(
-    useSessionStore((s) => s.role),
-    usePlanStore((s) => s.header.status),
-  );
-  const canUndo = usePlanStore((s) => s.history.length > 0) && editable;
-  const canRedo = usePlanStore((s) => s.future.length > 0) && editable;
+  // Every enabled state comes from the gate (decisions 1, 2, 4) and the conflict state.
+  const undoGate = useEditGate('undo');
+  const redoGate = useEditGate('redo');
+  const saveGate = useEditGate('save');
+  const canUndo = usePlanStore((s) => s.history.length > 0) && undoGate.ok;
+  const canRedo = usePlanStore((s) => s.future.length > 0) && redoGate.ok;
   const theme = useViewStore((s) => s.theme);
-  const role = useSessionStore((s) => s.role);
   const unsaved = usePlanStore((s) => s.history.length);
-  const canSave = unsaved > 0 && canEditPlan(role, header.status);
-  const conflict = useConflict((s) => s.conflict);
+  const canSave = unsaved > 0 && saveGate.ok;
+  const conflict = usePlanStore((s) => s.conflict);
+  const saveIsPrimary = usePlanActions().primary === 'save';
   const errors = usePlanStore((s) => s.violations.filter((v) => v.severity === 'error').length);
   const pct = total === 0 ? 0 : (planned / total) * 100;
 
@@ -271,9 +271,10 @@ export function TopBar() {
         {conflict ? (
           <span
             className="flex items-center gap-1 font-mono text-[11px] text-err"
-            title={`The server has version ${conflict.currentVersion}; your changes are on version ${header.version}`}
+            title={`The server has version ${conflict.serverVersion}; your changes are on version ${conflict.baseVersion}`}
           >
-            <IconError size={11} strokeWidth={1.8} />v{header.version} → v{conflict.currentVersion}
+            <IconError size={11} strokeWidth={1.8} />v{conflict.baseVersion} → v
+            {conflict.serverVersion}
           </span>
         ) : (
           <span
@@ -317,8 +318,8 @@ export function TopBar() {
         </CountBadge>
       </Button>
       <Button
-        variant={header.status === 'draft' ? 'primary' : 'ghost'}
-        className={cn('flex-none px-3.5', header.status !== 'draft' && 'border-accent')}
+        variant={saveIsPrimary ? 'primary' : 'ghost'}
+        className={cn('flex-none px-3.5', !saveIsPrimary && 'border-accent')}
         disabled={!canSave}
         onClick={() => void saveCurrent()}
       >

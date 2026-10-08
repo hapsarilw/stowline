@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { plural } from '@/domain';
-import { api } from '@/state/api';
 import { useImportReport } from '@/state/import';
 import { usePlanStore } from '@/state/plan-store';
-import { rebaseOnServer, saveCurrent, useConflict, when } from '@/state/save';
+import { applyMyChanges, reviewOf, saveCurrent, setReviewing, when } from '@/state/save';
 import { Button } from '@/ui/Button';
+import { cn } from '@/ui/cn';
 import { Dialog } from '@/ui/Dialog';
-import { IconCheckCircle, IconError, IconInfo, IconWarning } from '@/ui/icons';
+import { IconCheckCircle, IconError, IconWarning } from '@/ui/icons';
 
 /** "Placed NSPU 1 at 180286" is a Place; the first word names the kind of change. */
 export function changeKind(text: string): string {
@@ -24,10 +24,9 @@ export function changeKind(text: string): string {
 
 /** After a refused save (design 12): bottom centre, stays until it is acted on. */
 export function ConflictBanner() {
-  const conflict = useConflict((s) => s.conflict);
-  const reviewing = useConflict((s) => s.reviewing);
+  const conflict = usePlanStore((s) => s.conflict);
+  const n = usePlanStore((s) => s.history.length);
   if (!conflict) return null;
-  const n = conflict.kept.length;
   return (
     <>
       <div
@@ -39,7 +38,7 @@ export function ConflictBanner() {
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-px">
           <span className="font-semibold">
-            {conflict.savedBy} saved version {conflict.currentVersion} at {when(conflict.savedAt)}
+            {conflict.savedBy} saved version {conflict.serverVersion} at {when(conflict.savedAt)}
           </span>
           <span className="text-[12px] text-text2">
             Your {plural(n, 'change')} {n === 1 ? 'is' : 'are'} kept here and not saved.
@@ -47,7 +46,7 @@ export function ConflictBanner() {
         </div>
         <Button
           className="h-[26px] border-border2 bg-transparent px-2.5 text-[12px] font-normal"
-          onClick={() => useConflict.getState().setReviewing(true)}
+          onClick={() => setReviewing(true)}
         >
           Review changes
         </Button>
@@ -59,44 +58,57 @@ export function ConflictBanner() {
           Retry
         </Button>
       </div>
-      {reviewing ? <ReviewDialog /> : null}
+      {conflict.reviewing ? <ReviewDialog /> : null}
     </>
   );
 }
 
-/** What the server holds now, and what is kept here, side by side (design 12). */
+const slotList = (slots: readonly string[]) =>
+  slots.length <= 1
+    ? `slot ${slots[0] ?? ''}`
+    : `slots ${slots.slice(0, -1).join(', ')} or ${slots[slots.length - 1]}`;
+
+/**
+ * What the server holds now, and what is kept here, side by side, with the overlap check
+ * (design 12, decision 6). A kept change that touches a slot the server also changed is marked;
+ * a change that cannot go on the server version is marked with the reason, and nothing is saved.
+ */
 function ReviewDialog() {
-  const conflict = useConflict((s) => s.conflict)!;
+  const conflict = usePlanStore((s) => s.conflict)!;
+  const history = usePlanStore((s) => s.history);
   const id = usePlanStore((s) => s.header.id);
-  const [server, setServer] = useState<string[] | null>(null);
-  const close = () => useConflict.getState().setReviewing(false);
+  const close = () => setReviewing(false);
+  const kept = history.map((h) => h.command);
+  const review = reviewOf(conflict, kept);
+  const marked = new Map(review.overlaps.map((o) => [o.index, o.slots]));
+  const server = conflict.changes.flatMap((c) => c.lines);
+  const v = conflict.serverVersion;
 
-  useEffect(() => {
-    let cancelled = false;
-    void api
-      .getActivity(id)
-      .then((log) => {
-        const t = Date.parse(conflict.savedAt);
-        const mine = log.filter((e) => e.user === conflict.savedBy && Date.parse(e.at) >= t - 5000);
-        if (!cancelled) setServer(mine.map((e) => e.text.replace(`${e.user}: `, '')));
-      })
-      .catch(() => {
-        if (!cancelled) setServer([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [id, conflict.savedAt, conflict.savedBy]);
-
-  const row = (text: string, i: number) => (
+  const row = (text: string, i: number, note?: string) => (
     <li
       key={i}
-      className="grid grid-cols-[52px_minmax(0,1fr)] gap-2 border-b border-border py-1.5 text-[12px]"
+      data-overlap={note ? 'true' : undefined}
+      className="grid grid-cols-[52px_minmax(0,1fr)] gap-x-2 border-b border-border py-1.5 text-[12px]"
     >
       <span className="text-text2">{changeKind(text)}</span>
       <span className="font-mono text-[11.5px] text-pretty">{text}</span>
+      {note ? (
+        <span className="col-start-2 flex items-start gap-1.5 text-[11.5px] text-err">
+          <span className="mt-px grid flex-none">
+            <IconError size={12} />
+          </span>
+          {note}
+        </span>
+      ) : null}
     </li>
   );
+  const noteFor = (i: number): string | undefined => {
+    const parts: string[] = [];
+    const slots = marked.get(i);
+    if (slots) parts.push(`Version ${v} also changed ${slotList(slots)}.`);
+    if (conflict.refused?.index === i) parts.push(`${conflict.refused.reason}.`);
+    return parts.length ? parts.join(' ') : undefined;
+  };
   return (
     <Dialog
       title="Review changes"
@@ -106,11 +118,13 @@ function ReviewDialog() {
       footer={
         <>
           <span className="mr-auto text-[12px] text-text2">
-            Nothing is saved until you confirm.
+            {conflict.refused
+              ? `Nothing was saved. Change ${conflict.refused.index + 1} cannot go on version ${v}.`
+              : 'Nothing is saved until you confirm.'}
           </span>
           <Button onClick={close}>Cancel</Button>
-          <Button variant="primary" data-autofocus onClick={() => void rebaseOnServer()}>
-            Apply my changes to version {conflict.currentVersion}
+          <Button variant="primary" data-autofocus onClick={() => void applyMyChanges()}>
+            Apply my changes to version {v}
           </Button>
         </>
       }
@@ -120,14 +134,12 @@ function ReviewDialog() {
           <h3 className="m-0 mb-1 flex items-baseline gap-2 text-[10.5px] font-semibold tracking-[0.06em] text-text3 uppercase">
             On the server
             <span className="font-mono tracking-normal normal-case">
-              v{conflict.currentVersion} · {conflict.savedBy} · {when(conflict.savedAt)}
+              v{v} · {conflict.savedBy} · {when(conflict.savedAt)}
             </span>
           </h3>
           <ul className="m-0 list-none p-0">
-            {server === null ? (
-              <li className="py-1.5 text-text2">Loading…</li>
-            ) : server.length ? (
-              server.map(row)
+            {server.length ? (
+              server.map((t, i) => row(t, i))
             ) : (
               <li className="py-1.5 text-text2">{conflict.savedBy} saved the plan.</li>
             )}
@@ -137,16 +149,36 @@ function ReviewDialog() {
           <h3 className="m-0 mb-1 flex items-baseline gap-2 text-[10.5px] font-semibold tracking-[0.06em] text-text3 uppercase">
             Your kept changes
             <span className="font-mono tracking-normal normal-case">
-              made on v{conflict.madeOn}
+              made on v{conflict.baseVersion}
             </span>
           </h3>
-          <ul className="m-0 list-none p-0">{conflict.kept.map(row)}</ul>
-          <p className="m-0 mt-3 flex items-start gap-2 rounded border border-border bg-raised p-2.5 text-[12px] text-text2">
-            <span className="mt-px grid flex-none">
-              <IconInfo size={14} />
+          <ul className="m-0 list-none p-0">{history.map((h, i) => row(h.text, i, noteFor(i)))}</ul>
+          <p
+            role="status"
+            data-testid="overlap-check"
+            className="m-0 mt-3 flex items-start gap-2 rounded border border-border bg-raised p-2.5 text-[12px] text-text2"
+          >
+            <span
+              className={cn(
+                'mt-px grid flex-none',
+                review.overlaps.length ? 'text-err' : 'text-ok',
+              )}
+            >
+              {review.overlaps.length ? <IconError size={14} /> : <IconCheckCircle size={14} />}
             </span>
-            Rules are re-checked after applying. A change that no longer fits is left out, and you
-            are told which.
+            {review.overlaps.length ? (
+              <span className="text-pretty">
+                <span className="font-semibold text-err">
+                  {plural(review.overlaps.length, 'change')} overlap.
+                </span>{' '}
+                Version {v} changed the same slots. Rules are re-checked after applying.
+              </span>
+            ) : (
+              <span className="text-pretty">
+                <span className="font-semibold text-ok">No overlap.</span> Version {v} doesn&apos;t
+                touch {slotList(review.keptSlots)}. Rules are re-checked after applying.
+              </span>
+            )}
           </p>
         </section>
       </div>

@@ -1,5 +1,5 @@
 import { undoLast } from '@/state/placement-store';
-import { useConflict } from '@/state/save';
+import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { Toast } from '@/ui/Toast';
 
@@ -8,7 +8,7 @@ export function ToastHost() {
   const toast = useViewStore((s) => s.toast);
   const dismiss = useViewStore((s) => s.dismissToast);
   // While a save conflict waits for an answer, its alert holds the place (design 12, 16).
-  const conflict = useConflict((s) => s.conflict !== null);
+  const conflict = usePlanStore((s) => s.conflict !== null);
   if (!toast || conflict) return null;
   return (
     <div

@@ -1,34 +1,35 @@
-import { create } from 'zustand';
-import { plural, type Command } from '@/domain';
+import { overlapsBySlot, plural, replayOnto, slotsOf, type Command } from '@/domain';
 import { isApiError } from '@/api/errors';
 import type { ConflictDetails } from '@/api/types';
 import { api, request } from './api';
-import { usePlanStore } from './plan-store';
-import { fetchPlanInto, replay } from './workspace-load';
+import { allowed } from './allowed';
+import { usePlanStore, type Conflict } from './plan-store';
+import { fetchPlan, replay } from './workspace-load';
 import { useViewStore } from './view-store';
 
-// Save with the base version, and the conflict flow (FR-59, FR-60).
+// Save with the base version, and the conflict flow (FR-59, FR-60, decision 6). The conflict
+// lives in the plan store: the kept changes are the history, the server's are in the 409.
 
-export interface Conflict extends ConflictDetails {
-  /** The changes kept here: one line each. */
-  kept: string[];
-  /** The version these changes were made on. */
-  madeOn: number;
+/** Opens or closes the review of a conflict (design 12). */
+export function setReviewing(reviewing: boolean): void {
+  const c = usePlanStore.getState().conflict;
+  if (c) usePlanStore.getState().setConflict({ ...c, reviewing });
 }
 
-interface ConflictStore {
-  conflict: Conflict | null;
-  reviewing: boolean;
-  setConflict: (c: Conflict | null) => void;
-  setReviewing: (on: boolean) => void;
-}
+/** The server's commands since the kept changes' base version, in order. */
+export const serverCommands = (c: Conflict): Command[] => c.changes.flatMap((v) => v.commands);
 
-export const useConflict = create<ConflictStore>()((set) => ({
-  conflict: null,
-  reviewing: false,
-  setConflict: (conflict) => set({ conflict, reviewing: false }),
-  setReviewing: (reviewing) => set({ reviewing }),
-}));
+/**
+ * The overlap check of the review (design 12): each kept change that touches a slot the
+ * server's changes also touched, with those slots, and the slots the kept changes touch.
+ */
+export function reviewOf(c: Conflict, kept: readonly Command[]) {
+  const theirs = serverCommands(c);
+  return {
+    overlaps: overlapsBySlot(kept, theirs),
+    keptSlots: [...new Set(kept.flatMap(slotsOf))],
+  };
+}
 
 export const unsavedCommands = (): Command[] =>
   usePlanStore.getState().history.map((h) => h.command);
@@ -40,6 +41,7 @@ export const when = (iso: string): string =>
 
 /** Save: the commands since the base version go to the server (FR-59). */
 export async function saveCurrent(): Promise<SaveOutcome> {
+  if (!allowed('save')) return 'failed';
   const plan = usePlanStore.getState();
   const commands = unsavedCommands();
   const view = useViewStore.getState();
@@ -51,7 +53,6 @@ export async function saveCurrent(): Promise<SaveOutcome> {
   );
   if (r.ok) {
     usePlanStore.getState().markSaved(r.data.version);
-    useConflict.getState().setConflict(null);
     const s = usePlanStore.getState();
     view.showToast({
       kind: 'ok',
@@ -66,10 +67,14 @@ export async function saveCurrent(): Promise<SaveOutcome> {
     const d = e.details as unknown as ConflictDetails;
     // One message at a time (design 16): the conflict alert replaces any toast.
     view.dismissToast();
-    useConflict.getState().setConflict({
-      ...d,
-      kept: usePlanStore.getState().history.map((h) => h.text),
-      madeOn: plan.baseVersion,
+    usePlanStore.getState().setConflict({
+      baseVersion: plan.baseVersion,
+      serverVersion: d.currentVersion,
+      savedBy: d.savedBy,
+      savedAt: d.savedAt,
+      changes: d.changes ?? [],
+      refused: null,
+      reviewing: false,
     });
     view.announce(`${e.message} Your ${plural(commands.length, 'change')} are kept.`);
     return 'conflict';
@@ -86,28 +91,39 @@ export async function saveCurrent(): Promise<SaveOutcome> {
 }
 
 /**
- * Apply my changes to version N (design 12): load the newest plan, put my changes on top with
- * the rule check, and save them. Nothing is saved when a change no longer fits: the ones that
- * do are applied, and a message says which did not.
+ * Apply my changes to version N (design 12, decision 6). The kept changes are tried on the
+ * server version first, with the rule check. When one is refused nothing is saved: the plan
+ * here stays as it is, and the review names the change and the reason. Otherwise the server
+ * version comes into the workspace, the kept changes go on it through the normal command path
+ * (which re-checks the rules), and the result is saved on the new base version.
  */
-export async function rebaseOnServer(): Promise<void> {
+export async function applyMyChanges(): Promise<'saved' | 'refused' | 'failed'> {
   const view = useViewStore.getState();
-  const id = usePlanStore.getState().header.id;
-  const mine = unsavedCommands();
+  const plan = usePlanStore.getState();
+  const conflict = plan.conflict;
+  if (!conflict || !allowed('save')) return 'failed';
+  const kept = unsavedCommands();
   const r = await request(
-    () => fetchPlanInto(id),
-    () => void rebaseOnServer(),
+    () => fetchPlan(plan.header.id),
+    () => void applyMyChanges(),
   );
-  if (!r.ok) return;
-  const { applied, dropped } = replay(mine);
-  useConflict.getState().setConflict(null);
-  if (dropped.length === 0) {
-    await saveCurrent();
-    return;
+  if (!r.ok) return 'failed';
+  const server = r.data.data.header.version;
+  const dry = replayOnto(r.data.state, r.data.data.ctx, kept);
+  if (!dry.ok) {
+    usePlanStore.getState().setConflict({
+      ...conflict,
+      serverVersion: server,
+      refused: { index: dry.index, reason: dry.reason },
+      reviewing: true,
+    });
+    view.announce(
+      `Nothing was saved. Change ${dry.index + 1} cannot go on version ${server}: ${dry.reason}.`,
+    );
+    return 'refused';
   }
-  view.showToast({
-    kind: 'warn',
-    title: `${plural(dropped.length, 'change')} could not be applied`,
-    message: `${dropped[0]}. ${plural(applied, 'change')} applied. Save to publish them.`,
-  });
+  usePlanStore.getState().load(r.data.data, r.data.state);
+  const { dropped } = replay(kept);
+  if (dropped.length) return 'failed';
+  return (await saveCurrent()) === 'saved' ? 'saved' : 'failed';
 }

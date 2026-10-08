@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { Violation } from '@/domain';
 import { applyFix, fixFor, runValidation, showViolation } from '@/state/actions';
-import { canEditPlan, readOnlyReason } from '@/domain';
+import { useEditGate } from '@/state/edit-gate';
 import { usePlanStore } from '@/state/plan-store';
-import { useSessionStore } from '@/state/session-store';
 import { useViewStore, type SeverityFilter } from '@/state/view-store';
 import { PodBadge } from '@/ui/Badges';
 import { cn } from '@/ui/cn';
@@ -121,10 +120,9 @@ export function ViolationsPanel() {
   const severity = useViewStore((s) => s.severity);
   const focused = useViewStore((s) => s.focusedViolation);
   const newIds = useNewIds(violations);
-  const status = usePlanStore((s) => s.header.status);
-  const role = useSessionStore((s) => s.role);
-  const editable = canEditPlan(role, status);
-  const reason = readOnlyReason(role, status);
+  const fixGate = useEditGate('applyFix');
+  const editable = fixGate.ok;
+  const reason = fixGate.ok ? null : fixGate.reason;
 
   const m = useMemo(
     () =>

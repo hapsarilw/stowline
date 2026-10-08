@@ -1,5 +1,4 @@
-import { canRevise, readOnlyReason, roleInfo } from '@/domain';
-import { usePlanStore } from '@/state/plan-store';
+import { useReadOnlyStrip } from '@/state/edit-gate';
 import { useSessionStore } from '@/state/session-store';
 import { revise } from '@/state/workflow';
 import { Button } from '@/ui/Button';
@@ -19,12 +18,8 @@ function stamp(iso: string): string {
  * way out: Revise for an approved plan, Switch role for a role that only reads.
  */
 export function ReadOnlyStrip() {
-  const role = useSessionStore((s) => s.role);
-  const header = usePlanStore((s) => s.header);
-  const reason = readOnlyReason(role, header.status);
-  if (!reason) return null;
-  const info = roleInfo(role);
-  const approved = header.status === 'approved' && header.statusBy;
+  const strip = useReadOnlyStrip();
+  if (!strip) return null;
   return (
     <div
       role="note"
@@ -34,23 +29,23 @@ export function ReadOnlyStrip() {
       <span className="grid text-text2">
         <IconLock size={14} strokeWidth={1.6} />
       </span>
-      <span className="min-w-0 flex-1 truncate">{reason}</span>
-      {approved ? (
+      <span className="min-w-0 flex-1 truncate">{strip.reason}</span>
+      {strip.approved ? (
         <span className="flex-none text-[12px] text-text2">
-          Approved by {header.statusBy}
-          {header.statusAt ? ` · ${stamp(header.statusAt)}` : ''}
+          Approved by {strip.approved.by}
+          {strip.approved.at ? ` · ${stamp(strip.approved.at)}` : ''}
         </span>
-      ) : !info.canEdit ? (
-        <span className="flex-none text-[12px] text-text2">{info.label} · Read only</span>
+      ) : strip.roleNote ? (
+        <span className="flex-none text-[12px] text-text2">{strip.roleNote}</span>
       ) : null}
-      {canRevise(role, header.status) ? (
+      {strip.way === 'revise' ? (
         <Button
           className="h-6 flex-none px-2.5 text-[12px] font-normal"
           onClick={() => void revise()}
         >
           Revise
         </Button>
-      ) : !info.canEdit ? (
+      ) : strip.way === 'switchRole' ? (
         <Button
           className="h-6 flex-none px-2.5 text-[12px] font-normal"
           onClick={() => useSessionStore.getState().openMenu()}

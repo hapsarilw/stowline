@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { RejectedRow } from '@/domain';
 import { isApiError } from '@/api/errors';
 import { api, request } from './api';
+import { allowed } from './allowed';
 import { usePlanStore } from './plan-store';
 import { useViewStore } from './view-store';
 
@@ -21,6 +22,7 @@ export const useImportReport = create<{ report: ImportReport | null; close: () =
 );
 
 export async function importLoadListFile(file: File): Promise<void> {
+  if (!allowed('import')) return;
   const view = useViewStore.getState();
   const id = usePlanStore.getState().header.id;
   const text = await file.text();

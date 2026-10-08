@@ -34,7 +34,7 @@ describe('WorkflowButtons (FR-62, FR-63, AT-06)', () => {
     act(() => useSessionStore.getState().setRole('senior'));
     const approve = screen.getByRole('button', { name: 'Approve' });
     expect(approve).toHaveAttribute('aria-disabled', 'true');
-    expect(approve).toHaveAccessibleDescription('6 errors remain: fix them to approve');
+    expect(approve).toHaveAccessibleDescription('6 errors remain. Return the plan to fix them.');
     expect(screen.getByRole('button', { name: 'Return' })).toBeEnabled();
     act(() => usePlanStore.getState().setViolations([]));
     expect(screen.getByRole('button', { name: 'Approve' })).not.toHaveAttribute('aria-disabled');

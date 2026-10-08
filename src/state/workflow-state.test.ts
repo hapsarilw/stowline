@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetPlacementStore, dispatch } from './placement-store';
-import { canEditNow, resetPlanStore, usePlanStore } from './plan-store';
+import { editGate } from './edit-gate';
+import { resetPlanStore, usePlanStore } from './plan-store';
 import { resetSessionStore, useSessionStore } from './session-store';
 import { readUnsaved, writeUnsaved } from './unsaved';
 import { resetViewStore, useViewStore } from './view-store';
@@ -63,7 +64,7 @@ describe('read only plans (FR-63)', () => {
   it('an approved plan refuses commands, undo and pick-up', () => {
     plan().apply(MOVE);
     plan().setStatus('approved', 14);
-    expect(canEditNow('approved')).toBe(false);
+    expect(editGate.check('command').ok).toBe(false);
     expect(plan().apply({ kind: 'move', from: '180688', to: '180488' })).toMatchObject({
       ok: false,
       reason: 'This plan is approved and read only. Revise it to make changes.',
@@ -77,7 +78,7 @@ describe('read only plans (FR-63)', () => {
 
   it('a read only role cannot change a draft', () => {
     useSessionStore.getState().setRole('terminal');
-    expect(canEditNow('draft')).toBe(false);
+    expect(editGate.check('command').ok).toBe(false);
     expect(plan().apply(MOVE).ok).toBe(false);
     dispatch({ type: 'pickFromSlot', key: '180486', via: 'keyboard' });
     expect(useViewStore.getState().announcement).toBe(

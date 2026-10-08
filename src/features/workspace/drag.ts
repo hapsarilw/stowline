@@ -1,6 +1,7 @@
 import { fmt1, PODS, type SlotKey } from '@/domain';
 import { pickDropTarget, VIEWPORT_ATTR } from '@/features/viewport3d/bridge';
 import { heldContainer } from '@/state/placement';
+import { allowed } from '@/state/allowed';
 import { dispatch, pickFromList, usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { FADE_MS, prefersReducedMotion } from '@/ui/motion';
@@ -89,6 +90,8 @@ export function beginDrag(
   origin: HTMLElement,
 ): void {
   if (e.button !== 0 || active || usePlacementStore.getState().placement.kind !== 'idle') return;
+  // A read only plan has no drag sources (FR-63): ask before anything moves.
+  if (!allowed('drag')) return;
   const start = { x: e.clientX, y: e.clientY };
   let ghost: HTMLElement | null = null;
   let over: SlotKey | null = null;

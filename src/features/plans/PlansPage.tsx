@@ -3,18 +3,11 @@ import { Link, useNavigate } from 'react-router';
 import { AccountMenu } from '@/app/AccountMenu';
 import { isApiError } from '@/api/errors';
 import type { ActivityEntry, PlanListResponse, PlanSummary } from '@/api/types';
-import {
-  approveState,
-  canExport,
-  canReturn,
-  canRevise,
-  canSendForReview,
-  roleInfo,
-  type PlanStatus,
-} from '@/domain';
+import type { PlanStatus } from '@/domain';
 import { ToastHost } from '@/features/workspace/ToastHost';
 import { ReturnDialog } from '@/features/workspace/Dialogs';
 import { api, request } from '@/state/api';
+import { usePreviewActions } from '@/state/edit-gate';
 import { exportPlanFile } from '@/state/export';
 import { statusToast } from '@/state/workflow';
 import { useSessionStore } from '@/state/session-store';
@@ -84,7 +77,6 @@ function Violations({ p }: { p: PlanSummary }) {
 }
 
 function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void }) {
-  const role = useSessionStore((s) => s.role);
   const navigate = useNavigate();
   const [log, setLog] = useState<ActivityEntry[] | null>(null);
   const [returning, setReturning] = useState(false);
@@ -116,25 +108,17 @@ function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void
     if (r.ok) {
       view.showToast({
         kind: 'ok',
-        ...statusToast(to, plan.status === 'approved', r.data.version, plan.planner, plan.id),
+        ...statusToast(to, plan.status, r.data.version, plan.planner, plan.id),
       });
       onChanged();
     } else if (isApiError(r.error))
       view.showToast({ kind: 'err', title: "Can't change the status", message: r.error.message });
   };
 
-  const approval = approveState(role, plan.status, plan.errors);
-  // The note under the buttons (design 15): what opening the plan means for this role.
-  const note =
-    approval === 'disabled'
-      ? `${plan.errors === 1 ? '1 error remains' : `${plan.errors} errors remain`}: fix them to approve`
-      : !plan.openable
-        ? null
-        : !roleInfo(role).canEdit
-          ? 'Opens read only'
-          : plan.status === 'in_review' && role === 'planner'
-            ? 'Opens read only until returned'
-            : null;
+  // The buttons and the note under them (design 15) come from the gate (decisions 2, 3).
+  const actions = usePreviewActions(plan);
+  const approval = actions.approve.state;
+  const note = actions.note;
   const s = plan.preview;
   const newest = log?.[0]?.at ?? '';
   return (
@@ -261,39 +245,39 @@ function Preview({ plan, onChanged }: { plan: PlanSummary; onChanged: () => void
         >
           Open plan
         </Button>
-        {canSendForReview(role, plan.status) ? (
+        {actions.send ? (
           <Button className="h-8" onClick={() => void change('in_review')}>
             Send for review
           </Button>
         ) : null}
-        {canReturn(role, plan.status) ? (
+        {actions.ret ? (
           <Button className="h-8" onClick={() => setReturning(true)}>
             Return
           </Button>
         ) : null}
         {approval !== 'hidden' ? (
           <Button
-            className={cn('h-8', approval === 'disabled' && 'cursor-not-allowed opacity-45')}
-            aria-disabled={approval === 'disabled' || undefined}
-            aria-describedby={approval === 'disabled' ? 'approve-why' : undefined}
-            onClick={() => approval === 'enabled' && void change('approved')}
+            className={cn('h-8', approval === 'blocked' && 'cursor-not-allowed opacity-45')}
+            aria-disabled={approval === 'blocked' || undefined}
+            aria-describedby={approval === 'blocked' ? 'approve-why' : undefined}
+            onClick={() => approval === 'ready' && void change('approved')}
           >
             Approve
           </Button>
         ) : null}
-        {canRevise(role, plan.status) ? (
+        {actions.revise ? (
           <Button className="h-8" onClick={() => void change('draft')}>
             Revise
           </Button>
         ) : null}
-        {canExport(role, plan.status) && plan.openable ? (
+        {actions.export ? (
           <Button className="h-8" onClick={() => void exportPlanFile(plan.id)}>
             Export
           </Button>
         ) : null}
         {note ? (
           <p
-            id={approval === 'disabled' ? 'approve-why' : undefined}
+            id={approval === 'blocked' ? 'approve-why' : undefined}
             className="m-0 flex basis-full items-center gap-1.5 text-[11.5px] text-text2"
           >
             <IconLock size={11} strokeWidth={1.6} />

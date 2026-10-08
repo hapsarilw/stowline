@@ -1,6 +1,7 @@
 import { plural, type PlanStatus } from '@/domain';
 import { isApiError } from '@/api/errors';
 import { api, request } from './api';
+import { allowed } from './allowed';
 import { exportPlanFile } from './export';
 import { currentSession } from './session-store';
 import { usePlanStore } from './plan-store';
@@ -13,12 +14,13 @@ import { useViewStore } from './view-store';
 /** The message after a status change (design 16). */
 export function statusToast(
   to: PlanStatus,
-  revising: boolean,
+  from: PlanStatus,
   version: number,
   planner: string | null,
   id: string,
 ): { title: string; message: string; action?: { label: string; run: () => void } } {
-  if (revising) return { title: 'Revised', message: `Version ${version} is a new Draft` };
+  if (from === 'approved')
+    return { title: 'Revised', message: `Version ${version} is a new Draft` };
   if (to === 'in_review')
     return {
       title: 'Sent for review',
@@ -39,7 +41,7 @@ export function statusToast(
 async function change(to: PlanStatus, comment?: string): Promise<boolean> {
   const plan = usePlanStore.getState();
   const view = useViewStore.getState();
-  const revising = plan.header.status === 'approved';
+  const from = plan.header.status;
   const r = await request(
     () => api.setStatus(plan.header.id, { to, comment }),
     () => void change(to, comment),
@@ -57,7 +59,7 @@ async function change(to: PlanStatus, comment?: string): Promise<boolean> {
     .setStatus(r.data.status, r.data.version, { user: who, at: new Date().toISOString() });
   const toast = statusToast(
     to,
-    revising,
+    from,
     r.data.version,
     usePlanStore.getState().header.planner,
     r.data.id,
@@ -80,7 +82,7 @@ export async function approve(): Promise<boolean> {
   return (await savedFirst()) && change('approved');
 }
 export const returnToDraft = (comment: string) => change('draft', comment);
-export const revise = () => change('draft');
+export const revise = async (): Promise<boolean> => allowed('revise') && change('draft');
 
 export const describeUnsaved = () => {
   const n = unsavedCommands().length;

@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { canEditPlan, fmt1, PODS, POD_LIST, slot40Key, type Container } from '@/domain';
+import { fmt1, PODS, POD_LIST, slot40Key, type Container } from '@/domain';
 import { beginDrag } from '@/features/workspace/drag';
+import { useEditGate } from '@/state/edit-gate';
 import { heldContainer } from '@/state/placement';
 import { pickFromList, usePlacementStore } from '@/state/placement-store';
 import { importLoadListFile } from '@/state/import';
 import { usePlanStore } from '@/state/plan-store';
-import { useSessionStore } from '@/state/session-store';
 import { useViewStore } from '@/state/view-store';
 import { IconButton } from '@/ui/Button';
 import { Button } from '@/ui/Button';
@@ -174,9 +174,7 @@ export function LoadList() {
   const planned = usePlanStore((s) => s.planned);
   const { leftOpen, query, checked } = useViewStore();
   const port = usePlanStore((s) => s.header.port);
-  const status = usePlanStore((s) => s.header.status);
-  const role = useSessionStore((s) => s.role);
-  const canEdit = canEditPlan(role, status);
+  const canEdit = useEditGate('import').ok;
   const fileInput = useRef<HTMLInputElement>(null);
   const heldId = usePlacementStore((s) => heldContainer(s.placement));
   const listHeld = usePlacementStore(

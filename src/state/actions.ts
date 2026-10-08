@@ -8,6 +8,7 @@ import {
   type Violation,
 } from '@/domain';
 import type { ValidationClient } from '@/worker/client';
+import { allowed } from './allowed';
 import { runCommand } from './placement-store';
 import { usePlanStore } from './plan-store';
 import { useViewStore } from './view-store';
@@ -93,6 +94,7 @@ export function showViolation(id: string): void {
  * result message says what was resolved and offers Undo (FR-45).
  */
 export function applyFix(id: string): void {
+  if (!allowed('applyFix')) return;
   const v = usePlanStore.getState().violations.find((x) => x.id === id);
   if (!v) return;
   const fix = fixFor(v);
