@@ -48,7 +48,7 @@ function Gauge({ g }: { g: GaugeModel }) {
         {g.delta ? (
           <span
             data-testid="stability-delta"
-            className="absolute -top-[19px] right-0 rounded-[2px] bg-accentbg px-[3px] font-mono text-[10.5px] font-semibold text-accent"
+            className="absolute -top-[19px] right-0 rounded-[2px] bg-accentbg px-[3px] font-mono text-[10.5px] font-semibold text-text"
           >
             {g.delta}
           </span>

@@ -78,7 +78,7 @@ interface RowProps {
   start: number;
   checked: boolean;
   active: boolean;
-  /** The container is in hand: dimmed with a dashed outline, as in screen 02. */
+  /** The container is in hand: accent background and dashed outline, as in screen 02, without the fade (A1). */
   held: boolean;
   onClick: () => void;
   onToggle: () => void;
@@ -108,8 +108,7 @@ function Row({ row, index, start, checked, active, held, onClick, onToggle }: Ro
         COLS,
         'absolute top-0 left-0 box-border w-full cursor-pointer border-b border-border px-3 select-none hover:bg-hover',
         checked && 'bg-sel',
-        held &&
-          'bg-accentbg opacity-55 outline outline-1 -outline-offset-1 outline-accent outline-dashed',
+        held && 'bg-accentbg outline outline-1 -outline-offset-1 outline-accent outline-dashed',
         active && !held && 'outline outline-2 -outline-offset-2 outline-accent',
       )}
       style={{ height: ROW_HEIGHT, transform: `translateY(${start}px)` }}

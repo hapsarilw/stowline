@@ -479,7 +479,7 @@ export function BayView() {
         {keyboardHeld ? (
           <span
             data-testid="held-pill"
-            className="inline-flex h-[18px] flex-none items-center rounded-[3px] bg-accentbg px-1.5 text-[10.5px] font-semibold tracking-[0.05em] text-accent uppercase"
+            className="inline-flex h-[18px] flex-none items-center rounded-[3px] bg-accentbg px-1.5 text-[10.5px] font-semibold tracking-[0.05em] text-text uppercase"
           >
             Picked up
           </span>
