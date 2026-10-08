@@ -156,6 +156,18 @@ export function strengthChange(
   return { sf, bm };
 }
 
+/**
+ * Where a bay's centre falls on the strength axis: 0 at the bow station, 1 at the stern, as the
+ * 61 stations run. For the band of the selected bay in the drawer chart.
+ */
+export function strengthPosition(ctx: StowContext, bay: number): number {
+  const bays = ctx.vessel.bays;
+  const bow = bays[0]!.x + HALF_BAY;
+  const stern = bays[bays.length - 1]!.x - HALF_BAY;
+  const b = ctx.geometry.bayByNum(bay);
+  return b ? (bow - b.x) / (bow - stern) : 0;
+}
+
 /** One pure function of plan and vessel. The drag preview uses the same function. */
 export function computeStability(
   s: StowState,

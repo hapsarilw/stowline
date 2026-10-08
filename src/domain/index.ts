@@ -6,6 +6,7 @@ export * from './sample';
 export * from './plan/context';
 export * from './plan/state';
 export * from './plan/summary';
+export * from './plan/ports';
 export * from './rules/segregation';
 export * from './rules/validate';
 export * from './rules/placement';
