@@ -69,3 +69,23 @@ for (const theme of ['dark', 'light'] as const) {
     expect(blocking(await scan(page))).toEqual([]);
   });
 }
+
+for (const theme of ['dark', 'light'] as const) {
+  test(`violations with Show, the stability drawer and playback, ${theme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openWorkspace(page, theme);
+    await wait3D(page);
+    await page.getByRole('tab', { name: /^Violations/ }).click();
+    await page.getByRole('button', { name: 'Show error · stack weight at 180488' }).click();
+    await page.waitForTimeout(300);
+    expect(blocking(await scan(page))).toEqual([]);
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Stability', exact: true }).click();
+    await page.waitForTimeout(400);
+    expect(blocking(await scan(page))).toEqual([]);
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Playback' }).click();
+    await page.getByRole('button', { name: 'Pause' }).click();
+    expect(blocking(await scan(page))).toEqual([]);
+  });
+}
