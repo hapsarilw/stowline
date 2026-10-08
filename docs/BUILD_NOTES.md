@@ -534,6 +534,53 @@ New copy (my wording, to confirm): "Draft saved" with "Plan 042W-SGSIN · 313 of
 | Oct 8, 2026 | Bundles | 3D chunk 984.76 kB, 265.03 kB gzip (limit 350 kB); workspace route 33.4 kB gzip on top of the main bundle | same | Vite 8.3.3 |
 | Oct 8, 2026 | Tests | 469 unit and component tests in 46 files, domain lines 99.39%; 71 end to end, 3 full runs | same | Vitest 5.0.3, Playwright 1.63 |
 
+## M6b New UI from the design, screens 09 to 16 (Oct 8, 2026)
+
+The owner designed the M6 screens in Claude Design (design/Stowline.dc.html 09 to 16, design/Stowline M6.dc.html). This replaces the token-built versions of M6 (D7).
+
+### What changed
+
+| Screen | Ported |
+| --- | --- |
+| 09 Account menu | A menu (`role=menu`, `menuitemradio`, `menuitemcheckbox`): name, role and desk; Switch role with a lock icon and "Read only" on two roles; Developer with "Next save returns 409". Enter, Space or ↓ open it on the chosen role, ↑ ↓ Home End move, Enter or Space choose, Esc closes and gives the focus back to the avatar. |
+| 10 Top bar | The version next to the status ("v15"). Workflow actions after Save, behind a divider, so Undo, Redo, Validate and Save never move. Primary button by state: Save on a Draft, Approve in review, Revise when approved. Approve blocked with errors stays focusable (`aria-disabled`) and shows "6 errors remain: fix them to approve" on hover and focus. Under 1600 px the rotation collapses to now, next and a "+3" menu (the designer's recommendation over my compact version), and every label and the progress bar stay. |
+| 11 Read only | A strip under the top bar with a lock icon and the reason, who approved it and when, or the role, with Revise or Switch role. In the Inspector the three actions are replaced by the same message; Apply fix is disabled with it as its tooltip; Enter in the bay grid reads the slot and the reason. Selection, Show, the camera, color modes and playback still work. |
+| 12 Save conflict | The alert sits bottom centre and stays until acted on, and hides any toast while it does. The top bar shows "v14 → v15" with an error icon and Save reads "Save · 1". Review changes shows the server side (from the activity log of that save) and the kept changes side by side; focus starts on "Apply my changes to version 15", which now loads the newest version, re-checks each change and saves. |
+| 13 Dialogs | Return: the plan, who it goes back to, a required comment, Ctrl+Enter to return. New plan: two-column form with the planner, "ETD can't be in the past." and "2 fields need fixing". Import report: warning or OK icon, the table, the note about rejected rows, "7 added to the SGSIN load list", Copy report. |
+| 14 Failure and loading | The failed-request message shows "Retrying… Attempt N" while it runs again. A plan that fails to open: header with All plans / id, the message, the request line for support (for example "GET /plans/042W-SGSIN · 503 · 16:21:08"), Retry focused, All plans. Loading: panel skeletons, "Loading plan 042W-SGSIN…" and an indeterminate bar; both still with reduced motion. |
+| 15 Plans states | Skeleton rows while loading, Clear filters focused when nothing matches, the "can't be opened" note with Open plan `aria-disabled`, and the notes under the preview buttons: "Opens read only", "Opens read only until returned", the reason Approve is blocked. |
+| 16 Toasts | The design's copy and actions: Approved with Export, Plan created with Open plan, Unsaved changes restored with Discard. Bottom centre, one at a time, 5 s, paused while hovered or focused. |
+
+### Decisions
+
+| Topic | Decision |
+| --- | --- |
+| A plan in review is read only | Design 10 and 11 lock it ("disabled because the plan is locked", "Opens read only until returned"). The SRS makes only approved plans read only and does not forbid this. `canEditPlan` now allows editing on a Draft only; the server refuses a save or an import in review with 403. To change a plan in review, the senior planner returns it. Please confirm. |
+| Words for the in-review strip | The design words the approved and the role cases only. In review: "This plan is in review and read only until it is returned or approved." (my wording, from the design's own "Sent for review" toast). |
+| Import reasons | From design 13: "A container ID is 4 letters, 6 digits and a check digit." and "POD DEBRV is not in the rotation." A POD that is in the rotation but not after the port keeps "POD must be a port after SGSIN in the rotation." |
+| Overlap check | Design 12 shows "No overlap. Version 15 doesn't touch slots 180488 or 180688." Not built: it needs the server's changes as slots, and the mock's activity log has only text. The dialog says instead that the rules are re-checked after applying and that a change that no longer fits is left out and named. |
+| Retrying | The design says "Attempt 2 of 3". There is no automatic retry limit, so it says "Attempt 2". |
+| Loading line | The design says "Vessel geometry, 2,740 containers, load list"; the count is not known before the plan loads, so: "Vessel geometry, containers, load list". |
+| Draft saved toast | The design offers Undo on it. Not built: a save clears the history (M6), so there is nothing to undo against the server. |
+| Plan exported toast | The design says "BAPLIE file downloaded: 042W-SGSIN-v15.edi". FR-65 exports JSON, so: "File downloaded: stowline-plan-042W-SGSIN.json". |
+| Double load fixed | In development React runs the plan route's effect twice; the second load reset the view after the person had started working (it showed as a flaky AT-08). Fetching and showing are now separate, and only the latest fetch is shown. |
+| Developer switch | The forced failure can target a path (`setFailNext(status, times, path)`), so a test can fail the plan request and nothing else. |
+
+### Gate result
+
+The business process test passes after the port. The whole suite, 87 end-to-end tests, passed in two full runs in a row; earlier runs failed while the machine's load average was 15 to 44 from other programs, and each of those tests passed on its own (see below). axe passes on screens 09 to 16 in both themes. Screenshot baselines for the new states are in `e2e/m6-states.spec.ts-snapshots`.
+
+### Test reliability under load
+
+With the machine loaded (load average 15 to 44 from other programs), some end-to-end tests timed out or raced. The fixes made them deterministic rather than slower: wait for the 3D view before placement tests, wait for the account menu to close in `switchRole`, dismiss a toast before a screenshot, target forced failures at one path, and match toast titles exactly (Playwright's `hasText` is a case-insensitive substring, so "Approved" matched "…returned or approved."). The axe specs get 60 s, as some run four full scans with the 3D view.
+
+### M6b measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 8, 2026 | NFR-06 plans route JavaScript (`npm run measure:js`) | 292.1 kB gzip: msw 156.1, app 118.3 (target 200 kB; still not met, see M6) | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Chrome for Testing 153, Vite 8.3.3 |
+| Oct 8, 2026 | Tests | 470 unit and component tests, domain lines 99.39%; 87 end to end, 2 full runs in a row | same | Vitest 5.0.3, Playwright 1.63 |
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |
