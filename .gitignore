@@ -7,3 +7,5 @@ test-results
 *.local
 .lighthouseci
 dist-e2e
+.vercel
+.env*

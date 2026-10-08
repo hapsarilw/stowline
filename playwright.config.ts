@@ -18,7 +18,16 @@ export default defineConfig({
   use: { baseURL: 'http://localhost:4173', trace: 'off', screenshot: 'only-on-failure' },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, grep: acceptance },
+    {
+      name: 'firefox',
+      // Headless Firefox turns WebGL off on a machine without a GPU, such as the CI runner, and
+      // the 3D view then shows its fallback (the first M7 CI run). Software WebGL is enough here.
+      use: {
+        ...devices['Desktop Firefox'],
+        launchOptions: { firefoxUserPrefs: { 'webgl.force-enabled': true } },
+      },
+      grep: acceptance,
+    },
     { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: acceptance },
   ],
   // The production code with test hooks (TEST_HOOKS), built once and served by vite preview. The

@@ -663,7 +663,9 @@ The 3D view fails safe in each way a test can make it fail: no WebGL (AT-08), a 
 
 `.github/workflows/ci.yml` runs four jobs on every push: lint, types, unit tests with both coverage thresholds; end to end with axe on Chromium (every test) and AT-01 to AT-10 on Firefox and WebKit; bundle size; Lighthouse on the plans route. Screenshot comparisons are skipped in CI because the baselines are per machine.
 
-`vercel.json` builds with `npm run build`, serves `dist`, sends every route that is not a file to `index.html`, caches hashed assets for a year and never caches `mockServiceWorker.js`. Preview deployments for every branch come from Vercel's Git integration once the repository is imported in Vercel. Not deployed: the Vercel CLI on this machine has no valid login (`vercel whoami`: "The specified token is not valid").
+`vercel.json` builds with `npm run build`, serves `dist`, sends every route that is not a file to `index.html`, caches hashed assets for a year and never caches `mockServiceWorker.js`. Deployed on Oct 8, 2026: the `stowline` project in hapsarilw's Vercel team is connected to the GitHub repository `hapsarilw/stowline`, production branch `main`, so every pushed branch gets a preview. The first production deploy (from the CLI, the same commit as `origin/main`) is live at https://stowline.vercel.app. Checked on the live site: `/plans` and `/plans/042W-SGSIN` load the app, `mockServiceWorker.js` is `no-cache`, hashed assets are cached for a year, and opening 042W from the plans list shows 312 / 1,240 planned, 7 violations and the 3D view, with no page error. `.vercelignore` keeps local secrets (`vercel link` writes a short-lived token to `.env.local`) and build and test output out of a CLI upload.
+
+The first CI run on GitHub (commit a344b52) passed every job except Firefox: 6 acceptance tests waited for the 3D view, which never came. Headless Firefox turns WebGL off on a runner without a GPU, so the app showed its fallback, as it should (FR-24); running Firefox here with WebGL disabled fails the same 6 tests. The Firefox project now sets `webgl.force-enabled` and the e2e job installs Mesa's software renderer.
 
 ### Decisions (Oct 8, 2026)
 
@@ -683,8 +685,7 @@ Every NFR has a measured result or a written reason (docs/TRACEABILITY.md: 88 of
 
 ### Not done in M7
 
-- The Vercel deploy and the per-branch previews (needs a Vercel login, or importing the repository in the Vercel dashboard).
-- CI has not run on GitHub yet: the workflow is committed but not pushed.
+- The Firefox fix for CI is checked here, not yet on GitHub (it runs on the next push).
 - NFR-01 on target hardware, the screen reader check.
 
 ### M7 measurements

@@ -1,0 +1,9 @@
+# Never upload local secrets or build and test output from this machine.
+.env*
+node_modules
+dist
+dist-e2e
+coverage
+test-results
+playwright-report
+.lighthouseci
