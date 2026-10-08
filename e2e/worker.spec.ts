@@ -10,7 +10,8 @@ test('full validation of 10,000 containers runs in the worker', async ({ page })
   await page.goto('/plans/042W-SGSIN');
   // Let the 3D view finish loading first: its start-up is not part of this measurement.
   await page.waitForFunction(() => window.__stowViewport !== undefined, null, { timeout: 30_000 });
-  await page.waitForTimeout(1000);
+  // ...and the main thread to go idle after it.
+  await page.evaluate(() => new Promise((r) => requestIdleCallback(r, { timeout: 10_000 })));
   const result = await page.evaluate(async () => {
     const clientUrl = '/src/worker/client.ts';
     const domainUrl = '/src/domain/index.ts';
@@ -42,7 +43,7 @@ test('full validation of 10,000 containers runs in the worker', async ({ page })
       const report = await client.api.validate(bench);
       runs.push({ roundTrip: performance.now() - t0, worker: report.durationMs });
     }
-    await new Promise((r) => setTimeout(r, 100));
+    for (const e of observer.takeRecords()) longTasks.push(e.duration);
     observer.disconnect();
     client.terminate();
     return { golden: golden.violations.length, errors: golden.errors, runs, longTasks };

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Raycaster, Vector2, Vector3 } from 'three';
 import { bay40Of, parseKey, PODS, fmt1, type SlotKey } from '@/domain';
 import { dispatch, usePlacementStore } from '@/state/placement-store';
@@ -77,9 +77,14 @@ declare global {
       findPickable: () => { key: SlotKey; id: string; x: number; y: number } | null;
       /** A point on screen where a drop target is drawn and picks back to itself. */
       findTarget: (key: SlotKey) => { x: number; y: number } | null;
+      /** How many frames the scene has drawn. It stops rising when the scene is at rest. */
+      frames: () => number;
     };
   }
 }
+
+/** Frames drawn, for the dev test hook. The scene renders on demand, so a still count is rest. */
+let framesDrawn = 0;
 
 /** A pointer up within this many pixels of the pointer down is a click, not an orbit. */
 const CLICK_SLOP = 4;
@@ -96,6 +101,9 @@ export function Picking({
   const gl = useThree((s) => s.gl);
   const camera = useThree((s) => s.camera);
   const invalidate = useThree((s) => s.invalidate);
+  useFrame(() => {
+    if (import.meta.env.DEV) framesDrawn++;
+  });
 
   useEffect(() => {
     const el = gl.domElement;
@@ -183,6 +191,7 @@ export function Picking({
     if (import.meta.env.DEV) {
       // The first deck container whose top face, on screen, picks back to itself.
       window.__stowViewport = {
+        frames: () => framesDrawn,
         findTarget: (key) => {
           const r = el.getBoundingClientRect();
           const box = targets.boxOf(key);

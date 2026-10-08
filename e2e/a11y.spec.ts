@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { loadListFile, openPlans, openWorkspace, switchRole, wait3D } from './helpers';
+import { loadListFile, openPlans, openWorkspace, settle, switchRole, wait3D } from './helpers';
 
 // NFR-09: no critical or serious axe findings, in both themes. Gate for M2.
 
@@ -68,7 +68,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.mouse.up();
     await expect(page.getByRole('alert')).toBeVisible();
     // After the toast's 160 ms entrance: axe reads colors mid-fade as blended.
-    await page.waitForTimeout(400);
+    await settle(page);
     expect(blocking(await scan(page))).toEqual([]);
   });
 }
@@ -80,11 +80,11 @@ for (const theme of ['dark', 'light'] as const) {
     await wait3D(page);
     await page.getByRole('tab', { name: /^Violations/ }).click();
     await page.getByRole('button', { name: 'Show error · stack weight at 180488' }).click();
-    await page.waitForTimeout(300);
+    await settle(page);
     expect(blocking(await scan(page))).toEqual([]);
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Stability', exact: true }).click();
-    await page.waitForTimeout(400);
+    await settle(page);
     expect(blocking(await scan(page))).toEqual([]);
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Playback' }).click();
@@ -128,7 +128,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.getByRole('button', { name: 'Save' }).click();
     const alert = page.getByRole('alert').filter({ hasText: 'saved version 15' });
     await expect(alert).toBeVisible();
-    await page.waitForTimeout(300);
+    await settle(page);
     expect(blocking(await scan(page))).toEqual([]);
     await alert.getByRole('button', { name: 'Review changes' }).click();
     expect(blocking(await scan(page))).toEqual([]);

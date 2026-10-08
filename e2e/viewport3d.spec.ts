@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openWorkspace } from './helpers';
+import { openWorkspace, settle } from './helpers';
 import type {} from '../src/features/bench/BenchPage';
 import type {} from '../src/features/viewport3d/scene/Picking';
 
@@ -58,13 +58,13 @@ test('pointer moves over the 3D view cause no React render (CLAUDE.md "3D view")
   await openWorkspace(page);
   await sceneReady(page);
   const box = (await page.getByTestId('viewport-canvas').boundingBox())!;
-  await page.waitForTimeout(500);
+  await settle(page);
   const before = await page.evaluate(() => (window as unknown as { __commits: number }).__commits);
   // Sweep across the ship: the hover outline and the tooltip change many times.
   for (let i = 0; i <= 60; i++) {
     await page.mouse.move(box.x + box.width * (0.2 + 0.6 * (i / 60)), box.y + box.height * 0.55);
   }
-  await page.waitForTimeout(300);
+  await settle(page);
   await expect(page.locator('[data-field="id"]')).not.toHaveText('');
   const after = await page.evaluate(() => (window as unknown as { __commits: number }).__commits);
   expect(after - before).toBe(0);
@@ -104,12 +104,12 @@ test('camera presets, color modes, hull and POD filter all respond (FR-19 to FR-
   const before = await shot();
   const toolbar = page.getByRole('toolbar', { name: '3D view controls' });
   await toolbar.getByRole('button', { name: 'Top', exact: true }).click();
-  await page.waitForTimeout(800);
+  await settle(page);
   const top = await shot();
   expect(top.equals(before)).toBe(false);
   await toolbar.getByRole('button', { name: 'Violations', exact: true }).click();
   await expect(page.getByRole('group', { name: 'Legend: Rule status' })).toContainText('Error6');
-  await page.waitForTimeout(100);
+  await settle(page);
   expect((await shot()).equals(top)).toBe(false);
   await page.getByRole('button', { name: /^Hull/ }).click();
   await expect(page.getByRole('button', { name: /^Hull/ })).toContainText('Solid');

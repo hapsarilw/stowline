@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { loadListFile, openPlanFromList, openPlans, openWorkspace, switchRole } from './helpers';
+import {
+  loadListFile,
+  openPlanFromList,
+  openPlans,
+  openWorkspace,
+  readCopied,
+  switchRole,
+  tabKey,
+} from './helpers';
 
 // M6: AT-01, AT-03 in full, AT-05, AT-06, AT-10, and the plans list (FR-01 to FR-05).
 
@@ -133,13 +141,14 @@ test('AT-01: opening 042W from the plans list shows 312 of 1,240, 2,740 containe
 
 test('AT-03 in full: keyboard only, pick up, place and save: planned 313 and version 15', async ({
   page,
+  browserName,
 }) => {
   await openWorkspace(page);
   await expect(version(page)).toHaveText('v14');
   await page.keyboard.press('/');
   const list = page.getByRole('grid', { name: 'Containers to load' });
   for (let i = 0; i < 20 && !(await list.evaluate((el) => el === document.activeElement)); i++)
-    await page.keyboard.press('Tab');
+    await page.keyboard.press(tabKey(browserName));
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowUp');
@@ -151,7 +160,7 @@ test('AT-03 in full: keyboard only, pick up, place and save: planned 313 and ver
   const save = page.getByRole('button', { name: 'Save' });
   await expect(save).toBeEnabled();
   for (let i = 0; i < 80 && !(await save.evaluate((el) => el === document.activeElement)); i++)
-    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press(tabKey(browserName, true));
   await expect(save).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(toastWith(page, 'Draft saved')).toContainText(
@@ -339,6 +348,7 @@ test('Return needs a comment; Revise makes a new Draft version (FR-62, FR-63)', 
 
 test('AT-10: a file with 10 rows, 3 invalid: 7 accepted and 3 listed with a reason (FR-64)', async ({
   page,
+  browserName,
 }) => {
   await openWorkspace(page);
   await page.getByTestId('import-file').setInputFiles(loadListFile());
@@ -351,10 +361,11 @@ test('AT-10: a file with 10 rows, 3 invalid: 7 accepted and 3 listed with a reas
   await expect(table).toContainText('Weight must be between 2.0 and 35.0 t.');
   await expect(table).toContainText('Type must be one of 20GP, 40GP, 40HC, RF, TK, OT.');
   await expect(table).toContainText('POD must be a port after SGSIN in the rotation.');
-  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-  await dialog.getByRole('button', { name: 'Copy report' }).click();
-  await expect(dialog.getByRole('button', { name: 'Copied' })).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Row 3');
+  const copied = await readCopied(page, browserName, async () => {
+    await dialog.getByRole('button', { name: 'Copy report' }).click();
+    await expect(dialog.getByRole('button', { name: 'Copied' })).toBeVisible();
+  });
+  expect(copied).toContain('Row 3');
   await dialog.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText('PRO · 1,247').or(page.getByText(/SGSIN · 1,247/))).toBeVisible();
 });

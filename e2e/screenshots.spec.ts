@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openPlans, openWorkspace } from './helpers';
+import { openPlans, openWorkspace, settle } from './helpers';
 import type {} from '../src/features/viewport3d/scene/Picking';
 
 // Screens 01 (workspace, 1440 and 1920, dark and light), 03 (bay view), 04 (violations),
@@ -46,7 +46,7 @@ for (const theme of ['dark', 'light'] as const) {
     await openWorkspace(page, theme);
     await page.getByTestId('viewport-canvas').locator('canvas').waitFor();
     await page.waitForFunction(() => window.__stowViewport !== undefined);
-    await page.waitForTimeout(500);
+    await settle(page);
     // Headless Chromium draws WebGL in software, so allow small differences.
     await expect(page.getByRole('region', { name: '3D view' })).toHaveScreenshot(
       `viewport3d-1440-${theme}.png`,
@@ -71,7 +71,7 @@ for (const theme of ['dark', 'light'] as const) {
       mask: [page.getByTestId('viewport-canvas'), page.getByTestId('violations-summary')],
     });
     // The camera on bay 18, the 4 containers at full color, the banner. After the 600 ms move.
-    await page.waitForTimeout(900);
+    await settle(page);
     await expect(page.getByRole('region', { name: '3D view' })).toHaveScreenshot(
       `violations-3d-1440-${theme}.png`,
       { maxDiffPixelRatio: 0.02 },
@@ -86,7 +86,7 @@ for (const theme of ['dark', 'light'] as const) {
     // The drawer lies over the 3D canvas, so it is taken on its own, with the strip below it.
     const drawer = page.getByRole('region', { name: 'Stability details' });
     await expect(drawer).toBeVisible();
-    await page.waitForTimeout(400);
+    await settle(page);
     await expect(drawer).toHaveScreenshot(`stability-drawer-1440-${theme}.png`, {
       animations: 'disabled',
       maxDiffPixelRatio: 0.002,
@@ -106,7 +106,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.getByRole('button', { name: 'Playback' }).click();
     await page.getByRole('button', { name: 'Pause' }).click();
     await page.getByRole('button', { name: /^Jebel Ali/ }).click();
-    await page.waitForTimeout(500);
+    await settle(page);
     await expect(page).toHaveScreenshot(`playback-1440-${theme}.png`, {
       animations: 'disabled',
       maxDiffPixelRatio: 0.002,

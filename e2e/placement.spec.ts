@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openWorkspace, wait3D } from './helpers';
+import { openWorkspace, settle, tabKey, wait3D } from './helpers';
 
 // M4 Placement: AT-02, AT-03 (without the save step), the undo part of AT-04, AT-09, and drags
 // from cell to cell and onto a 3D target. Seeded plan: 312 of 1,240 planned, 7 violations.
@@ -64,13 +64,14 @@ test('AT-02: a drag of NSPU 551208 4 onto 180688 is refused, with the reason, an
 
 test('AT-03: with the keyboard only, a load list row is picked up and placed in the bay grid (FR-17, FR-36, FR-37)', async ({
   page,
+  browserName,
 }) => {
   // Keyboard only: "/" goes to the search, Tab to the list.
   await page.keyboard.press('/');
   await expect(page.getByRole('textbox', { name: 'Search load list' })).toBeFocused();
   const list = page.getByRole('grid', { name: 'Containers to load' });
   for (let i = 0; i < 20 && !(await list.evaluate((el) => el === document.activeElement)); i++)
-    await page.keyboard.press('Tab');
+    await page.keyboard.press(tabKey(browserName));
   await expect(list).toBeFocused();
 
   // The second heaviest unplanned row, NSPU 300653 4, has a valid target in bay 18.
@@ -184,7 +185,8 @@ test('AT-09: with reduced motion, no animation of a placement runs longer than 1
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('held-ghost')).toBeVisible();
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(300);
+  await expect(page.getByTestId('held-ghost')).toHaveCount(0);
+  await settle(page);
 
   const { longest, seen } = await page.evaluate(() => {
     const w = window as unknown as { __longest: number; __seen: number };

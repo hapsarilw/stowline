@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { openPlans, openWorkspace, switchRole, wait3D } from './helpers';
+import { openPlans, openWorkspace, settle, switchRole, wait3D } from './helpers';
 
 // The states of design 09 to 16: axe in both themes, and screenshots to hold the look.
 
@@ -91,7 +91,7 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(page.getByRole('tooltip')).toBeVisible();
       await expect(page.getByTitle('Undo (Ctrl+Z)')).toBeDisabled();
       await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
-      await page.waitForTimeout(400);
+      await settle(page);
       expect(await blocking(page)).toEqual([]);
       await shot(page, 'topbar-in-review-1440', theme, [page.getByTestId('viewport-canvas')]);
     });
@@ -126,7 +126,7 @@ for (const theme of ['dark', 'light'] as const) {
       await page.getByRole('button', { name: 'Save' }).click();
       const alert = page.getByRole('alert').filter({ hasText: 'saved version 15' });
       await expect(alert).toBeVisible();
-      await page.waitForTimeout(400);
+      await settle(page);
       expect(await blocking(page)).toEqual([]);
       await shot(page, 'conflict-1440', theme, [
         page.getByTestId('viewport-canvas'),
@@ -231,6 +231,8 @@ for (const theme of ['dark', 'light'] as const) {
     });
 
     test('16 toasts: actions, and a hover keeps the toast', async ({ page }) => {
+      // The page's clock, so the 5 s of the toast pass without waiting for them.
+      await page.clock.install();
       await openWorkspace(page, theme);
       await wait3D(page);
       await page.getByRole('button', { name: 'Send for review' }).click();
@@ -241,10 +243,13 @@ for (const theme of ['dark', 'light'] as const) {
         'Version 14 is with the senior planners. It is read only until it is returned or approved.',
       );
       await toast.hover();
-      await page.waitForTimeout(5600);
+      await page.clock.fastForward(5600);
       await expect(toast).toBeVisible();
       await page.mouse.move(5, 5);
-      await expect(toast).toHaveCount(0, { timeout: 7000 });
+      await page.clock.fastForward(4900);
+      await expect(toast).toBeVisible();
+      await page.clock.fastForward(200);
+      await expect(toast).toHaveCount(0);
       expect(await blocking(page)).toEqual([]);
     });
   });

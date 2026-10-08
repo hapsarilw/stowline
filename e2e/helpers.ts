@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import type {} from '../src/features/viewport3d/scene/Picking';
 
 /** Opens the workspace in a theme and waits until the fonts and the layout are ready. */
 export async function openWorkspace(page: Page, theme: 'dark' | 'light' = 'dark') {
@@ -61,4 +62,68 @@ export function loadListFile(prefix = 9000): { name: string; mimeType: string; b
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(rows)),
   };
+}
+
+/**
+ * The key that moves focus to the next control. Safari, as shipped, moves Tab between fields only
+ * and Option+Tab through every control; a keyboard user there presses Option+Tab (NFR-10).
+ */
+export function tabKey(browserName: string, shift = false): string {
+  const tab = shift ? 'Shift+Tab' : 'Tab';
+  return browserName === 'webkit' ? `Alt+${tab}` : tab;
+}
+
+/**
+ * Lets a test read what the page copies. Chromium uses the real clipboard; Firefox and WebKit
+ * have no permission to read it in automation, so the page's writeText is recorded instead.
+ */
+export async function readCopied(
+  page: Page,
+  browserName: string,
+  copy: () => Promise<void>,
+): Promise<string> {
+  if (browserName === 'chromium') {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await copy();
+    return page.evaluate(() => navigator.clipboard.readText());
+  }
+  await page.evaluate(() => {
+    const w = window as unknown as { __copied: string };
+    w.__copied = '';
+    navigator.clipboard.writeText = (text: string) => {
+      w.__copied = text;
+      return Promise.resolve();
+    };
+  });
+  await copy();
+  return page.evaluate(() => (window as unknown as { __copied: string }).__copied);
+}
+
+/**
+ * Waits until the page is at rest: no finite CSS animation or transition is running, and the 3D
+ * scene (rendered on demand) has drawn no frame for 3 browser frames in a row. Use it before a
+ * screenshot or an axe scan, instead of a fixed wait.
+ */
+export async function settle(page: Page) {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let still = 0;
+        let last = -1;
+        const check = () => {
+          const moving = document
+            .getAnimations()
+            .some(
+              (a) =>
+                a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity,
+            );
+          const frames = window.__stowViewport?.frames() ?? 0;
+          still = !moving && frames === last ? still + 1 : 0;
+          last = frames;
+          if (still >= 3) resolve();
+          else requestAnimationFrame(check);
+        };
+        requestAnimationFrame(check);
+      }),
+  );
 }
