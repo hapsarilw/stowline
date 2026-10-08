@@ -709,6 +709,68 @@ All on a MacBook Pro Mac14,9, Apple M2 Pro, 32 GB, macOS 26.6.2, Node 25.9.0.
 | Oct 8, 2026 | NFR-23 coverage | whole app 74.21% of lines (3,443 of 4,639), statements 73.44%, branches 70.33%, functions 72.72%; domain 99.40% (988 of 994) | Vitest 5.0.3, V8 |
 | Oct 8, 2026 | Tests | 569 unit and component tests; 127 end-to-end tests (Chromium 101, Firefox 13, WebKit 13) in 2.3 min with 4 workers, 3 full runs | Playwright 1.63: Chromium 153.0.8010.12, Firefox 155.0, WebKit 26.6 |
 
+## M8 Saving, conflict and permissions (Oct 8, 2026)
+
+Screens 09 to 16 were designed after M0 to M7. M6b had ported most of their look; M8 built the logic, data and API they need, and left what the user sees to M9. The decisions from screens 09 to 16 are in CLAUDE.md (D1 to D8, decided by the owner from the M8 to M11 prompts).
+
+### Gap table (step 1, approved)
+
+| Item | Before M8 | M8 | M9 |
+| --- | --- | --- | --- |
+| D1, D2 Roles and statuses | `canEditPlan` plus role and status checks in seven components | One gate, `canEdit(plan, role, action)`, and `planActions`; components read hooks | nothing |
+| D3 Approve with errors | Blocked; "6 errors remain: fix them to approve" | The reason comes from the domain: "6 errors remain. Return the plan to fix them." | AT-17 |
+| D4 In review read only | Done in M6b | Sending for review with errors tested | nothing |
+| D5 Compact rotation | Done in M6b | nothing | AT-15 |
+| D6 409 payload | Version, who, when; the forced 409 changed nothing | Real colleague changes and the commands since the base version | the review's look |
+| D7 Export name | stowline-plan-042W-SGSIN.json | 042W-SGSIN-v15.json | the toast |
+| D8 No geometry | Done (D11) | nothing | nothing |
+| 09 Account menu | Done | A role switch to read only puts a held container back | nothing |
+| 10 Top bar | Done, checks in the component | States from the gate and the conflict state | AT-15, AT-17 |
+| 11 Read only | Done, some paths guarded only by the component | Every path asks the gate | visuals |
+| 12 Save conflict | Separate store; review from the activity log; Apply kept going on a failure | Conflict in the plan store; overlap by slot; replay or save nothing | the dialog |
+| 13 Dialogs | Done | nothing | component tests, AT-16 |
+| 14 Failure | Manual Retry only | Up to 3 attempts with the attempt number | "of 3" text |
+| 15 Plans states | Done, checks in the component | Buttons from `planActions` | nothing |
+| 16 Toasts | Done | nothing | export toast copy |
+
+### What was built
+
+| Part | Where | What |
+| --- | --- | --- |
+| The gate | `src/domain/workflow/permissions.ts` | `canEdit(plan, role, action)` for the nine edit actions (command, drag, pickUp, applyFix, import, save, undo, redo, revise), with a reason for every no. `planActions(plan, role)` for Send, Return, Approve (hidden, blocked with the D3 reason, ready), Revise, Export, the primary button and the preview note. `transition` keeps the server rules; Send for review needs no clean plan |
+| Every path asks | `src/state/edit-gate.ts`, `src/state/allowed.ts` | `editGate.check(action)` is asked by `plan-store` apply, undo and redo, `placement-store` pick-ups (pointer: drag, keyboard: pickUp), `drag.ts` before the ghost, Apply fix, Import, Save and Revise. A no is said in the live region. Hooks for components: `useEditGate`, `usePlanActions`, `usePreviewActions`, `useReadOnlyStrip`, `useReadOnlyReason`. `allowed` lives apart so the plan store does not load the view store (a module cycle) |
+| Role switch | `edit-gate.ts`, `placement-store.ts` | Takes effect at once; unsaved commands stay; a held container is put back when the new role cannot edit |
+| The 409 | `src/api/mock/colleague.ts`, `handlers.ts`, `storage.ts` | The forced 409 has Dimas Hartono save a place (bay 22 hold), a move (bay 26 deck) and a lock (300188), made from the server's plan with the normal command path, each adding no violation, clear of bay 18. Every save is kept with its commands; a 409 lists the versions after the base |
+| Conflict | `plan-store.ts`, `save.ts`, `domain/commands/replay.ts` | `conflict` in the plan store (base and server version, who, when, the server's changes, a refused change). `slotsOf`, `overlapsBySlot`, `replayOnto`. Apply tries the kept changes on the server version first; a refused change saves nothing and is marked with its reason; otherwise they go through `plan-store.apply` and are saved on the new base |
+| Requests | `src/state/api.ts` | `withRetries`: up to 3 attempts on status 0, 5xx or 429, after 300 ms and 900 ms; `retrying` holds the attempt. Used by `request` and the plan route |
+| Export | `handlers.ts`, `client.ts` | Named `${id}-v${version}.json`; the client reads the name from Content-Disposition |
+| Review dialog | `features/workspace/Dialogs.tsx` | The minimum for AT-13 and AT-14: the server's changes from the 409, "No overlap. Version 15 doesn't touch slots 180488 or 180688." (design 12), a marked overlap and a refused change with its reason. M9 owns its look |
+
+### Found while building
+
+- The first colleague changes added a warning (heavy over light), which would have changed the violation count after a conflict. The generator now keeps a change only when it adds no violation, warnings included.
+- The client made up the export name instead of reading the server's, so the name could never follow the version.
+- Moving NSPU 771032 1 back to 180488 is refused by the stack weight rule: a test setup that assumed it worked was wrong, not the code.
+
+### Gate result
+
+AT-11 to AT-14 pass on Chromium, Firefox and WebKit (12 of 12). The gate proof, `src/state/edit-gate.test.ts`, runs each of the nine edit paths as the Terminal planner: each asks the gate with its own action and changes nothing (plan, placement, no request); with the Import gate removed, the Import case fails. `tools/edit-gate.test.ts` fails on a role or status comparison, a plan status switch, or a direct import of the gate's domain functions in `src/features`, `src/app` or `src/ui`. Full suite: 139 end-to-end tests on three engines in 2.5 minutes, 702 unit tests.
+
+### Not done in M8 (M9)
+
+- The review dialog's design (overlap marks, the refused change), "Retrying… Attempt 2 of 3", the export toast with the new name, AT-15 to AT-17, the screens next to the design.
+- `src/state/save.ts` has 7% unit line coverage: its conflict flow is covered end to end (AT-05, AT-13, AT-14), not by unit tests.
+
+### M8 measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 8, 2026 | NFR-06 `npm run measure:js` | plans route app 137.3 kB gzip (limit 200), mock API 156.6, total 293.8 (limit 300): pass | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Chrome for Testing 153, Vite 8.3.3 |
+| Oct 8, 2026 | NFR-23 coverage | whole app 74.95% of lines (3,576 of 4,771), domain 99.42% (1,021 of 1,027) | same | Vitest 5.0.3 |
+| Oct 8, 2026 | Tests | 702 unit and component tests; 139 end to end (Chromium 105, Firefox 17, WebKit 17) in 2.5 min with 4 workers | same | Playwright 1.63 |
+
+During M8 another Claude Code session on this machine ran Playwright recordings (load average up to 41). Tests that failed then (timeouts in unrelated specs) passed when run again alone; the numbers above are from runs without that load.
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |

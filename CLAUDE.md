@@ -33,6 +33,20 @@ React 19, TypeScript strict, Vite, React Router, Zustand, three.js with React Th
 - Render on demand. Animate inside the frame loop, not with React state.
 - Lazy load the 3D code. Fall back to the bay view when WebGL 2 is missing or the scene throws.
 
+## Decisions from screens 09 to 16
+Decided by the owner in M8 (Oct 8, 2026). They change the design where they say so.
+
+1. Roles: Vessel planner and Senior planner can edit. Terminal planner and Chief officer are read only.
+2. Statuses: a Draft can be edited. In review is locked for every role. Approved is locked, and Revise starts a new Draft version. Who may do what follows the status × role table in design/Stowline M6.dc.html ("Preview buttons").
+3. Approve is blocked while errors remain. It stays focusable and gives its reason: "6 errors remain. Return the plan to fix them." This replaces the design's "6 errors remain: fix them to approve".
+4. A plan in review is read only: "This plan is in review and read only until it is returned or approved." Sending for review is allowed with errors.
+5. Below 1600 px the port rotation is compact: the current port, the next port and a "+N" menu.
+6. A 409 on save carries the current version, who saved it, when, and the commands saved since your base version. The design's sample server changes are examples only.
+7. The export is JSON, named like 042W-SGSIN-v15.json. It replaces the design's BAPLIE .edi file.
+8. A plan with no vessel geometry cannot be opened.
+
+Every change asks the one gate, `canEdit` in src/domain/workflow/permissions.ts, through src/state/edit-gate.ts. Components hold no role or status check.
+
 ## Accessibility
 - Everything the 3D view does also works in the bay grid with the keyboard.
 - A status always has an icon and text.
