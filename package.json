@@ -13,7 +13,8 @@
     "e2e": "playwright test",
     "bench": "vitest bench --run --reporter=verbose",
     "test:coverage": "vitest run --coverage",
-    "bench:3d": "node tools/bench-3d.mjs"
+    "bench:3d": "node tools/bench-3d.mjs",
+    "bench:pickup": "node tools/bench-pickup.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",
