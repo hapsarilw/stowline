@@ -1,4 +1,5 @@
 import { Inspector } from '@/features/inspector/Inspector';
+import { ViolationsPanel } from '@/features/violations/ViolationsPanel';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore, type RightTab } from '@/state/view-store';
 import { CountBadge } from '@/ui/Badges';
@@ -86,12 +87,9 @@ export function DetailsPanel() {
           role="tabpanel"
           id="details-panel-violations"
           aria-labelledby="details-tab-violations"
-          className="min-h-0 flex-1 overflow-auto px-4 py-6 text-[12.5px] text-text2"
+          className="flex min-h-0 flex-1 flex-col"
         >
-          <span className="font-semibold text-text">{violations} violations</span>
-          <p className="mt-2 text-pretty">
-            The violations list, with Show and Apply fix, is not built yet.
-          </p>
+          <ViolationsPanel />
         </div>
       )}
     </aside>
