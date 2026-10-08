@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0B1220}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:#3B9EFF;text-decoration:none} a:hover{color:#7CC0FF;text-decoration:underline}
+:focus-visible{outline:2px solid #3B9EFF;outline-offset:2px}
+@keyframes stw-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+@keyframes stw-indet{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition-duration:100ms!important}}
+</style>
+</helmet>
+<div ref="{{ rootRef }}" data-screen-label="{{ label }}" style="--bg:#0B1220; --surface:#111A2B; --raised:#18233A; --border:#26334D; --border2:#33415E; --text:#E6EDF7; --text2:#9FB0C8; --text3:#8193AD; --accent:#3B9EFF; --accentbg:rgba(59,158,255,0.14); --onaccent:#06111F; --err:#FF5D5D; --errbg:rgba(255,93,93,0.12); --onerr:#0B1220; --warn:#FFB020; --warnbg:rgba(255,176,32,0.12); --ok:#2FD08A; --okbg:rgba(47,208,138,0.14); --hover:#162238; --sel:#132B49; --track:#22304A; position:relative; box-sizing:border-box; width:{{ outerW }}px; min-height:{{ h }}px; padding:24px; display:flex; flex-direction:column; gap:28px; background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:13px; line-height:1.35; font-variant-numeric:tabular-nums">
+
+<sc-if value="{{ hasBars }}">
+  <div style="display:flex; flex-direction:column; gap:{{ barGap }}px">
+    <sc-for list="{{ bars }}" as="b" hint-placeholder-count="2">
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <div style="display:flex; align-items:baseline; gap:10px; min-width:0"><span style="flex:none; white-space:nowrap; font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; color:var(--text)">{{ b.label }}</span><span style="flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; color:var(--text2)">{{ b.note }}</span></div>
+        <div style="position:relative; width:{{ b.w }}px">
+          <header style="display:flex; align-items:center; gap:12px; height:48px; padding:0 8px 0 12px; background:var(--surface); border:1px solid var(--border); min-width:0">
+            <div style="display:flex; align-items:center; gap:8px; flex:none">
+              <div aria-hidden="true" style="display:grid; grid-template-columns:repeat(3,6px); grid-template-rows:repeat(3,6px); gap:1px"><span style="background:var(--accent)"></span><span style="border:1px solid var(--border2)"></span><span style="border:1px solid var(--border2)"></span><span style="background:var(--accent)"></span><span style="background:var(--accent)"></span><span style="border:1px solid var(--border2)"></span><span style="background:var(--accent)"></span><span style="background:var(--accent)"></span><span style="background:var(--accent)"></span></div>
+              <span style="font-weight:600; font-size:14px">Stowline</span>
+            </div>
+            <div style="width:1px; height:24px; background:var(--border); flex:none"></div>
+            <div style="display:flex; flex-direction:column; line-height:1.2; padding:0 8px; flex:none"><span style="font-weight:600">MV Nusantara Pioneer</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text2)">Voy 042W · 8,500 TEU</span></div>
+            <div style="width:1px; height:24px; background:var(--border); flex:none"></div>
+            <nav aria-label="Port rotation" style="display:flex; align-items:center; gap:2px; flex:none">
+              <sc-for list="{{ b.rot }}" as="p" hint-placeholder-count="6">
+                <div style="display:flex; align-items:center; gap:2px">
+                  <sc-if value="{{ p.sep }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="color:var(--text3)"><path d="m6 4 4 4-4 4"></path></svg></sc-if>
+                  <span title="{{ p.title }}" style="display:flex; align-items:center; gap:6px; height:24px; padding:0 7px; border-radius:4px; border:1px solid {{ p.bd }}; background:{{ p.bg }}; color:{{ p.fg }}; font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:{{ p.fw }}">
+                    <sc-if value="{{ p.done }}"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg></sc-if>
+                    <sc-if value="{{ p.swatch }}"><span aria-hidden="true" style="width:8px; height:8px; border-radius:1px; background:{{ p.color }}"></span></sc-if>
+                    <span>{{ p.code }}</span>
+                    <sc-if value="{{ p.now }}"><span style="font-family:'IBM Plex Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.04em; padding:0 4px; border-radius:2px; background:var(--accent); color:var(--onaccent)">NOW</span></sc-if>
+                    <sc-if value="{{ p.more }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></sc-if>
+                  </span>
+                </div>
+              </sc-for>
+            </nav>
+            <div style="width:1px; height:24px; background:var(--border); flex:none"></div>
+            <div style="display:flex; align-items:center; gap:8px; flex:none">
+              <sc-if value="{{ b.isDraft }}"><span style="flex:none; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 7px; border:1px solid var(--border2); border-radius:4px; font-size:10.5px; font-weight:600; color:var(--text2); letter-spacing:0.05em"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; border:1.5px solid var(--text2)"></span>DRAFT</span></sc-if>
+              <sc-if value="{{ b.isReview }}"><span style="flex:none; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 7px; border:1px solid var(--warn); background:var(--warnbg); border-radius:4px; font-size:10.5px; font-weight:600; color:var(--warn); letter-spacing:0.05em"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="M8 4.5V8l2.5 1.5"></path></svg>IN REVIEW</span></sc-if>
+              <sc-if value="{{ b.isApproved }}"><span style="flex:none; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 7px; border:1px solid var(--ok); background:var(--okbg); border-radius:4px; font-size:10.5px; font-weight:600; color:var(--ok); letter-spacing:0.05em"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3 3 7-7"></path></svg>APPROVED</span></sc-if>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)" title="Version 15 on the server">v15</span>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)"><span style="color:var(--text); font-weight:600">{{ b.planned }}</span> / 1,240</span>
+                <sc-if value="{{ b.prog }}"><div aria-hidden="true" style="width:{{ b.progW }}px; height:3px; background:var(--track); border-radius:2px; overflow:hidden"><div style="height:100%; width:{{ b.pct }}%; background:var(--accent)"></div></div></sc-if>
+              </div>
+            </div>
+            <div style="flex:1; min-width:8px"></div>
+            <div style="display:flex; gap:2px; flex:none; opacity:{{ b.undoOp }}">
+              <span aria-label="Undo" style="width:28px; height:28px; display:grid; place-items:center; color:var(--text2)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3.5 2.5 6.5l3 3"></path><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"></path></svg></span>
+              <span aria-label="Redo" style="width:28px; height:28px; display:grid; place-items:center; color:var(--text2)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.5 3.5 3 3-3 3"></path><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"></path></svg></span>
+            </div>
+            <span style="display:flex; align-items:center; gap:6px; height:28px; padding:0 6px 0 {{ b.valPad }}px; border-radius:4px; border:1px solid var(--border2); background:var(--raised); font-weight:500; flex:none" aria-label="Validate, {{ b.valN }} issues">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg>
+              <sc-if value="{{ b.valLabel }}"><span>Validate</span></sc-if>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; padding:1px 5px; border-radius:3px; background:{{ b.valBg }}; color:{{ b.valFg }}">{{ b.valN }}</span>
+            </span>
+            <span style="height:28px; display:flex; align-items:center; padding:0 14px; border-radius:4px; border:1px solid {{ b.saveBd }}; background:{{ b.saveBg }}; color:{{ b.saveFg }}; font-weight:600; flex:none; opacity:{{ b.saveOp }}">Save</span>
+            <div style="width:1px; height:24px; background:var(--border); flex:none"></div>
+            <sc-for list="{{ b.wf }}" as="x" hint-placeholder-count="1">
+              <span style="position:relative; flex:none">
+                <span role="button" aria-disabled="{{ x.ariaDis }}" tabIndex="0" style="display:flex; align-items:center; gap:6px; height:28px; padding:0 12px 0 10px; border-radius:4px; border:1px solid {{ x.bd }}; background:{{ x.bg }}; color:{{ x.fg }}; font-weight:{{ x.fw }}; opacity:{{ x.op }}; outline:{{ x.ol }}; outline-offset:2px; cursor:{{ x.cur }}">
+                  <sc-if value="{{ x.iSend }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8h9M8 4.5 11.5 8 8 11.5M14 3v10"></path></svg></sc-if>
+                  <sc-if value="{{ x.iApprove }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3 3 7-7"></path></svg></sc-if>
+                  <sc-if value="{{ x.iReturn }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4 2.5 7.5 6 11"></path><path d="M2.5 7.5H10a3.5 3.5 0 0 1 0 7H8"></path></svg></sc-if>
+                  <sc-if value="{{ x.iRevise }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2.5l3 3L6 13H3v-3z"></path></svg></sc-if>
+                  <sc-if value="{{ x.iExport }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 13.5h11"></path></svg></sc-if>
+                  <span>{{ x.label }}</span>
+                </span>
+                <sc-if value="{{ x.tip }}">
+                  <span role="tooltip" style="position:absolute; top:calc(100% + 8px); right:0; display:flex; align-items:center; gap:6px; white-space:nowrap; padding:6px 9px; background:var(--raised); border:1px solid var(--err); border-radius:4px; font-size:12px; color:var(--text); z-index:2"><span style="display:grid; color:var(--err)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></span>{{ x.tip }}</span>
+                </sc-if>
+              </span>
+            </sc-for>
+            <span aria-label="Account menu" aria-expanded="{{ b.avExp }}" style="width:28px; height:28px; box-sizing:border-box; border-radius:50%; border:1px solid {{ b.avBd }}; background:{{ b.avBg }}; display:grid; place-items:center; font-size:11px; font-weight:600; color:var(--text); flex:none; outline:{{ b.avOl }}; outline-offset:2px">RA</span>
+          </header>
+          <sc-if value="{{ b.menu }}">
+            <div role="menu" aria-label="Account" style="position:absolute; top:56px; right:8px; width:300px; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border2); border-radius:4px; z-index:3">
+              <div style="display:flex; align-items:center; gap:10px; padding:12px">
+                <span aria-hidden="true" style="width:36px; height:36px; border-radius:50%; border:1px solid var(--border2); background:var(--raised); display:grid; place-items:center; font-weight:600; color:var(--text2)">RA</span>
+                <div style="display:flex; flex-direction:column; gap:1px; min-width:0"><span style="font-weight:600">Rina Adiputri</span><span style="font-size:12px; color:var(--text2)">{{ menuRole }} · Singapore planning desk</span></div>
+              </div>
+              <div role="group" aria-labelledby="sr-h" style="display:flex; flex-direction:column; padding:4px 0 8px; border-top:1px solid var(--border)">
+                <span id="sr-h" style="padding:8px 12px 4px; font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Switch role</span>
+                <sc-for list="{{ roles }}" as="r" hint-placeholder-count="4">
+                  <div role="menuitemradio" aria-checked="{{ r.checked }}" tabIndex="-1" style="display:flex; align-items:center; gap:10px; height:32px; margin:0 4px; padding:0 8px; border-radius:3px; background:{{ r.bg }}; color:var(--text); outline:{{ r.ol }}; outline-offset:-2px; cursor:pointer">
+                    <span aria-hidden="true" style="width:14px; height:14px; box-sizing:border-box; border-radius:50%; border:1.5px solid {{ r.ring }}; display:grid; place-items:center"><sc-if value="{{ r.on }}"><span style="width:6px; height:6px; border-radius:50%; background:var(--accent)"></span></sc-if></span>
+                    <span style="flex:1; font-weight:{{ r.fw }}">{{ r.label }}</span>
+                    <sc-if value="{{ r.ro }}"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--text2)"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7.5" rx="1"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg>Read only</span></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div role="group" aria-labelledby="dev-h" style="display:flex; flex-direction:column; padding:4px 0 8px; border-top:1px solid var(--border)">
+                <span id="dev-h" style="padding:8px 12px 4px; font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Developer</span>
+                <div role="menuitemcheckbox" aria-checked="{{ devChecked }}" tabIndex="-1" style="display:flex; align-items:center; gap:10px; height:32px; margin:0 4px; padding:0 8px; border-radius:3px; cursor:pointer">
+                  <span aria-hidden="true" style="width:14px; height:14px; box-sizing:border-box; border-radius:3px; border:1px solid {{ devBd }}; background:{{ devBg }}; display:grid; place-items:center; color:var(--onaccent)"><sc-if value="{{ devOn }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 8.5 3 3 6-7"></path></svg></sc-if></span>
+                  <span>Next save returns <span style="font-family:'IBM Plex Mono',monospace">409</span></span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</sc-if>
+
+<sc-if value="{{ is.conflict }}">
+  <div style="display:grid; grid-template-columns:600px minmax(0,1fr); gap:32px; align-items:start">
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <span style="font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">After a refused save · bottom centre, stays until acted on</span>
+      <div role="alert" style="display:flex; align-items:flex-start; gap:10px; padding:10px 8px 10px 12px; background:var(--raised); border:1px solid var(--err); border-radius:4px">
+        <span style="display:grid; color:var(--err); padding-top:1px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Error"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></span>
+        <div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-weight:600; font-size:12.5px">Dimas Hartono saved version 15 at 14:32</span><span style="font-size:12px; color:var(--text2)">Your 1 change is kept here and not saved.</span></div>
+        <button style="height:26px; padding:0 10px; border-radius:3px; border:1px solid var(--border2); background:transparent; font-size:12px; cursor:pointer">Review changes</button>
+        <button style="height:26px; padding:0 10px; border-radius:3px; border:0; background:transparent; color:var(--accent); font-size:12px; cursor:pointer">Retry</button>
+      </div>
+      <span style="font-size:12px; color:var(--text2); text-wrap:pretty">Top bar while the change is kept: Save stays enabled and reads “Save · 1”. The Draft badge shows <span style="font-family:'IBM Plex Mono',monospace">v14 → v15</span> until the changes are applied.</span>
+      <div style="display:flex; align-items:center; gap:8px; height:40px; padding:0 10px; background:var(--surface); border:1px solid var(--border)">
+        <span style="flex:none; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 7px; border:1px solid var(--border2); border-radius:4px; font-size:10.5px; font-weight:600; color:var(--text2); letter-spacing:0.05em"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; border:1.5px solid var(--text2)"></span>DRAFT</span>
+        <span style="display:inline-flex; align-items:center; gap:4px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--err)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg>v14 → v15</span>
+        <div style="flex:1"></div>
+        <span style="height:28px; display:flex; align-items:center; gap:6px; padding:0 12px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:var(--onaccent); font-weight:600">Save<span style="font-family:'IBM Plex Mono',monospace; font-size:11px">· 1</span></span>
+      </div>
+    </div>
+    <div role="dialog" aria-modal="true" aria-labelledby="rc-t" style="width:720px; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border2); border-radius:4px">
+      <div style="display:flex; align-items:center; gap:10px; height:48px; padding:0 8px 0 16px; border-bottom:1px solid var(--border)">
+        <h2 id="rc-t" style="margin:0; font-size:14px; font-weight:600">Review changes</h2>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text2)">042W-SGSIN</span>
+        <div style="flex:1"></div>
+        <button aria-label="Close" style="width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2); cursor:pointer"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr">
+        <section style="display:flex; flex-direction:column; gap:8px; padding:14px 16px; border-right:1px solid var(--border)">
+          <div style="display:flex; align-items:baseline; gap:8px"><span style="font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">On the server</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)">v15 · Dimas Hartono · 14:32</span></div>
+          <sc-for list="{{ serverChanges }}" as="c" hint-placeholder-count="3"><div style="display:grid; grid-template-columns:44px minmax(0,1fr); gap:8px; min-height:24px; align-items:baseline; font-size:12.5px; border-bottom:1px solid var(--border); padding-bottom:6px"><span style="font-size:11.5px; color:var(--text2)">{{ c.k }}</span><span style="text-wrap:pretty">{{ c.m }}</span></div></sc-for>
+        </section>
+        <section style="display:flex; flex-direction:column; gap:8px; padding:14px 16px">
+          <div style="display:flex; align-items:baseline; gap:8px"><span style="font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Your kept changes</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)">made on v14</span></div>
+          <div style="display:grid; grid-template-columns:44px minmax(0,1fr); gap:8px; min-height:24px; align-items:baseline; font-size:12.5px; border-bottom:1px solid var(--border); padding-bottom:6px"><span style="font-size:11.5px; color:var(--text2)">Move</span><span style="text-wrap:pretty">Moved <span style="font-family:'IBM Plex Mono',monospace">NSPU 771032 1</span> from <span style="font-family:'IBM Plex Mono',monospace">180488</span> to <span style="font-family:'IBM Plex Mono',monospace">180688</span></span></div>
+          <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:12px">
+            <span style="display:grid; color:var(--ok); padding-top:1px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg></span>
+            <span style="text-wrap:pretty"><span style="font-weight:600; color:var(--ok)">No overlap.</span> Version 15 doesn't touch slots 180488 or 180688. Rules are re-checked after applying.</span>
+          </div>
+        </section>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border-top:1px solid var(--border)">
+        <span style="flex:1; min-width:0; font-size:12px; color:var(--text2)">Nothing is saved until you confirm.</span>
+        <div style="flex:1"></div>
+        <button style="flex:none; white-space:nowrap; height:30px; padding:0 12px; border-radius:4px; border:1px solid var(--border2); background:var(--raised); cursor:pointer">Cancel</button>
+        <button style="flex:none; white-space:nowrap; height:30px; padding:0 14px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:var(--onaccent); font-weight:600; cursor:pointer; outline:2px solid var(--accent); outline-offset:2px">Apply my changes to version 15</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ is.dialogs }}">
+  <div style="display:grid; grid-template-columns:repeat(2, 600px); gap:32px; align-items:start">
+    <div role="dialog" aria-modal="true" aria-labelledby="rd-t" style="display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border2); border-radius:4px">
+      <div style="display:flex; align-items:center; height:48px; padding:0 8px 0 16px; border-bottom:1px solid var(--border)"><h2 id="rd-t" style="margin:0; font-size:14px; font-weight:600">Return to Draft</h2><div style="flex:1"></div><button aria-label="Close" style="width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+      <div style="display:flex; flex-direction:column; gap:12px; padding:16px">
+        <p style="margin:0; font-size:12.5px; color:var(--text2); text-wrap:pretty"><span style="color:var(--text); font-weight:500">MV Nusantara Pioneer · 042W-SGSIN · v15</span> goes back to Rina Adiputri as a Draft, with your comment.</p>
+        <label style="display:flex; flex-direction:column; gap:6px">
+          <span style="font-size:12px; font-weight:500">Comment <span style="color:var(--text2); font-weight:400">(required)</span></span>
+          <textarea aria-invalid="true" aria-describedby="rd-e" placeholder="What needs to change before this can be approved?" style="height:96px; resize:none; box-sizing:border-box; padding:8px 10px; border:1px solid var(--err); border-radius:4px; background:var(--bg); font-size:13px; outline:2px solid var(--accent); outline-offset:2px"></textarea>
+          <span id="rd-e" style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--err)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg>A comment is required when a plan is returned.</span>
+        </label>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border-top:1px solid var(--border)"><span style="white-space:nowrap; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text2)">Ctrl+Enter to return</span><div style="flex:1"></div><button style="flex:none; white-space:nowrap; height:30px; padding:0 12px; border-radius:4px; border:1px solid var(--border2); background:var(--raised)">Cancel</button><button style="flex:none; white-space:nowrap; height:30px; padding:0 14px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:var(--onaccent); font-weight:600">Return to Draft</button></div>
+    </div>
+
+    <div role="dialog" aria-modal="true" aria-labelledby="np-t" style="display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border2); border-radius:4px">
+      <div style="display:flex; align-items:center; height:48px; padding:0 8px 0 16px; border-bottom:1px solid var(--border)"><h2 id="np-t" style="margin:0; font-size:14px; font-weight:600">New plan</h2><div style="flex:1"></div><button aria-label="Close" style="width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px 12px; padding:16px">
+        <label style="grid-column:1 / -1; display:flex; flex-direction:column; gap:6px"><span style="font-size:12px; font-weight:500">Vessel</span><span style="display:flex; align-items:center; height:32px; padding:0 10px; border:1px solid var(--border2); border-radius:4px; background:var(--bg)"><span style="flex:1">MV Nusantara Pioneer</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2); margin-right:8px">8,500 TEU</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--text2)"><path d="m4 6 4 4 4-4"></path></svg></span></label>
+        <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12px; font-weight:500">Voyage</span><input aria-invalid="true" aria-describedby="np-ve" value="43W" style="height:32px; box-sizing:border-box; padding:0 10px; border:1px solid var(--err); border-radius:4px; background:var(--bg); font-family:'IBM Plex Mono',monospace; font-size:13px"><span id="np-ve" style="display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--err); text-wrap:pretty"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none; margin-top:1px"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg>A voyage is 3 digits and a direction, like 043W.</span></label>
+        <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12px; font-weight:500">Port</span><span style="display:flex; align-items:center; height:32px; padding:0 10px; border:1px solid var(--border2); border-radius:4px; background:var(--bg)"><span style="flex:1">Singapore</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2); margin-right:8px">SGSIN</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--text2)"><path d="m4 6 4 4 4-4"></path></svg></span></label>
+        <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12px; font-weight:500">ETD <span style="color:var(--text2); font-weight:400">local, UTC+8</span></span><input aria-invalid="true" aria-describedby="np-ee" value="2026-10-05 22:00" style="height:32px; box-sizing:border-box; padding:0 10px; border:1px solid var(--err); border-radius:4px; background:var(--bg); font-family:'IBM Plex Mono',monospace; font-size:13px"><span id="np-ee" style="display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--err); text-wrap:pretty"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none; margin-top:1px"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg>ETD can't be in the past.</span></label>
+        <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12px; font-weight:500">Planner</span><span style="display:flex; align-items:center; height:32px; padding:0 10px; border:1px solid var(--border2); border-radius:4px; background:var(--bg)"><span style="flex:1">Rina Adiputri</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--text2)"><path d="m4 6 4 4 4-4"></path></svg></span></label>
+        <div role="note" style="grid-column:1 / -1; display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:12px; color:var(--text2)"><span style="display:grid; padding-top:1px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="M8 7.2v4M8 4.8v.4"></path></svg></span><span style="text-wrap:pretty">The plan starts from the vessel's arrival condition: the containers already on board from earlier ports.</span></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border-top:1px solid var(--border)"><span style="white-space:nowrap; display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--err)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg>2 fields need fixing</span><div style="flex:1"></div><button style="flex:none; white-space:nowrap; height:30px; padding:0 12px; border-radius:4px; border:1px solid var(--border2); background:var(--raised)">Cancel</button><button style="flex:none; white-space:nowrap; height:30px; padding:0 14px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:var(--onaccent); font-weight:600">Create plan</button></div>
+    </div>
+
+    <sc-for list="{{ reports }}" as="r" hint-placeholder-count="2">
+      <div role="dialog" aria-modal="true" aria-label="Import load list report" style="display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border2); border-radius:4px">
+        <div style="display:flex; align-items:center; height:48px; padding:0 8px 0 16px; border-bottom:1px solid var(--border)"><h2 style="margin:0; font-size:14px; font-weight:600">Import load list</h2><div style="flex:1"></div><button aria-label="Close" style="width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:4px; background:transparent; color:var(--text2)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+        <div style="display:flex; flex-direction:column; gap:12px; padding:16px">
+          <div role="status" style="display:flex; align-items:center; gap:8px; font-size:13px">
+            <span style="display:grid; color:{{ r.fg }}">
+              <sc-if value="{{ r.bad }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Some rows rejected"><path d="M8 1.8 15 14H1z"></path><path d="M8 6v3.6M8 11.6v.4"></path></svg></sc-if>
+              <sc-if value="{{ r.good }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="All rows accepted"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg></sc-if>
+            </span>
+            <span style="font-weight:600">{{ r.acc }} rows accepted · {{ r.rej }} rejected</span><span style="color:var(--text2)">from <span style="font-family:'IBM Plex Mono',monospace">load-list.json</span></span>
+          </div>
+          <sc-if value="{{ r.bad }}">
+            <div role="table" aria-label="Rejected rows" style="border:1px solid var(--border); border-radius:4px; overflow:hidden">
+              <div role="row" style="display:grid; grid-template-columns:44px 130px minmax(0,1fr); gap:10px; height:28px; align-items:center; padding:0 10px; background:var(--bg); font-size:11.5px; color:var(--text2); border-bottom:1px solid var(--border)"><span role="columnheader">Row</span><span role="columnheader">ID</span><span role="columnheader">Reason</span></div>
+              <sc-for list="{{ r.rows }}" as="x" hint-placeholder-count="3"><div role="row" style="display:grid; grid-template-columns:44px 130px minmax(0,1fr); gap:10px; min-height:32px; align-items:center; padding:4px 10px; border-bottom:1px solid var(--border); font-size:12.5px"><span style="font-family:'IBM Plex Mono',monospace; color:var(--text2)">{{ x.row }}</span><span style="font-family:'IBM Plex Mono',monospace">{{ x.id }}</span><span style="text-wrap:pretty">{{ x.reason }}</span></div></sc-for>
+            </div>
+            <span style="font-size:12px; color:var(--text2); text-wrap:pretty">Rejected rows are not added. Fix them in the file and import it again; accepted rows are not duplicated.</span>
+          </sc-if>
+          <sc-if value="{{ r.good }}"><p style="margin:0; font-size:12.5px; color:var(--text2)">Every row passed the checks.</p></sc-if>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border-top:1px solid var(--border)"><span style="flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; color:var(--text2)">{{ r.foot }}</span><div style="flex:1"></div><sc-if value="{{ r.bad }}"><button style="flex:none; white-space:nowrap; height:30px; padding:0 12px; border-radius:4px; border:1px solid var(--border2); background:var(--raised)">Copy report</button></sc-if><button style="flex:none; white-space:nowrap; height:30px; padding:0 14px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:var(--onaccent); font-weight:600">Done</button></div>
+      </div>
+    </sc-for>
+  </div>
+</sc-if>
+
+<sc-if value="{{ is.failure }}">
+  <div style="display:flex; flex-direction:column; gap:10px; width:600px">
+    <span style="font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Inline · any failed request</span>
+    <div role="alert" style="display:flex; align-items:center; gap:10px; padding:8px 6px 8px 12px; background:var(--raised); border:1px solid var(--err); border-radius:4px">
+      <span style="display:grid; color:var(--err)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Error"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></span>
+      <div style="flex:1; display:flex; flex-direction:column; gap:1px"><span style="font-weight:600; font-size:12.5px">Request failed</span><span style="font-size:12px; color:var(--text2)">The server could not be reached. Check the connection and try again.</span></div>
+      <button style="height:26px; padding:0 10px; border-radius:3px; border:1px solid var(--border2); background:transparent; font-size:12px">Retry</button>
+      <button aria-label="Dismiss" style="width:26px; height:26px; display:grid; place-items:center; border:0; background:transparent; color:var(--text2)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button>
+    </div>
+    <div role="alert" style="display:flex; align-items:center; gap:10px; padding:8px 6px 8px 12px; background:var(--raised); border:1px solid var(--border2); border-radius:4px">
+      <span aria-hidden="true" style="width:14px; height:14px; box-sizing:border-box; border-radius:50%; border:2px solid var(--border2); border-top-color:var(--accent)"></span>
+      <div style="flex:1; display:flex; flex-direction:column; gap:1px"><span style="font-weight:600; font-size:12.5px">Retrying…</span><span style="font-size:12px; color:var(--text2)">Attempt 2 of 3</span></div>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px">
+    <sc-for list="{{ pages }}" as="p" hint-placeholder-count="2">
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <span style="font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">{{ p.cap }}</span>
+        <div style="height:460px; display:grid; grid-template-rows:48px minmax(0,1fr); border:1px solid var(--border); overflow:hidden">
+          <header style="display:flex; align-items:center; gap:12px; padding:0 12px; background:var(--surface); border-bottom:1px solid var(--border)">
+            <div aria-hidden="true" style="display:grid; grid-template-columns:repeat(3,6px); grid-template-rows:repeat(3,6px); gap:1px"><span style="background:var(--accent)"></span><span style="border:1px solid var(--border2)"></span><span style="border:1px solid var(--border2)"></span><span style="background:var(--accent)"></span><span style="background:var(--accent)"></span><span style="border:1px solid var(--border2)"></span><span style="background:var(--accent)"></span><span style="background:var(--accent)"></span><span style="background:var(--accent)"></span></div>
+            <span style="font-weight:600; font-size:14px">Stowline</span>
+            <div style="width:1px; height:24px; background:var(--border)"></div>
+            <a href="#" style="font-size:12.5px">All plans</a><span style="color:var(--text3)">/</span><span style="font-family:'IBM Plex Mono',monospace; font-size:12px">042W-SGSIN</span>
+            <div style="flex:1"></div>
+            <span style="width:28px; height:28px; box-sizing:border-box; border-radius:50%; border:1px solid var(--border2); background:var(--raised); display:grid; place-items:center; font-size:11px; font-weight:600; color:var(--text2)">RA</span>
+          </header>
+          <sc-if value="{{ p.fail }}">
+            <div role="alert" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:24px; text-align:center">
+              <span style="display:grid; color:var(--err)"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-label="Error"><path d="M5.2 1.5h5.6l3.7 3.7v5.6l-3.7 3.7H5.2l-3.7-3.7V5.2z"></path><path d="M8 4.8v3.8M8 10.8v.4"></path></svg></span>
+              <h1 style="margin:0; font-size:16px; font-weight:600">Request failed</h1>
+              <p style="margin:0; max-width:360px; color:var(--text2); text-wrap:pretty">The server could not be reached. Check the connection and try again.</p>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text2)">GET /plans/042W-SGSIN · no response · 14:32:08</span>
+              <div style="display:flex; gap:8px; margin-top:6px"><button style="flex:none; white-space:nowrap; height:30px; padding:0 14px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:var(--onaccent); font-weight:600; outline:2px solid var(--accent); outline-offset:2px">Retry</button><button style="flex:none; white-space:nowrap; height:30px; padding:0 12px; border-radius:4px; border:1px solid var(--border2); background:var(--raised)">All plans</button></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ p.load }}">
+            <div aria-busy="true" style="display:grid; grid-template-columns:160px minmax(0,1fr) 160px; min-height:0">
+              <div style="display:flex; flex-direction:column; gap:6px; padding:12px; background:var(--surface); border-right:1px solid var(--border); animation:stw-pulse 1.4s ease-in-out infinite"><span style="height:12px; width:60%; background:var(--raised)"></span><span style="height:24px; background:var(--raised)"></span><span style="height:12px; background:var(--raised)"></span><span style="height:12px; background:var(--raised)"></span><span style="height:12px; background:var(--raised)"></span><span style="height:12px; width:80%; background:var(--raised)"></span><span style="height:12px; background:var(--raised)"></span></div>
+              <div role="status" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px">
+                <span style="font-size:13px">Loading plan <span style="font-family:'IBM Plex Mono',monospace">042W-SGSIN</span>…</span>
+                <div aria-hidden="true" style="width:200px; height:3px; background:var(--track); border-radius:2px; overflow:hidden"><div style="width:40%; height:100%; background:var(--accent); animation:stw-indet 1.2s ease-in-out infinite"></div></div>
+                <span style="font-size:12px; color:var(--text2)">Vessel geometry, 2,740 containers, load list</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px; padding:12px; background:var(--surface); border-left:1px solid var(--border); animation:stw-pulse 1.4s ease-in-out infinite"><span style="height:12px; width:50%; background:var(--raised)"></span><span style="height:40px; background:var(--raised)"></span><span style="height:12px; background:var(--raised)"></span><span style="height:12px; background:var(--raised)"></span></div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</sc-if>
+
+<sc-if value="{{ is.plans }}">
+  <div style="display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:24px; align-items:start">
+    <div style="display:flex; flex-direction:column; gap:24px; min-width:0">
+      <sc-for list="{{ tables }}" as="t" hint-placeholder-count="2">
+        <div style="display:flex; flex-direction:column; gap:10px">
+          <span style="font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">{{ t.cap }}</span>
+          <div style="display:flex; flex-direction:column; border:1px solid var(--border); background:var(--bg)">
+            <div style="display:grid; grid-template-columns:minmax(160px,1.4fr) 64px 64px 110px minmax(120px,1fr) 84px 100px; gap:12px; align-items:center; height:32px; padding:0 16px; background:var(--surface); border-bottom:1px solid var(--border); font-size:11.5px; color:var(--text2)"><span>Vessel</span><span>Voyage</span><span>Port</span><span>ETD</span><span>Progress</span><span>Violations</span><span>Status</span></div>
+            <sc-if value="{{ t.empty }}">
+              <div style="height:240px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--text2)"><span style="font-weight:600; color:var(--text)">No plans match these filters</span><span>Try another status, or clear the search.</span><button style="margin-top:4px; height:28px; padding:0 10px; border-radius:4px; border:1px solid var(--border2); background:var(--raised); outline:2px solid var(--accent); outline-offset:2px">Clear filters</button></div>
+            </sc-if>
+            <sc-if value="{{ t.loading }}">
+              <div role="status" aria-busy="true" aria-label="Loading plans" style="display:flex; flex-direction:column; animation:stw-pulse 1.4s ease-in-out infinite">
+                <sc-for list="{{ skel }}" as="s" hint-placeholder-count="6"><div style="display:grid; grid-template-columns:minmax(160px,1.4fr) 64px 64px 110px minmax(120px,1fr) 84px 100px; gap:12px; align-items:center; height:48px; padding:0 16px; border-bottom:1px solid var(--border)"><span style="height:10px; width:{{ s.w }}%; background:var(--raised)"></span><span style="height:10px; background:var(--raised)"></span><span style="height:10px; background:var(--raised)"></span><span style="height:10px; background:var(--raised)"></span><span style="height:4px; background:var(--raised)"></span><span style="height:10px; width:60%; background:var(--raised)"></span><span style="height:18px; width:70%; background:var(--raised)"></span></div></sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <span style="font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Preview buttons · status × role</span>
+        <div role="table" aria-label="Preview buttons by status and role" style="display:grid; grid-template-columns:110px repeat(4, minmax(0,1fr)); border:1px solid var(--border); background:var(--surface)">
+          <span style="padding:8px 10px; border-bottom:1px solid var(--border)"></span>
+          <sc-for list="{{ roleCols }}" as="c" hint-placeholder-count="4"><span role="columnheader" style="display:flex; flex-direction:column; gap:1px; padding:8px 10px; border-bottom:1px solid var(--border); border-left:1px solid var(--border); font-size:12px; font-weight:600">{{ c.label }}<span style="font-weight:400; font-size:11px; color:var(--text2)">{{ c.sub }}</span></span></sc-for>
+          <sc-for list="{{ matrix }}" as="m" hint-placeholder-count="3">
+            <span role="rowheader" style="display:flex; align-items:center; padding:10px; border-bottom:1px solid var(--border); font-size:12px; font-weight:600">{{ m.status }}</span>
+            <sc-for list="{{ m.cells }}" as="c" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:6px; padding:10px; border-bottom:1px solid var(--border); border-left:1px solid var(--border)">
+                <sc-for list="{{ c.btns }}" as="x" hint-placeholder-count="2"><span style="display:flex; align-items:center; justify-content:center; height:28px; border-radius:4px; border:1px solid {{ x.bd }}; background:{{ x.bg }}; color:{{ x.fg }}; font-size:12px; font-weight:{{ x.fw }}; opacity:{{ x.op }}">{{ x.label }}</span></sc-for>
+                <sc-if value="{{ c.note }}"><span style="display:flex; align-items:flex-start; gap:4px; font-size:11px; color:var(--text2); text-wrap:pretty"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="flex:none; margin-top:1px"><rect x="3" y="7" width="10" height="7.5" rx="1"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg>{{ c.note }}</span></sc-if>
+              </div>
+            </sc-for>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <span style="font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Preview · plan that can't be opened</span>
+      <aside aria-label="Plan preview" style="display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border)">
+        <div style="padding:16px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid var(--border)">
+          <div style="display:flex; align-items:center"><span style="font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; font-weight:600">Plan preview</span><div style="flex:1"></div><span style="flex:none; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 7px; border:1px solid var(--border2); border-radius:4px; font-size:10.5px; font-weight:600; color:var(--text2); letter-spacing:0.05em"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; border:1.5px solid var(--text2)"></span>DRAFT</span></div>
+          <span style="font-size:16px; font-weight:600">MV Riau Spirit</span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text2)">Voy 140N · SGSIN · ETD 17 Oct 15:00</span>
+        </div>
+        <div role="note" style="margin:16px; display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:12.5px">
+          <span style="display:grid; color:var(--text2); padding-top:1px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="M8 7.2v4M8 4.8v.4"></path></svg></span>
+          <span style="text-wrap:pretty">This voyage has no vessel geometry in the demo, so it cannot be opened.</span>
+        </div>
+        <dl style="display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 12px; margin:0 16px 16px; font-size:12px"><dt style="color:var(--text2)">Vessel</dt><dd style="margin:0; text-align:right">4,800 TEU</dd><dt style="color:var(--text2)">Planned</dt><dd style="margin:0; text-align:right; font-family:'IBM Plex Mono',monospace">0 / 890</dd><dt style="color:var(--text2)">Planner</dt><dd style="margin:0; text-align:right; color:var(--text2)">Unassigned</dd></dl>
+        <div style="display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--border)">
+          <span role="button" aria-disabled="true" aria-describedby="np-why" style="flex:1; display:flex; align-items:center; justify-content:center; height:32px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:var(--onaccent); font-weight:600; opacity:0.45">Open plan</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ is.toasts }}">
+  <div style="display:grid; grid-template-columns:repeat(2, 560px); gap:12px 24px">
+    <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="8">
+      <div role="status" style="display:flex; align-items:center; gap:10px; padding:8px 6px 8px 12px; background:var(--raised); border:1px solid var(--border2); border-radius:4px">
+        <span style="display:grid; color:var(--ok)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Done"><circle cx="8" cy="8" r="6.3"></circle><path d="m5.2 8.2 2 2 3.8-4"></path></svg></span>
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px"><span style="font-weight:600; font-size:12.5px">{{ t.title }}</span><span style="font-size:12px; color:var(--text2); text-wrap:pretty">{{ t.msg }}</span></div>
+        <sc-if value="{{ t.act }}"><button style="height:26px; padding:0 10px; border-radius:3px; border:1px solid var(--border2); background:transparent; font-size:12px; white-space:nowrap">{{ t.act }}</button></sc-if>
+        <button aria-label="Dismiss" style="width:26px; height:26px; display:grid; place-items:center; border:0; background:transparent; color:var(--text2)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button>
+      </div>
+    </sc-for>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;frame&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;account&quot;,&quot;topbar&quot;,&quot;conflict&quot;,&quot;dialogs&quot;,&quot;failure&quot;,&quot;plans&quot;,&quot;toasts&quot;],&quot;default&quot;:&quot;account&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark'|'light'&quot;},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Vessel planner&quot;,&quot;Senior planner&quot;,&quot;Terminal planner&quot;,&quot;Chief officer&quot;],&quot;default&quot;:&quot;Vessel planner&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;devOn&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;label&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  rootRef = React.createRef();
+  static LIGHT = { '--bg': '#EDF1F6', '--surface': '#FFFFFF', '--raised': '#F5F7FA', '--border': '#D3DBE6', '--border2': '#BCC7D6', '--text': '#0E1726', '--text2': '#3F4F67', '--text3': '#56667E', '--accent': '#0B6BD3', '--accentbg': 'rgba(11,107,211,0.10)', '--onaccent': '#FFFFFF', '--err': '#C42B2B', '--errbg': 'rgba(196,43,43,0.08)', '--onerr': '#FFFFFF', '--warn': '#9A5800', '--warnbg': 'rgba(176,108,0,0.10)', '--ok': '#0A7A4A', '--okbg': 'rgba(10,122,74,0.10)', '--hover': '#F0F4F9', '--sel': '#E3EEFB', '--track': '#E2E8F0' };
+  static DARK = { '--bg': '#0B1220', '--surface': '#111A2B', '--raised': '#18233A', '--border': '#26334D', '--border2': '#33415E', '--text': '#E6EDF7', '--text2': '#9FB0C8', '--text3': '#8193AD', '--accent': '#3B9EFF', '--accentbg': 'rgba(59,158,255,0.14)', '--onaccent': '#06111F', '--err': '#FF5D5D', '--errbg': 'rgba(255,93,93,0.12)', '--onerr': '#0B1220', '--warn': '#FFB020', '--warnbg': 'rgba(255,176,32,0.12)', '--ok': '#2FD08A', '--okbg': 'rgba(47,208,138,0.14)', '--hover': '#162238', '--sel': '#132B49', '--track': '#22304A' };
+  componentDidMount() { this.theme(); }
+  componentDidUpdate() { this.theme(); }
+  theme() { const el = this.rootRef.current; if (!el) return; const v = this.props.theme === 'light' ? Component.LIGHT : Component.DARK; for (const k in v) el.style.setProperty(k, v[k]); }
+  renderVals() {
+    const f = this.props.frame || 'account';
+    const is = { account: f === 'account', topbar: f === 'topbar', conflict: f === 'conflict', dialogs: f === 'dialogs', failure: f === 'failure', plans: f === 'plans', toasts: f === 'toasts' };
+    const size = { account: [1440, 520], topbar: [1600, 900], conflict: [1440, 440], dialogs: [1440, 1040], failure: [1440, 760], plans: [1440, 1180], toasts: [1440, 300] }[f];
+    const chip = (code, o = {}) => Object.assign({ code, title: code, sep: true, done: false, now: false, swatch: false, more: false, color: 'transparent', bd: 'var(--border)', bg: 'transparent', fg: 'var(--text)', fw: 500 }, o);
+    const POD = { LKCMB: '#E69F00', AEJEA: '#56B4E9', NLRTM: '#009E73', DEHAM: '#CC79A7' };
+    const full = [chip('IDJKT', { sep: false, done: true, fg: 'var(--text3)' }), chip('SGSIN', { now: true, bd: 'var(--accent)', bg: 'var(--accentbg)', fw: 600 })].concat(['LKCMB', 'AEJEA', 'NLRTM', 'DEHAM'].map((c) => chip(c, { swatch: true, color: POD[c] })));
+    const compact = [chip('SGSIN', { sep: false, now: true, bd: 'var(--accent)', bg: 'var(--accentbg)', fw: 600, title: 'Singapore · after IDJKT' }), chip('LKCMB', { swatch: true, color: POD.LKCMB }), chip('+3', { more: true, fg: 'var(--text2)', title: 'Jebel Ali · Rotterdam · Hamburg' })];
+    const wf = (label, icon, o = {}) => { const p = !!o.primary, d = !!o.dis; return { label, iSend: icon === 'send', iApprove: icon === 'approve', iReturn: icon === 'return', iRevise: icon === 'revise', iExport: icon === 'export', bd: p ? 'var(--accent)' : 'var(--border2)', bg: p ? 'var(--accent)' : 'var(--raised)', fg: p ? 'var(--onaccent)' : 'var(--text)', fw: p ? 600 : 500, op: d ? 0.45 : 1, ariaDis: d ? 'true' : 'false', cur: d ? 'not-allowed' : 'pointer', tip: o.tip || '', ol: o.focus ? '2px solid var(--accent)' : 'none' }; };
+    const bar = (o) => {
+      const st = o.st || 'draft', locked = st !== 'draft';
+      const b = Object.assign({ w: 1440, note: '', rot: full, prog: true, progW: 132, planned: '312', pct: 25.2, valLabel: true, valN: 7, wf: [], menu: false }, o);
+      return Object.assign(b, { isDraft: st === 'draft', isReview: st === 'review', isApproved: st === 'approved', undoOp: locked ? 0.4 : 1, valPad: b.valLabel ? 10 : 6, valBg: b.valN && st !== 'approved' ? 'var(--errbg)' : 'var(--warnbg)', valFg: b.valN && st !== 'approved' ? 'var(--err)' : 'var(--warn)', saveBd: 'var(--accent)', saveBg: locked ? 'transparent' : 'var(--accent)', saveFg: locked ? 'var(--accent)' : 'var(--onaccent)', saveOp: locked ? 0.45 : 1, avExp: b.menu ? 'true' : 'false', avBd: b.menu ? 'var(--accent)' : 'var(--border2)', avBg: b.menu ? 'var(--accentbg)' : 'var(--raised)', avOl: 'none' });
+    };
+    const review = [wf('Return', 'return'), wf('Approve', 'approve', { primary: true, dis: true, focus: true, tip: '6 errors remain: fix them to approve' })];
+    const approved = [wf('Export', 'export'), wf('Revise', 'revise', { primary: true })];
+    let bars = [];
+    if (is.account) bars = [bar({ label: 'Workspace · 1440 · account menu open', note: 'Same menu on the plans list avatar', menu: true, wf: [wf('Send for review', 'send')], rot: compact })];
+    if (is.topbar) bars = [
+      bar({ label: '≥ 1600 · Draft · Vessel planner', w: 1600, wf: [wf('Send for review', 'send')] }),
+      bar({ label: '≥ 1600 · In review · Senior planner', note: 'Approve focused: disabled reason shown on hover and focus', w: 1600, st: 'review', valN: 7, wf: review }),
+      bar({ label: '≥ 1600 · Approved · Vessel or senior planner', w: 1600, st: 'approved', planned: '1,240', pct: 100, valN: 1, wf: approved }),
+      bar({ label: '< 1600 · your compact version', note: 'Progress bar hidden, Validate icon + count, “Review”', rot: full, prog: false, valLabel: false, wf: [wf('Review', 'send')] }),
+      bar({ label: '< 1600 · proposed · Draft', note: 'Rotation collapses to now + next + “+3” menu; every label and the progress bar stay', rot: compact, progW: 96, wf: [wf('Send for review', 'send')] }),
+      bar({ label: '< 1600 · proposed · In review', rot: compact, progW: 96, st: 'review', wf: review }),
+      bar({ label: '< 1600 · proposed · Approved', rot: compact, progW: 96, st: 'approved', planned: '1,240', pct: 100, valN: 1, wf: approved }),
+    ];
+    const roleSel = this.props.role || 'Vessel planner';
+    const roles = [['Vessel planner', false], ['Senior planner', false], ['Terminal planner', true], ['Chief officer', true]].map(([label, ro]) => { const on = label === roleSel, foc = label === 'Senior planner'; return { label, ro, on, checked: on ? 'true' : 'false', bg: on ? 'var(--accentbg)' : 'transparent', ring: on ? 'var(--accent)' : 'var(--text2)', fw: on ? 600 : 400, ol: foc ? '2px solid var(--accent)' : 'none' }; });
+    const dev = !!this.props.devOn;
+    const B = (label, kind) => ({ label, bd: kind === 'p' ? 'var(--accent)' : 'var(--border2)', bg: kind === 'p' ? 'var(--accent)' : 'var(--raised)', fg: kind === 'p' ? 'var(--onaccent)' : 'var(--text)', fw: kind === 'p' ? 600 : 500, op: kind === 'd' ? 0.45 : 1 });
+    const cell = (btns, note) => ({ btns, note: note || '' });
+    const RO = 'Opens read only';
+    const matrix = [
+      { status: 'Draft', cells: [cell([B('Open plan', 'p'), B('Send for review')]), cell([B('Open plan', 'p'), B('Send for review')]), cell([B('Open plan', 'p')], RO), cell([B('Open plan', 'p')], RO)] },
+      { status: 'In review', cells: [cell([B('Open plan', 'p')], 'Opens read only until returned'), cell([B('Open plan', 'p'), B('Return'), B('Approve', 'd')], '6 errors remain: fix them to approve'), cell([B('Open plan', 'p')], RO), cell([B('Open plan', 'p')], RO)] },
+      { status: 'Approved', cells: [cell([B('Open plan', 'p'), B('Revise'), B('Export')]), cell([B('Open plan', 'p'), B('Revise'), B('Export')]), cell([B('Open plan', 'p'), B('Export')], RO), cell([B('Open plan', 'p'), B('Export')], RO)] },
+    ];
+    return {
+      rootRef: this.rootRef, label: this.props.label || 'M6 frame', w: size[0], outerW: size[0] + (is.account || is.topbar ? 48 : 0), h: size[1], is,
+      hasBars: bars.length > 0, bars, barGap: is.topbar ? 44 : 0, roles, menuRole: roleSel, devChecked: dev ? 'true' : 'false', devOn: dev, devBd: dev ? 'var(--accent)' : 'var(--border2)', devBg: dev ? 'var(--accent)' : 'transparent',
+      serverChanges: [{ k: 'Place', m: 'Placed 4 containers in bay 22 hold, row 04' }, { k: 'Move', m: 'Moved NSPU 615540 9 from 180484 to 180284' }, { k: 'Lock', m: 'Locked 180204' }],
+      reports: [
+        { acc: 7, rej: 3, bad: true, good: false, fg: 'var(--warn)', foot: '7 added to the SGSIN load list', rows: [{ row: '4', id: 'NSPU 551209 1', reason: 'Weight must be between 2.0 and 35.0 t.' }, { row: '7', id: 'NSPU 33706', reason: 'A container ID is 4 letters, 6 digits and a check digit.' }, { row: '9', id: 'NSPU 908443 2', reason: 'POD DEBRV is not in the rotation.' }] },
+        { acc: 10, rej: 0, bad: false, good: true, fg: 'var(--ok)', foot: '10 added to the SGSIN load list', rows: [] },
+      ],
+      pages: [{ cap: 'Full page · plan fails to open', fail: true, load: false }, { cap: 'Loading', fail: false, load: true }],
+      tables: [{ cap: 'Empty · filters match nothing', empty: true, loading: false }, { cap: 'Loading', empty: false, loading: true }],
+      skel: [70, 55, 80, 62, 74, 50].map((w) => ({ w })),
+      roleCols: [{ label: 'Vessel planner', sub: 'Edits' }, { label: 'Senior planner', sub: 'Edits, approves' }, { label: 'Terminal planner', sub: 'Read only' }, { label: 'Chief officer', sub: 'Read only' }],
+      matrix,
+      toasts: [
+        { title: 'Draft saved', msg: '042W-SGSIN · version 15 · 312 of 1,240 planned', act: 'Undo' },
+        { title: 'Sent for review', msg: 'Version 15 is with the senior planners. It is read only until it is returned or approved.', act: '' },
+        { title: 'Approved', msg: 'Version 15 is approved and read only.', act: 'Export' },
+        { title: 'Returned to Draft', msg: 'Version 15 is back with Rina Adiputri, with your comment.', act: '' },
+        { title: 'Revised', msg: 'Version 16 is a new Draft', act: '' },
+        { title: 'Plan created', msg: 'MV Nusantara Pioneer · 043W-SGSIN · starts from the arrival condition', act: 'Open plan' },
+        { title: 'Plan exported', msg: 'BAPLIE file downloaded: 042W-SGSIN-v15.edi', act: '' },
+        { title: 'Unsaved changes restored', msg: '1 change from your last session is back. Save to keep it.', act: 'Discard' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
