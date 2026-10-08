@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { act } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { dispatch } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { resetStores } from '@/test/render';
 import { Inspector } from './Inspector';
-import { buildInspector, formatSetPoint } from './model';
+import { actionRules, buildInspector, formatSetPoint } from './model';
 
 beforeEach(resetStores);
 
@@ -102,7 +103,7 @@ describe('Inspector model (FR-46, FR-47)', () => {
 });
 
 describe('Inspector', () => {
-  it('shows the selected container, its rule checks and read-only actions', () => {
+  it('shows the selected container and its rule checks', () => {
     render(<Inspector />);
     expect(screen.getByText('NSPU 482913 5')).toBeInTheDocument();
     expect(screen.getByText('1 error')).toBeInTheDocument();
@@ -113,8 +114,6 @@ describe('Inspector', () => {
         .getAllByRole('img')
         .map((i) => i.getAttribute('aria-label')),
     ).toEqual(['Error', 'Not applicable', 'Not applicable', 'Pass', 'Pass', 'Pass']);
-    for (const name of [/^Unplace/, /^Lock/, /^Swap/])
-      expect(screen.getByRole('button', { name })).toBeDisabled();
   });
 
   it('follows the selection and says when nothing is selected', () => {
@@ -130,5 +129,65 @@ describe('Inspector', () => {
     render(<Inspector />);
     act(() => useViewStore.getState().select('180202'));
     expect(screen.getByText('Locked')).toBeInTheDocument();
+  });
+
+  it('locks and unlocks, with a message that offers Undo (FR-48, FR-57)', () => {
+    render(<Inspector />);
+    fireEvent.click(screen.getByRole('button', { name: /^Lock/ }));
+    expect(usePlanStore.getState().state.placements.get('180486')?.locked).toBe(true);
+    expect(useViewStore.getState().toast).toMatchObject({ title: 'Locked 180486', undo: true });
+    expect(screen.getByRole('button', { name: /^Unplace/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Swap/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /^Unlock/ }));
+    expect(usePlanStore.getState().state.placements.get('180486')?.locked).toBe(false);
+  });
+
+  it('starts a swap and names the next step', () => {
+    render(<Inspector />);
+    fireEvent.click(screen.getByRole('button', { name: /^Swap/ }));
+    expect(screen.getByRole('button', { name: /^Pick target/ })).toBeEnabled();
+    expect(useViewStore.getState().announcement).toBe(
+      'Swap: select the container to swap with NSPU 482913 5.',
+    );
+  });
+
+  it('shows the held container, the target checks, Cancel and Place', () => {
+    render(<Inspector />);
+    act(() => dispatch({ type: 'pickFromList', containerId: 'NSPU 551208 4', via: 'pointer' }));
+    act(() => dispatch({ type: 'hover', key: '180688' }));
+    expect(screen.getByText('Placing')).toBeInTheDocument();
+    expect(screen.getByText('Target 180688')).toBeInTheDocument();
+    expect(screen.getByText('1 error')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Place/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /^Cancel/ }));
+    expect(screen.getByText('Container')).toBeInTheDocument();
+  });
+});
+
+describe('Inspector actions (FR-48)', () => {
+  const rules = (key: string) => {
+    const { ctx, state } = usePlanStore.getState();
+    return actionRules(ctx, state, key);
+  };
+
+  it('follows BR-03, BR-04 and D3', () => {
+    const { state } = usePlanStore.getState();
+    // Locked: no unplace, no swap (BR-04).
+    expect(rules('180202')).toEqual({ unplace: false, lock: 'Unlock', swap: false });
+    // Onboard: no unplace (D3).
+    const onboard = [...state.placements.entries()].find(
+      ([, p]) => p.origin === 'onboard' && !p.locked,
+    )!;
+    expect(rules(onboard[0])?.unplace).toBe(false);
+    // Under another container: no unplace (BR-03), swap allowed (D2).
+    const listed = new Set(usePlanStore.getState().loadList.map((c) => c.id));
+    const under = [...state.placements.entries()].find(
+      ([k, p]) =>
+        listed.has(p.containerId) &&
+        !p.locked &&
+        state.placements.has(`${k.slice(0, 4)}${String(+k.slice(4) + 2).padStart(2, '0')}`),
+    );
+    if (under) expect(rules(under[0])).toMatchObject({ unplace: false, swap: true });
+    expect(rules('999999')).toBeNull();
   });
 });

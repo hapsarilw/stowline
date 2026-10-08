@@ -3,10 +3,78 @@ import { StatusIcon, toneText } from '@/ui/Badges';
 import { cn } from '@/ui/cn';
 import { IconLock } from '@/ui/icons';
 import { Kbd } from '@/ui/Kbd';
+import { useMemo } from 'react';
+import { heldContainer } from '@/state/placement';
+import { dispatch, runCommand, usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
-import { buildInspector } from './model';
-import { useMemo } from 'react';
+import { actionRules, buildHeldInspector, buildInspector } from './model';
+
+interface Action {
+  label: string;
+  key: string;
+  /** For aria-keyshortcuts. */
+  shortcut: string;
+  disabled: boolean;
+  run: () => void;
+}
+
+/** The actions on the selected container (FR-48). The U, L and S keys run the same functions. */
+export function inspectorActions(): Action[] {
+  const { ctx, state } = usePlanStore.getState();
+  const placement = usePlacementStore.getState().placement;
+  const view = useViewStore.getState();
+  if (placement.kind === 'holding' || placement.kind === 'over') {
+    const target = placement.kind === 'over' ? placement.target : null;
+    const ok = placement.kind === 'over' && placement.check.target && placement.check.valid;
+    return [
+      {
+        label: 'Cancel',
+        key: 'Esc',
+        shortcut: 'Escape',
+        disabled: false,
+        run: () => dispatch({ type: 'cancel' }),
+      },
+      {
+        label: 'Place',
+        key: '↵',
+        shortcut: 'Enter',
+        disabled: !ok,
+        run: () => target && dispatch({ type: 'drop', key: target }),
+      },
+    ];
+  }
+  const sel = view.selected;
+  const rules = sel ? actionRules(ctx, state, sel) : null;
+  const swapping = placement.kind === 'swapping';
+  return [
+    {
+      label: 'Unplace',
+      key: 'U',
+      shortcut: 'U',
+      disabled: !rules?.unplace || swapping,
+      run: () => sel && runCommand({ kind: 'unplace', from: sel }),
+    },
+    {
+      label: rules?.lock ?? 'Lock',
+      key: 'L',
+      shortcut: 'L',
+      disabled: !rules || swapping,
+      run: () => sel && runCommand({ kind: rules?.lock === 'Unlock' ? 'unlock' : 'lock', at: sel }),
+    },
+    {
+      label: swapping ? 'Pick target' : 'Swap',
+      key: 'S',
+      shortcut: 'S',
+      disabled: !rules?.swap,
+      run: () => {
+        if (!sel) return;
+        if (swapping) dispatch({ type: 'cancel' });
+        else dispatch({ type: 'startSwap', key: sel });
+      },
+    },
+  ];
+}
 
 const STATUS_BOX = {
   error: 'border-err text-err',
@@ -17,16 +85,34 @@ const STATUS_BOX = {
 const SECTION = 'flex flex-col gap-2.5 border-b border-border p-3';
 const LABEL = 'text-[10.5px] font-semibold uppercase tracking-[0.06em] text-text3';
 
-/** Facts about the selected container and its slot. Read only for now (FR-46, FR-47). */
+/**
+ * Facts about the selected container and its slot (FR-46, FR-47), its actions (FR-48), and the
+ * target's rule results while a container is in hand.
+ */
 export function Inspector() {
   const ctx = usePlanStore((s) => s.ctx);
   const state = usePlanStore((s) => s.state);
   const violations = usePlanStore((s) => s.violations);
   const selected = useViewStore((s) => s.selected);
-  const m = useMemo(
-    () => buildInspector(ctx, state, violations, selected),
-    [ctx, state, violations, selected],
-  );
+  const placement = usePlacementStore((s) => s.placement);
+  const m = useMemo(() => {
+    const held = heldContainer(placement);
+    const c = held ? ctx.containers.get(held) : undefined;
+    if (c && (placement.kind === 'holding' || placement.kind === 'over')) {
+      const over = placement.kind === 'over';
+      return buildHeldInspector(
+        ctx,
+        state,
+        c,
+        placement.via === 'pointer' ? 'Placing' : 'Picked up',
+        over ? placement.target : null,
+        over ? placement.check : null,
+      );
+    }
+    return buildInspector(ctx, state, violations, selected);
+  }, [ctx, state, violations, selected, placement]);
+  // Read on each render: they follow the stores above.
+  const actions = inspectorActions();
 
   if (!m) {
     return (
@@ -47,7 +133,7 @@ export function Inspector() {
     <>
       <div className={SECTION}>
         <div className="flex items-center gap-1.5">
-          <span className={LABEL}>Container</span>
+          <span className={LABEL}>{m.mode}</span>
           <div className="flex-1" />
           {m.locked ? (
             <span className="inline-flex h-[18px] items-center gap-1 rounded-[3px] border border-border2 px-1.5 text-[11px] text-text2">
@@ -153,16 +239,22 @@ export function Inspector() {
       </div>
 
       <div className="flex-1" />
-      <div className="sticky bottom-0 grid grid-cols-3 gap-1.5 border-t border-border bg-surface px-3 py-2.5">
-        {(['Unplace', 'Lock', 'Swap'] as const).map((label) => (
+      <div
+        className={cn(
+          'sticky bottom-0 grid gap-1.5 border-t border-border bg-surface px-3 py-2.5',
+          actions.length === 3 ? 'grid-cols-3' : 'grid-cols-2',
+        )}
+      >
+        {actions.map((a) => (
           <Button
-            key={label}
-            disabled
-            aria-keyshortcuts={label[0]}
+            key={a.key}
+            disabled={a.disabled}
+            aria-keyshortcuts={a.shortcut}
+            onClick={a.run}
             className="h-[30px] gap-1.5 text-[12.5px]"
           >
-            <span>{label}</span>
-            <Kbd>{label[0]}</Kbd>
+            <span>{a.label}</span>
+            <Kbd>{a.key}</Kbd>
           </Button>
         ))}
       </div>
