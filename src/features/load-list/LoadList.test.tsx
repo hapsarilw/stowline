@@ -2,6 +2,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { resetStores } from '@/test/render';
@@ -201,5 +202,21 @@ describe('LoadList', () => {
     expect(screen.getAllByRole('img', { name: /^Dangerous goods class / }).length).toBeGreaterThan(
       5,
     );
+  });
+
+  it('picks up the row with Enter and hands the keyboard to the bay grid (FR-17)', async () => {
+    const user = userEvent.setup();
+    render(<LoadList />);
+    const grid = screen.getByRole('grid', { name: 'Containers to load' });
+    grid.focus();
+    const seq = useViewStore.getState().gridFocusSeq;
+    await user.keyboard('{ArrowDown}{Enter}');
+    const first = rowsShown()[1]!;
+    const id = within(first).getAllByRole('gridcell')[1]!.textContent;
+    const p = usePlacementStore.getState().placement;
+    expect(p.kind !== 'idle' && p.kind !== 'swapping' && p.source.containerId).toBe(id);
+    expect(useViewStore.getState().gridFocusSeq).toBe(seq + 1);
+    // The row in hand is drawn dimmed with a dashed outline, as in screen 02.
+    expect(first).toHaveAttribute('data-held', 'true');
   });
 });

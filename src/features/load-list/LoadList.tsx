@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { fmt1, PODS, POD_LIST, slot40Key, type Container } from '@/domain';
+import { beginDrag } from '@/features/workspace/drag';
+import { heldContainer } from '@/state/placement';
+import { pickFromList, usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { IconButton } from '@/ui/Button';
@@ -75,11 +78,13 @@ interface RowProps {
   start: number;
   checked: boolean;
   active: boolean;
+  /** The container is in hand: dimmed with a dashed outline, as in screen 02. */
+  held: boolean;
   onClick: () => void;
   onToggle: () => void;
 }
 
-function Row({ row, index, start, checked, active, onClick, onToggle }: RowProps) {
+function Row({ row, index, start, checked, active, held, onClick, onToggle }: RowProps) {
   const c = row.container;
   const planned = row.slot !== '';
   return (
@@ -88,12 +93,24 @@ function Row({ row, index, start, checked, active, onClick, onToggle }: RowProps
       role="row"
       aria-rowindex={index + 2}
       aria-selected={checked}
+      data-held={held || undefined}
       onClick={onClick}
+      onPointerDown={
+        planned
+          ? undefined
+          : (e) => {
+              // FR-31: a press on an unplanned row can become a drag to the bay view or the 3D view.
+              if ((e.target as HTMLElement).closest('[role="checkbox"]')) return;
+              beginDrag(e, { kind: 'list', containerId: c.id }, e.currentTarget);
+            }
+      }
       className={cn(
         COLS,
-        'absolute top-0 left-0 box-border w-full cursor-pointer border-b border-border px-3 hover:bg-hover',
+        'absolute top-0 left-0 box-border w-full cursor-pointer border-b border-border px-3 select-none hover:bg-hover',
         checked && 'bg-sel',
-        active && 'outline outline-2 -outline-offset-2 outline-accent',
+        held &&
+          'bg-accentbg opacity-55 outline outline-1 -outline-offset-1 outline-accent outline-dashed',
+        active && !held && 'outline outline-2 -outline-offset-2 outline-accent',
       )}
       style={{ height: ROW_HEIGHT, transform: `translateY(${start}px)` }}
     >
@@ -155,6 +172,12 @@ export function LoadList() {
   const slotOf = usePlanStore((s) => s.state.slotOf);
   const planned = usePlanStore((s) => s.planned);
   const { leftOpen, query, checked } = useViewStore();
+  const heldId = usePlacementStore((s) => heldContainer(s.placement));
+  const listHeld = usePlacementStore(
+    (s) =>
+      (s.placement.kind === 'holding' || s.placement.kind === 'over') &&
+      s.placement.source.kind === 'list',
+  );
   const view = useViewStore.getState;
 
   const all = useMemo(() => toRows(loadList, slotOf), [loadList, slotOf]);
@@ -202,6 +225,15 @@ export function LoadList() {
       e.preventDefault();
       const row = rows[activeIndex];
       if (row) activate(row);
+      return;
+    } else if (e.key === 'Enter') {
+      // FR-17: Enter picks up the row and the keyboard goes on in the bay grid.
+      e.preventDefault();
+      const row = rows[activeIndex];
+      if (!row) return;
+      setActiveId(row.container.id);
+      if (row.slot) activate(row);
+      else pickFromList(row.container.id, 'keyboard');
       return;
     } else return;
     e.preventDefault();
@@ -365,6 +397,7 @@ export function LoadList() {
                 start={item.start - HEADER_HEIGHT}
                 checked={!!checked[row.container.id]}
                 active={item.index === activeIndex && activeId !== null}
+                held={row.container.id === heldId && listHeld}
                 onClick={() => {
                   setActiveId(row.container.id);
                   activate(row);
