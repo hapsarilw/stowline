@@ -2,7 +2,7 @@
 
 One row per requirement in docs/SRS.md: 66 functional and 25 non-functional. Status is one of: not started, in progress, done, blocked. The Test column names the test file or scenario that covers the requirement. Milestone follows the PRD release plan and the decisions in docs/BUILD_NOTES.md.
 
-Last updated: Oct 7, 2026, after M3.
+Last updated: Oct 8, 2026, after M4.
 
 ## Functional requirements
 
@@ -24,7 +24,7 @@ Last updated: Oct 7, 2026, after M3.
 | FR-14 | Load list renders only visible rows; 1,240 rows scroll without dropped frames | M | F-03 | M2 | done | `LoadList.test.tsx` (visible rows only), `e2e/layout.spec.ts` (scrolls all 928 rows with under 60 rendered) |
 | FR-15 | Multi-select rows; footer shows selected count and total weight | M | F-03 | M2 | done | `LoadList.test.tsx` (selected count and total weight) |
 | FR-16 | Selecting a planned row selects its container in the 3D view and bay view | S | F-03 | M3 | done | `LoadList.test.tsx` (selection and bay), `ContainerLayer.test.ts` (selection outline), `e2e/viewport3d.spec.ts` |
-| FR-17 | With a row focused, Enter picks up the container and moves focus to the bay grid | M | F-06, F-17 | M4 | not started | — |
+| FR-17 | With a row focused, Enter picks up the container and moves focus to the bay grid | M | F-06, F-17 | M4 | done | `LoadList.test.tsx` (Enter picks up, asks the grid for focus), `placement-store.test.ts` (focus on the first valid target), `e2e/placement.spec.ts` AT-03 |
 | FR-18 | 3D view draws hull, deckhouse and every placed container with instanced meshes | M | F-04 | M3 | done | `ContainerLayer.test.ts`, `mapping.test.ts` (slot to matrix), `hull.test.ts`, `e2e/screenshots.spec.ts` (3D view) |
 | FR-19 | Orbit, pan, zoom; presets Iso, Port, Starboard, Top, Bow with a 600 ms camera move | M | F-04 | M3 | done | `mapping.test.ts` (presets, fit, view round trip, easing), `Viewport3D.test.tsx` (toolbar), `e2e/viewport3d.spec.ts` |
 | FR-20 | Color by POD, weight, type or violation status, with a legend | M | F-04 | M3 | done | `colors.test.ts` (four modes, legends), `ContainerLayer.test.ts`, `Viewport3D.test.tsx` (legend) |
@@ -38,15 +38,15 @@ Last updated: Oct 7, 2026, after M3.
 | FR-28 | Full bay view cells show last 4 digits, POD, weight; Split uses the compact form | M | F-05 | M2 | done | `BayView.test.tsx` (full in Bay, compact in Split), `Cell.test.tsx` |
 | FR-29 | Stack total weight and bar against the limit under each stack | M | F-05 | M2 | done | `BayView.test.tsx` (stack totals, red when over) |
 | FR-30 | Previous and next controls step through the bays | M | F-05 | M2 | done | `BayView.test.tsx` (stepping, first and last bay) |
-| FR-31 | Place by dragging a load list row onto a bay cell | M | F-06 | M4 | not started | — |
-| FR-32 | During a drag the 3D view shows the next free slot of each stack in the selected bay as a target; drop there places | S | F-06 | M4 | not started | — |
-| FR-33 | Move a top-of-stack container by dragging its cell to another cell | M | F-06 | M4 | not started | — |
-| FR-34 | While held, next free slots are marked valid, warning or invalid; hovered slot shows the reason | M | F-06 | M4 | in progress | Domain: `checkPlacement`, `nextFreeSlots` (`rules/placement.test.ts`, `rules/boundaries.test.ts`). Marks in the UI: M4 |
-| FR-35 | Invalid drop refused: return in 220 ms, slot shakes once, message gives the reason | M | F-06 | M4 | in progress | Domain: refusal with the reason (`rules/golden.test.ts` AT-02). Return, shake and message: M4 |
-| FR-36 | Bay grid keys: arrows move focus, Enter picks up or places, Esc cancels | M | F-06, F-17 | M4 | not started | — |
-| FR-37 | Live region announces the focused slot, its container and the rule result | M | F-17 | M4 | not started | — |
-| FR-38 | 3D ghost of the held container at the target, green when valid, red when invalid | M | F-06 | M4 | not started | — |
-| FR-39 | With several rows selected, placing one picks up the next | S | F-06 | M4 | not started | — |
+| FR-31 | Place by dragging a load list row onto a bay cell | M | F-06 | M4 | done | `placement.test.ts` (one place command), `e2e/placement.spec.ts` AT-02 (drag from a row), 3D drop |
+| FR-32 | During a drag the 3D view shows the next free slot of each stack in the selected bay as a target; drop there places | S | F-06 | M4 | done | `e2e/placement.spec.ts` (drop on a 3D target in bay 18 places the container); targets in `scene/targets.ts` |
+| FR-33 | Move a top-of-stack container by dragging its cell to another cell | M | F-06 | M4 | done | `placement.test.ts` (one move command), `e2e/placement.spec.ts` AT-04 (drag 180488 to 180688) |
+| FR-34 | While held, next free slots are marked valid, warning or invalid; hovered slot shows the reason | M | F-06 | M4 | done | `preview.test.ts` (marks: valid, invalid, origin, reason), `BayView.test.tsx` (marks and the tooltip), `e2e/placement.spec.ts` AT-02 (tooltip during the drag) |
+| FR-35 | Invalid drop refused: return in 220 ms, slot shakes once, message gives the reason | M | F-06 | M4 | done | `placement.test.ts` and `placement-store.test.ts` AT-02 (refused, returned, shake, alert), `e2e/placement.spec.ts` AT-02; 220 ms return and shake in `drag.ts`, `ui/motion.ts` |
+| FR-36 | Bay grid keys: arrows move focus, Enter picks up or places, Esc cancels | M | F-06, F-17 | M4 | done | `BayView.test.tsx` (Enter, arrows while holding, Esc, refused keyboard drop), `e2e/placement.spec.ts` AT-03 and Esc |
+| FR-37 | Live region announces the focused slot, its container and the rule result | M | F-17 | M4 | done | `placement.test.ts` (every announcement), `BayView.test.tsx`, `e2e/placement.spec.ts` AT-03 (pick-up, slot and rule result, placed) |
+| FR-38 | 3D ghost of the held container at the target, green when valid, red when invalid | M | F-06 | M4 | done | Ghost in `scene/targets.ts`, green or red from the check; `e2e/placement.spec.ts` (3D drop) checks the targets are pickable. Colors checked by eye on the M4 screenshots |
+| FR-39 | With several rows selected, placing one picks up the next | S | F-06 | M4 | done | `placement.test.ts` (next selected row), `placement-store.test.ts` (queue only from a selected row, in list order, placed on the plan after the drop) |
 | FR-40 | Rule engine evaluates R1 to R6 after every command on the changed stacks | M | F-07 | M1 | done | `rules/incremental.test.ts` (property: incremental equals full), `rules/rules.test.ts`, `rules/golden.test.ts` |
 | FR-41 | Validate runs all rules in a Web Worker and reports errors and warnings | M | F-07 | M1 | done | `Workspace.test.tsx` (Validate reports 6 errors and 1 warning), `e2e/worker.spec.ts` (real worker). The violations list: M5 |
 | FR-42 | Violations panel groups errors and warnings, filters by severity, shows rule, message, slot, containers | M | F-07 | M5 | not started | — |
@@ -55,17 +55,17 @@ Last updated: Oct 7, 2026, after M3.
 | FR-45 | New violation slides in over 160 ms and is announced; a resolved one gives a message with Undo | M | F-07 | M5 | not started | — |
 | FR-46 | Inspector shows ID, type, ISO code, weight, POL, POD, reefer set point, DG class, status, slot as bay, row, tier | M | F-08 | M2 | done | `Inspector.test.tsx` |
 | FR-47 | Inspector shows stack weight against the limit and each rule result: pass, warning, error, not applicable | M | F-08 | M2 | done | `Inspector.test.tsx` (each rule: pass, warning, error, not applicable) |
-| FR-48 | Unplace, Lock/Unlock, Swap; each disabled when BR-03 or BR-04 forbids it | M | F-08 | M4 | in progress | Domain: BR-03, BR-04 and D3 in `applyCommand` (`commands/commands.test.ts`). Inspector actions: M4 |
-| FR-49 | A move of a container loaded at an earlier port is recorded and counted as a restow | S | F-08 | M4 | in progress | Domain: `shiftCount` (`commands/commands.test.ts`). Shown in the plan: M4, M6 |
+| FR-48 | Unplace, Lock/Unlock, Swap; each disabled when BR-03 or BR-04 forbids it | M | F-08 | M4 | done | `Inspector.test.tsx` (Lock and Unlock with Undo, Swap starts, rules for BR-03, BR-04, D3), `placement.test.ts` (swap, refused swap), `BayView.test.tsx` (swap by click) |
+| FR-49 | A move of a container loaded at an earlier port is recorded and counted as a restow | S | F-08 | M4 | done | Domain: `shiftCount` (`commands/commands.test.ts`). The result message says "counts as a restow" (`messages.ts`; new copy, see BUILD_NOTES M4). Plan header display: M6 |
 | FR-50 | Stability strip always shows GM, trim, list, BM with SF, each with OK, Check or Limit | M | F-09 | M2 | done | `gauges.test.tsx` (gauge model and strip, OK, Check, Limit with icon and text) |
-| FR-51 | While a container is held over a slot, the strip previews the change in GM, trim and list | M | F-09 | M4 | in progress | Domain: one pure function, 1.1 ms per call on the sample (`stability.bench.ts`). Preview: M4 |
+| FR-51 | While a container is held over a slot, the strip previews the change in GM, trim and list | M | F-09 | M4 | done | `preview.test.ts` (same model with the candidate command, labels as designed), `gauges.test.tsx` (deltas appear over a target and clear) |
 | FR-52 | After a command, numbers count to the new value in 300 ms | S | F-09 | M2 | done | `gauges.test.tsx` (`useTween`: 300 ms count, instant with reduced motion) |
 | FR-53 | Stability drawer: BM and SF curves with 85% and 100% lines, drafts fwd, mid, aft, GM, trim and list gauges, hydrostatics | M | F-09 | M5 | not started | — |
 | FR-54 | Strength curves change with the weight per bay | S | F-09 | M1 | done | `stability/stability.test.ts` (strength curves change with weight per bay, zero change at the ends) |
 | FR-55 | Port timeline: one stop per port with discharge count and restow moves | S | F-10 | M5 | not started | — |
 | FR-56 | Selecting a stop hides discharged containers and lifts that port's containers 20 ms apart, deck before hold; Play steps through | S | F-10 | M5 | not started | — |
-| FR-57 | Place, move, unplace, swap, lock and apply fix are each one command with an inverse; Ctrl/Cmd+Z undo, plus Shift redo | M | F-11 | M4 | in progress | Domain: commands with inverses, `batch` (`commands/commands.test.ts`, property tests). Keys and history: M4 |
-| FR-58 | Each command adds an entry to the plan's activity log | S | F-11 | M6 | not started | — |
+| FR-57 | Place, move, unplace, swap, lock and apply fix are each one command with an inverse; Ctrl/Cmd+Z undo, plus Shift redo | M | F-11 | M4 | done | Domain inverses (`commands/commands.test.ts`). `placement-store.test.ts` (Undo, Redo, messages), `Inspector.test.tsx` (Undo offered), `e2e/placement.spec.ts` AT-04 undo (toast Undo, Ctrl+Shift+Z, Ctrl+Z). Apply fix: M5 |
+| FR-58 | Each command adds an entry to the plan's activity log | S | F-11 | M4, M6 | in progress | Every command, undo and redo adds an entry (`plan-store.ts`, `messages.test.ts`, `placement-store.test.ts`). Showing the log: M6 |
 | FR-59 | Save sends the plan with its base version; on success the version rises by one | M | F-12 | M6 | not started | — |
 | FR-60 | If the server holds a newer version, Save is refused, local commands kept, user reviews or retries | M | F-12 | M6 | not started | — |
 | FR-61 | Unsaved commands are kept in the browser and restored after a reload | S | F-12 | M6 | not started | — |
@@ -73,26 +73,26 @@ Last updated: Oct 7, 2026, after M3.
 | FR-63 | An approved plan is read only; Revise creates a new Draft version | S | F-13 | M6 | not started | — |
 | FR-64 | Import load list reads JSON, checks each row, lists rejected rows with the reason | S | F-14 | M6 | not started | — |
 | FR-65 | Export downloads an approved plan as JSON (required for the M6 gate, decision D10) | C | F-15 | M6 | not started | — |
-| FR-66 | With reduced motion, every animation is instant or a 100 ms fade | M | F-17 | M2 | in progress | Global reduced-motion rule, `useTween`, camera presets and bay gap jump at once with reduced motion. Drop animations: M4. End to end check: M7 |
+| FR-66 | With reduced motion, every animation is instant or a 100 ms fade | M | F-17 | M2, M4 | done | `ui/motion.ts` (shake, settle and ghost become a 100 ms fade), toast fades, skeleton stops, looping animations run once; `e2e/placement.spec.ts` AT-09 (no animation over 100 ms). Other routes: M6, M7 |
 
 ## Non-functional requirements
 
 | ID | Requirement | Target | Milestone | Status | Test |
 | --- | --- | --- | --- | --- | --- |
 | NFR-01 | Frame rate while orbiting the 3D view | 55 fps or more, 10,000 containers, mid-range laptop with integrated graphics | M3 | in progress | `/bench`, `npm run bench:3d`: 59.9 fps (display cap) on an Apple M2 Pro, GPU 1.6 ms per frame. Not yet measured on a mid-range laptop with integrated graphics (BUILD_NOTES) |
-| NFR-02 | Target marks after pick-up | Visible bay marked within 100 ms | M4 | not started | — |
+| NFR-02 | Target marks after pick-up | Visible bay marked within 100 ms | M4 | done | `npm run bench:pickup` on the production build: worst 71.7 ms from input to the frame after the marks paint (BUILD_NOTES M4). Timed in the app with `performance.measure`; `e2e/placement.spec.ts` checks the measure exists |
 | NFR-03 | Rule check after one command | Under 10 ms | M1 | done | `src/domain/rules/rules.bench.ts`: 1.68 ms mean, 2.48 ms p99 at 10,000 containers (BUILD_NOTES) |
 | NFR-04 | Full validation in the worker | Under 200 ms, no main thread task over 50 ms | M1 | done | `e2e/worker.spec.ts`: 18 to 28 ms round trip at 10,000 containers, no long task (BUILD_NOTES) |
 | NFR-05 | Draw calls for the ship scene | Under 50 | M3 | done | `e2e/viewport3d.spec.ts` (/bench under 50), BUILD_NOTES: 10 to 12 draw calls |
 | NFR-06 | JavaScript size | Plans route 200 kB gzip or less; 3D chunk 350 kB gzip or less | M0 | in progress | 3D chunk 261.68 kB gzip (limit 350). Plans route and the CI check: M6, M7 |
 | NFR-07 | First load of the plans route | LCP under 2.5 s on fast 4G, Lighthouse performance 90 or more | M7 | not started | — |
 | NFR-08 | Memory | Heap grows less than 10% after 200 commands and 200 undos | M7 | not started | — |
-| NFR-09 | Accessibility standard | WCAG 2.2 AA, no critical or serious axe findings, both routes and themes | M7 | in progress | `e2e/a11y.spec.ts`: no critical or serious axe findings on the workspace with the 3D view loaded, both themes, with the bay view, violations tab and collapsed panels. Plans route and manual checklist: M6, M7 |
-| NFR-10 | Keyboard | Every function works without a pointer, no focus trap, logical order | M4 | not started | — |
+| NFR-09 | Accessibility standard | WCAG 2.2 AA, no critical or serious axe findings, both routes and themes | M7 | in progress | `e2e/a11y.spec.ts`: no critical or serious axe findings on the workspace with the 3D view loaded, both themes, with the bay view, violations tab and collapsed panels. A held container (marks, tooltip, Inspector, refusal) in both themes, with two design findings excluded by name until the owner decides (BUILD_NOTES M4, A1 and A2). Plans route and manual checklist: M6, M7 |
+| NFR-10 | Keyboard | Every function works without a pointer, no focus trap, logical order | M4 | in progress | Placement, undo, redo and the Inspector actions work from the keyboard: `e2e/placement.spec.ts` AT-03 (no pointer). Full audit and focus order: M7 |
 | NFR-11 | Contrast | Text 4.5:1 or more; controls and focus ring 3:1 or more | M0 | in progress | axe color-contrast passes in both themes (`e2e/a11y.spec.ts`). The token contrast test and the control border exception (D9) are for M7 |
 | NFR-12 | Meaning without color | Every status has an icon and text; every container shows its POD code | M2 | in progress | `Cell.test.tsx` (POD code in every cell), `ui.test.tsx` (status icon with text). 3D labels: M3 |
 | NFR-13 | Target size | 24 × 24 px or more | M2 | in progress | `e2e/target-size.spec.ts`: every workspace target is 24 px or more, including every cell in the Bay view. Other routes: M6 |
-| NFR-14 | Announcements | Slot descriptions polite, refused drops assertive; 3D canvas text alternative points to the bay grid | M4 | in progress | The 3D canvas has a text alternative that points to the bay grid (`role="img"` label). Announcements for drops: M4. Screen reader check: M7 |
+| NFR-14 | Announcements | Slot descriptions polite, refused drops assertive; 3D canvas text alternative points to the bay grid | M4 | in progress | Slot descriptions in a polite live region (one at a time: the workspace region speaks only when the bay view is hidden); refused drops in an alert (`placement-store.test.ts`, `e2e/placement.spec.ts` AT-02); 3D canvas text alternative points to the bay grid. Screen reader check: M7 |
 | NFR-15 | Motion | Reduced motion setting honored everywhere | M7 | not started | — |
 | NFR-16 | Unsaved work | Survives a reload or a crash | M6 | not started | — |
 | NFR-17 | 3D failure | An error in the 3D view does not break the workspace | M3 | done | `Viewport3D.test.tsx` (error boundary keeps the error inside the 3D view), lost WebGL context shows the fallback |

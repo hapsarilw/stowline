@@ -341,6 +341,96 @@ With the 3D toolbar loaded, axe reported one serious finding in the light theme:
 | Oct 7, 2026 | NFR-03 re-run on the reshaped benchmark vessel: one command with the rule check, then the incremental check (602 samples) | mean 1.66 ms, p99 2.31 ms. Full validation: mean 13.7 ms, p99 14.9 ms. Stability model: 3.64 ms mean | same | Node 25.9.0, Vitest 5.0.3 |
 | Oct 7, 2026 | Tests | 287 unit and component tests in 30 files, domain lines 99.43%; 28 end to end | same | Vitest 5.0.3, Playwright 1.63 |
 
+## M4 Placement (Oct 8, 2026)
+
+### The placement controller
+
+One pure controller in `src/state/placement.ts`: `step(state, event, plan) → { next, command?, announce?, refusal? }`. Pointer drag, click, keyboard and the 3D view all send it the same events, and `src/state/placement-store.ts` carries out what it returns (runs the command, shows the message, moves the focus).
+
+| State | Event | Next | What happens |
+| --- | --- | --- | --- |
+| idle | pickFromList (row, via, queue) | holding | Unplanned row only. Announces the valid target count in the bay. A planned or unknown row stays idle and says why |
+| idle | pickFromSlot (slot, via) | holding | Top of the stack and not locked (BR-03, BR-04), else idle with the reason |
+| idle | startSwap (slot) | swapping | A placed, unlocked container (D2) |
+| idle | hover, drop, cancel, chooseSwap | idle | Nothing |
+| holding | hover (slot) | over | Runs the placement check on that slot. From the keyboard it reads the slot, its container and the rule result (FR-37) |
+| holding | drop with no slot | idle (pointer) or holding (keyboard) | A drag that ends off the grid is cancelled; the keyboard asks to move to a slot first |
+| holding, over | drop (slot) | idle | Valid: one `place` or `move` command, settle 180 ms. Same slot as the origin: put back, no command |
+| holding, over | drop on a refused slot | idle (pointer) or over (keyboard) | Refused with the reason, the slot shakes once (FR-35). A drag returns the container in 220 ms; from the keyboard it stays in hand, as in the design |
+| over | drop, more rows selected | holding (next row) | FR-39: the next selected row is picked up, from the keyboard |
+| over | hover (other slot / none) | over / holding | |
+| holding, over | cancel | idle | "Cancelled. Container returned to its slot / the load list." |
+| holding, over | pick another | holding | The new container replaces the held one |
+| holding, over | startSwap, chooseSwap | same | Ignored: put the container down first |
+| swapping | chooseSwap (other container) | idle | One `swap` command, or refused with the reason |
+| swapping | chooseSwap (itself), cancel | idle | "Swap cancelled." |
+| swapping | chooseSwap (empty slot) | swapping | Asks again |
+| swapping | pick | holding | |
+
+### What was decided while building
+
+| Topic | Decision |
+| --- | --- |
+| Pointer drag | Pointer events, not HTML5 drag and drop: one path for the load list, the bay cells and the 3D canvas, and a ghost that follows the pointer by a transform without React renders. A press becomes a drag after 4 px, so a click still selects. One hit test per frame: `[data-slot]` under the pointer, or the 3D target through a small bridge (`viewport3d/bridge.ts`) the lazy scene registers. Esc during a drag cancels. |
+| Drag ghost | The chip from screen 02 (78 x 28 px, POD color, last 4 digits, POD, weight) follows the real cursor. The design draws a cursor arrow inside the chip because it is a still picture; the app uses the real cursor. |
+| Keyboard pick-up | Enter on a load list row (FR-17) or a bay cell (FR-36). The focus goes to the first valid target in the bay, the controller is put over it so the strip previews it, and the grid takes the focus. A 20ft container switches the bay view to the fore half, a 40ft one back to 40ft slots. |
+| Queue (FR-39) | Only a selected row brings the other selected rows, in list order from the next row, wrapping round. |
+| Tooltip | On the target under the pointer, as in mkCell: the reason, or "Valid · stack X t of Y t", and "Drop disabled at …" or "Drop to place at … · Trim ±0.00 m". The keyboard gets the same text from the live region. |
+| Origin cell | Drawn empty with the dashed accent outline, without its violation mark or selection ring, as mkCell does. |
+| Stability preview (FR-51) | `previewDelta` runs the same model on the plan with the candidate command (SRS "Drag preview"). GM to 3 decimals, trim in m, list in degrees, placed as in the design (the labels sit over the units, as they do in screen 02). |
+| 3D (FR-32, FR-38) | `scene/targets.ts`: one InstancedMesh of translucent boxes for the next free slots in the selected bay (green, amber, red), and a ghost at the target at 35% with a dashed outline, green when valid and red when not, as `stow3d.js` draws it. It follows the placement store by subscription, not React. A click on a target while holding places; a click on a container while swapping picks it. |
+| Inspector (FR-48) | Unplace (off when locked, under another container or onboard: BR-03, BR-04, D3), Lock or Unlock, Swap (off when locked: D2; "Pick target" while swapping). While a container is held it shows "Picked up" or "Placing", the target's rule results, and Cancel and Place, as in the design. U, L and S run the actions from anywhere except a text field. |
+| Status while held | The design says "Unplanned". A container lifted from a slot keeps its own status ("Planned this call", "Onboard from IDJKT"), using text the design already has. |
+| Undo (FR-57) | The result message after every command offers Undo. The TopBar buttons, Ctrl or Cmd+Z and Shift for redo, and the message all go through one function that also drops anything held. The plan store keeps each command's line for the activity log (FR-58); showing the log is M6. |
+| Live regions | The bay view's status bar is the polite live region. The workspace's hidden one now speaks only when the bay view is not on screen, so a sentence is not read twice. Refused drops are an alert. |
+| "/" shortcut | Moved to a document listener: it did not work while the focus was on the page itself. |
+| Reduced motion (FR-66) | Shake, settle and the held ghost play through `ui/motion.ts`, which plays a 100 ms fade instead when reduced motion is set. The drag ghost fades in 100 ms instead of travelling back. The toast fades instead of sliding. The global reduced-motion rule now also limits animations to one run: before, it made the 3D skeleton pulse every 100 ms, a flash. |
+| Measuring NFR-02 | The bay view records `performance.measure('nfr-02 target marks')` from the pick-up to two frames after the marks render (the first frame callback runs before the paint, the second after it, so it errs long). `npm run bench:pickup` reads it on the production build, and also times from the input event's own timestamp. |
+
+### New copy for approval
+
+The design has no text for these cases. They follow the design's voice. Please confirm or give me other words.
+
+| Where | Text |
+| --- | --- |
+| Result message, FR-49 | "… · counts as a restow" after a move or swap of a container loaded at an earlier port |
+| Live region | "Move to a slot first. Still holding {id}." · "{id} put back at {slot}." · "Picked up {id}. {n} more rows selected." · "{id} is already planned at {slot}." · "Swap cancelled." · "{slot} is empty. Pick a container to swap with." · "{slot} is empty. Nothing to swap." · "{id} at {slot} is locked. Unlock it first." · "Cannot swap. {reason}." · "Undone: {line}." · "Redone: {line}." |
+| Messages | "Can't swap {a} and {b}" (title, with the reason) · "Undone" and "Redone" (with the command's line) · "Not done" (a command the plan refused) · "Unlocked {slot}" |
+| Activity log lines | "Placed {id} at {slot}", "Moved {id} from {a} to {b}", "Unplaced {id} from {slot}", "Swapped {id} at {a} with {id} at {b}", "Locked / Unlocked {id} at {slot}", "Undid: …", "Redid: …" |
+
+### Accessibility findings for decision
+
+A new axe scan of the held state (`e2e/a11y.spec.ts`, both themes) found two places where the design itself is under 4.5:1. They are excluded from that scan by name until you decide; anything else still fails it.
+
+| # | Where | Finding | Recommendation |
+| --- | --- | --- | --- |
+| A1 | Load list row in hand (dark theme) | Screen 02 fades the whole row to 55% opacity. The ID and weight measure 2.96:1, the POD badge 3.33:1 | Keep the accent background and the dashed outline that mark the row, and drop the fade, so the text stays at full contrast. The row still reads as "in hand" |
+| A2 | "Picked up" pill in the bay status bar and the stability preview deltas (light theme) | `--accent` on `--accentbg` over white, 4.49:1, as the M3 toolbar finding | The same as your M3 decision: `--text` on `--accentbg`. No token change |
+
+### Gate result
+
+- **Keyboard-only test:** passes. `e2e/placement.spec.ts` AT-03 uses only keys: "/" to the search, Tab to the load list, arrows to NSPU 300653 4, Enter (focus moves to the bay grid on 180286), arrows read the slots, Enter places. The planned count goes from 312 to 313. The save step is M6.
+- **NFR-02 measured:** met. Worst of 60 pick-ups 71.7 ms from the input event to the frame after the marks paint (target 100 ms). Numbers below.
+- Also passing: AT-02 (refused, "Stack limit: 96.4 t of 90.0 t", load list unchanged), the undo part of AT-04 (a drag from 180488 to 180688 gives 6 violations and "Stack 18-04 deck back to 79.3 t of 90.0 t"; Undo gives 7; Ctrl+Shift+Z and Ctrl+Z), AT-09 (with reduced motion no animation of a placement runs over 100 ms; a control run of the same steps without reduced motion reported animations far over 100 ms, so the check can fail), a drop on a 3D target, Esc in the grid.
+
+### Not done in M4
+
+- The Bay tab with both side panels open at 1440 px: the legend wraps and the cells get too small for "POD weight", so text overflows. Screen 03 has the panels collapsed. Present since M2. Proposal: collapse both panels when the Bay tab opens, as screen 03 shows, or let the legend wrap without shrinking the grid. Needs your call.
+- Activity log display (FR-58) and the restow count in the plan header (FR-49): M6. Apply fix (the first half of AT-04): M5.
+- Touch: a press on a list row and a move scrolls the list, which cancels the drag. Pointer and keyboard work. Not in the SRS for version 1.
+- A pick-up runs the rule check for the bay's targets about five times (controller, runner, bay view, 3D view, Inspector). It fits NFR-02 with room to spare; one shared result would cut it (M7 if needed).
+- NFR-02 on other hardware: measured on the M2 Pro only.
+
+### M4 measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 8, 2026 | NFR-02 Enter on a load list row (`npm run bench:pickup`, production build, 20 runs) | input to marks painted: median 58.0 ms, p95 61.7, max 61.7. Pick-up handler to marks painted: median 56.4, max 60.6 | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB, macOS 26.6.2 | Chrome for Testing 153, headed, Playwright 1.63, 1440 x 900 |
+| Oct 8, 2026 | NFR-02 Enter on a bay cell (20 runs) | input: median 55.1 ms, p95 67.6, max 67.6. Handler: median 54.2, max 66.8 | same | same |
+| Oct 8, 2026 | NFR-02 pointer drag from a row (20 runs) | input (first pointer move after the press): median 63.8 ms, p95 71.7, max 71.7. Handler: median 31.4, max 61.4. The browser holds pointer moves until the next frame, hence the gap | same | same |
+| Oct 8, 2026 | Bundles | main 413.63 kB, 128.71 kB gzip; 3D chunk 976.57 kB, 262.66 kB gzip (limit 350 kB) | same | Vite 8.3.3 |
+| Oct 8, 2026 | Tests | 371 unit and component tests in 34 files, domain lines 99.43%; 35 end to end, 7 of them for M4 | same | Vitest 5.0.3, Playwright 1.63 |
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |
