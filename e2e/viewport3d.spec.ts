@@ -148,10 +148,12 @@ test('AT-08: without WebGL the 3D view offers the bay view, which still works', 
     'aria-selected',
     'true',
   );
-  // The bay grid still works with the keyboard. Placement there comes in M4.
+  // The bay grid still works with the keyboard.
   const grid = page.getByRole('grid', { name: /cross section/ });
   await grid.focus();
   await page.keyboard.press('ArrowUp');
+  // The Bay tab collapses the side panels (screen 03); the Inspector is one click away.
+  await page.getByRole('button', { name: 'Expand details panel' }).click();
   await expect(
     page.getByRole('tabpanel').getByText('NSPU 771032 1', { exact: true }),
   ).toBeVisible();

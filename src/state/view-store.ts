@@ -41,6 +41,8 @@ export interface ViewStore {
   theme: Theme;
   leftOpen: boolean;
   rightOpen: boolean;
+  /** The side panels before the Bay tab collapsed them (screen 03), to restore on leaving. */
+  panelsBeforeBay: { left: boolean; right: boolean } | null;
   rightTab: RightTab;
   centerTab: CenterTab;
   /** Share of the center taken by the 3D view in Split. */
@@ -116,6 +118,7 @@ export function initialView(
     theme: readStoredTheme(),
     leftOpen: true,
     rightOpen: true,
+    panelsBeforeBay: null,
     rightTab: 'inspector',
     centerTab: 'split',
     splitRatio: SPLIT_DEFAULT,
@@ -155,7 +158,25 @@ export const useViewStore = create<ViewStore>()((set, get) => ({
   toggleRight: () => set((s) => ({ rightOpen: !s.rightOpen })),
   setLeftOpen: (leftOpen) => set({ leftOpen }),
   setRightTab: (rightTab) => set({ rightTab }),
-  setCenterTab: (centerTab) => set({ centerTab }),
+  setCenterTab(centerTab) {
+    const s = get();
+    if (centerTab === s.centerTab) return;
+    // Screen 03: the Bay tab collapses both side panels to rails, so the bay gets the full width.
+    if (centerTab === 'bay') {
+      set({
+        centerTab,
+        leftOpen: false,
+        rightOpen: false,
+        panelsBeforeBay: { left: s.leftOpen, right: s.rightOpen },
+      });
+      return;
+    }
+    // Leaving it restores them, unless a panel was opened meanwhile.
+    const before = s.centerTab === 'bay' ? s.panelsBeforeBay : null;
+    if (before && !s.leftOpen && !s.rightOpen) {
+      set({ centerTab, leftOpen: before.left, rightOpen: before.right, panelsBeforeBay: null });
+    } else set({ centerTab, panelsBeforeBay: null });
+  },
   setSplitRatio: (r) => set({ splitRatio: Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, r)) }),
   setBay: (bay, focus = null) => set({ bay, focus }),
   setHalf(half) {

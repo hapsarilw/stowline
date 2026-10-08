@@ -93,6 +93,23 @@ describe('view store', () => {
     expect(Object.keys(view().checked)).toHaveLength(3);
   });
 
+  it('collapses both panels in the Bay tab, as screen 03, and restores them after', () => {
+    view().setCenterTab('bay');
+    expect(view()).toMatchObject({ centerTab: 'bay', leftOpen: false, rightOpen: false });
+    view().setCenterTab('split');
+    expect(view()).toMatchObject({ leftOpen: true, rightOpen: true });
+    // Collapsed before: stays collapsed.
+    view().toggleRight();
+    view().setCenterTab('bay');
+    view().setCenterTab('3d');
+    expect(view()).toMatchObject({ leftOpen: true, rightOpen: false });
+    // A panel opened in the Bay tab is kept as it is.
+    view().setCenterTab('bay');
+    view().toggleLeft();
+    view().setCenterTab('split');
+    expect(view()).toMatchObject({ leftOpen: true, rightOpen: false });
+  });
+
   it('keeps the split inside its limits', () => {
     view().setSplitRatio(0.01);
     expect(view().splitRatio).toBe(SPLIT_MIN);

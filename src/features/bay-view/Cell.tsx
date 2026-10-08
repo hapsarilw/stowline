@@ -163,7 +163,7 @@ function CellView({ cell, big, focused, tip, ghost, anim, onSelect, onPress }: C
         .join(' ')}
       onClick={() => onSelect?.(key)}
       onPointerDown={onPress ? (e) => onPress(key, e) : undefined}
-      className="relative box-border flex select-none min-h-0 min-w-0 cursor-pointer flex-col items-center justify-center rounded-[2px] font-mono leading-[1.1]"
+      className="@container relative box-border flex select-none min-h-0 min-w-0 cursor-pointer flex-col items-center justify-center rounded-[2px] font-mono leading-[1.1]"
       style={styleOf(cell, focused)}
     >
       {halves ? (
@@ -175,8 +175,11 @@ function CellView({ cell, big, focused, tip, ghost, anim, onSelect, onPress }: C
         big ? (
           <>
             <span className="text-[11.5px] font-semibold">{box.last4}</span>
-            <span className="text-[10px] font-medium">
-              {box.pod} {box.weight}
+            {/* Too narrow for the weight (a side panel opened in the Bay tab): the POD alone,
+                never a cut-off number. The label still reads the weight. */}
+            <span className="text-[10px] font-medium whitespace-nowrap">
+              {box.pod}
+              <span className="hidden @[56px]:inline"> {box.weight}</span>
             </span>
           </>
         ) : (

@@ -30,8 +30,7 @@ for (const theme of ['dark', 'light'] as const) {
   test(`bay view 1440 ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openWorkspace(page, theme);
-    await page.getByRole('button', { name: 'Collapse load list' }).click();
-    await page.getByRole('button', { name: 'Collapse panel' }).click();
+    // The Bay tab collapses both side panels itself (screen 03).
     await page.getByRole('tab', { name: 'Bay', exact: true }).click();
     await expect(page).toHaveScreenshot(`bay-view-1440-${theme}.png`, {
       animations: 'disabled',
