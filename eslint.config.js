@@ -64,7 +64,15 @@ const domainRestrictedGlobals = [
 
 export default defineConfig(
   {
-    ignores: ['dist', 'coverage', 'design', 'playwright-report', 'test-results', 'node_modules'],
+    ignores: [
+      'dist',
+      'coverage',
+      'design',
+      'playwright-report',
+      'test-results',
+      'node_modules',
+      'public',
+    ],
   },
   {
     files: ['**/*.{ts,tsx}'],

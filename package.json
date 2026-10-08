@@ -14,13 +14,15 @@
     "bench": "vitest bench --run --reporter=verbose",
     "test:coverage": "vitest run --coverage",
     "bench:3d": "node tools/bench-3d.mjs",
-    "bench:pickup": "node tools/bench-pickup.mjs"
+    "bench:pickup": "node tools/bench-pickup.mjs",
+    "measure:js": "node tools/measure-js.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.1",
     "@tanstack/react-virtual": "3.14.13",
     "comlink": "4.4.2",
+    "msw": "3.0.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "8.4.0",
@@ -53,5 +55,10 @@
   },
   "engines": {
     "node": "^22.12.0 || ^24.0.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

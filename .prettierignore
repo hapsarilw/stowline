@@ -6,3 +6,4 @@ test-results
 design
 **/*.md
 package-lock.json
+public/mockServiceWorker.js
