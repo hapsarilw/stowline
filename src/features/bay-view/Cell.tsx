@@ -1,5 +1,6 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { IconLock, IconPlug, IconReefer } from '@/ui/icons';
+import { play, SETTLE, SHAKE } from '@/ui/motion';
 import { TooltipCard, type TooltipTone } from '@/ui/TooltipCard';
 import type { CellBox, CellMark, CellModel } from './model';
 
@@ -18,13 +19,30 @@ export interface CellTip {
   detail?: string;
 }
 
+/** The container held from the keyboard, drawn lifted over the focused empty cell. */
+export interface CellGhost {
+  pod: string;
+  short: string;
+  last4: string;
+}
+
+/** A one-off animation. A new seq plays it again. */
+export interface CellAnim {
+  kind: 'shake' | 'settle';
+  seq: number;
+}
+
 interface CellProps {
   cell: CellModel;
   /** Full size shows ID digits and weight. Compact (Split) shows the POD code. */
   big: boolean;
   focused: boolean;
   tip?: CellTip | null;
+  ghost?: CellGhost | null;
+  anim?: CellAnim | null;
   onSelect?: (key: string) => void;
+  /** A press that may become a drag (FR-33). */
+  onPress?: (key: string, e: React.PointerEvent<HTMLElement>) => void;
 }
 
 function podColor(box: CellBox): string {
@@ -35,13 +53,14 @@ function podColor(box: CellBox): string {
 
 function styleOf(cell: CellModel, focused: boolean): React.CSSProperties {
   const { box, halves, mark, violation, selected } = cell;
-  const show = box !== null || halves !== null;
+  // The origin of a held container is drawn empty, with a dashed outline (mkCell: show = b && !origin).
+  const show = (box !== null && mark !== 'origin') || halves !== null;
   const origin = mark === 'origin';
   const valid = mark === 'valid';
   const warn = mark === 'warning';
   const invalid = mark === 'invalid';
   const shadows = [
-    selected ? '0 0 0 2px var(--text)' : '',
+    selected && show ? '0 0 0 2px var(--text)' : '',
     show && violation ? `inset 0 0 0 2px ${violation === 'error' ? '#b3141b' : '#8a5a00'}` : '',
   ].filter(Boolean);
   return {
@@ -92,31 +111,59 @@ function Half({ box, big }: { box: CellBox | null; big: boolean }) {
   );
 }
 
-function CellView({ cell, big, focused, tip, onSelect }: CellProps) {
-  const { box, halves, plug, violation, key } = cell;
+function Ghost({ ghost }: { ghost: CellGhost }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    play(ref.current, SETTLE);
+  }, []);
+  return (
+    <div
+      ref={ref}
+      aria-hidden="true"
+      data-testid="held-ghost"
+      className="absolute -inset-px z-[3] flex translate-x-[-2px] translate-y-[-4px] flex-col items-center justify-center rounded-[2px] border border-text shadow-[0_4px_0_rgba(0,0,0,0.35)]"
+      style={{ background: `var(--pod-${ghost.pod.toLowerCase()})`, color: INK }}
+    >
+      <span className="text-[11px] font-bold">{ghost.last4}</span>
+      <span className="text-[9.5px] font-semibold">{ghost.short}</span>
+    </div>
+  );
+}
+
+function CellView({ cell, big, focused, tip, ghost, anim, onSelect, onPress }: CellProps) {
+  const { halves, plug, violation, key } = cell;
+  // The container lifted from its origin is not drawn there (mkCell: box = show ? b : null).
+  const box = cell.mark === 'origin' ? null : cell.box;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (anim) play(ref.current, anim.kind === 'shake' ? SHAKE : SETTLE);
+  }, [anim]);
   if (!cell.exists) {
     return <div aria-hidden="true" className="invisible" />;
   }
   const occupied = box !== null || halves !== null;
   return (
     <div
+      ref={ref}
       id={`bay-cell-${key}`}
+      data-slot={key}
       role="gridcell"
       aria-label={cell.label}
       aria-selected={cell.selected}
       data-state={[
         occupied ? 'occupied' : 'empty',
-        cell.selected && 'selected',
+        cell.selected && occupied && 'selected',
         focused && 'focused',
         cell.mark,
         box?.locked && 'locked',
-        violation && `violation-${violation}`,
+        occupied && violation && `violation-${violation}`,
         plug && 'plug',
       ]
         .filter(Boolean)
         .join(' ')}
       onClick={() => onSelect?.(key)}
-      className="relative box-border flex min-h-0 min-w-0 cursor-pointer flex-col items-center justify-center rounded-[2px] font-mono leading-[1.1]"
+      onPointerDown={onPress ? (e) => onPress(key, e) : undefined}
+      className="relative box-border flex select-none min-h-0 min-w-0 cursor-pointer flex-col items-center justify-center rounded-[2px] font-mono leading-[1.1]"
       style={styleOf(cell, focused)}
     >
       {halves ? (
@@ -124,7 +171,7 @@ function CellView({ cell, big, focused, tip, onSelect }: CellProps) {
           <Half box={halves[0]} big={big} />
           <Half box={halves[1]} big={big} />
         </span>
-      ) : box && cell.mark !== 'origin' ? (
+      ) : box ? (
         big ? (
           <>
             <span className="text-[11.5px] font-semibold">{box.last4}</span>
@@ -173,6 +220,7 @@ function CellView({ cell, big, focused, tip, onSelect }: CellProps) {
           !
         </span>
       ) : null}
+      {ghost ? <Ghost ghost={ghost} /> : null}
       {tip ? (
         <TooltipCard
           tone={tip.tone}

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { dispatch, pickFromList, usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
 import { renderWorkspace, resetStores } from '@/test/render';
@@ -295,5 +296,100 @@ describe('bay stepping (FR-30)', () => {
     expect(screen.getByRole('button', { name: 'Previous bay' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: /^Bay 86:/ }));
     expect(screen.getByRole('button', { name: 'Next bay' })).toBeDisabled();
+  });
+});
+
+describe('placing from the bay grid (FR-34, FR-35, FR-36, FR-37)', () => {
+  const status = () => within(screen.getByRole('region', { name: 'Bay view' })).getByRole('status');
+
+  it('picks up with Enter, marks the targets and the origin, and puts back with Esc', async () => {
+    const user = userEvent.setup();
+    render(<BayView />);
+    await user.click(cellByKey('180488'));
+    await user.keyboard('{Enter}');
+    expect(status()).toHaveTextContent('Picked up');
+    expect(status()).toHaveTextContent(
+      'Picked up NSPU 771032 1 from 180488. 12 valid targets in bay 18.',
+    );
+    expect(cellByKey('180488').dataset.state).toContain('origin');
+    expect(document.querySelectorAll('[data-state~="valid"]').length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[data-state~="invalid"]').length).toBeGreaterThan(0);
+    // The focus is on the first valid target, with the held container drawn there.
+    expect(screen.getByTestId('held-ghost')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(status()).toHaveTextContent('Cancelled. Container returned to its slot.');
+    expect(document.querySelectorAll('[data-state~="valid"]')).toHaveLength(0);
+    expect(usePlacementStore.getState().placement.kind).toBe('idle');
+  });
+
+  it('moves the focus with the arrow keys while holding, without changing the selection', async () => {
+    const user = userEvent.setup();
+    render(<BayView />);
+    await user.click(cellByKey('180488'));
+    await user.keyboard('{Enter}');
+    const focus = useViewStore.getState().focus;
+    await user.keyboard('{ArrowLeft}');
+    expect(useViewStore.getState().focus).not.toBe(focus);
+    expect(useViewStore.getState().selected).toBe('180488');
+    expect(status().textContent).toMatch(/\d{6}: /);
+  });
+
+  it('places on Enter and settles the container in its new slot', async () => {
+    const user = userEvent.setup();
+    render(<BayView />);
+    await user.click(cellByKey('180488'));
+    await user.keyboard('{Enter}');
+    const to = useViewStore.getState().focus!;
+    await user.keyboard('{Enter}');
+    expect(status()).toHaveTextContent(`Moved NSPU 771032 1 to ${to}.`);
+    expect(usePlanStore.getState().state.placements.get(to)?.containerId).toBe('NSPU 771032 1');
+    expect(useViewStore.getState().selected).toBe(to);
+    expect(usePlacementStore.getState().settle?.key).toBe(to);
+  });
+
+  it('keeps holding after a refused keyboard drop, and shakes the slot', async () => {
+    const user = userEvent.setup();
+    render(<BayView />);
+    act(() => pickFromList('NSPU 551208 4', 'keyboard'));
+    act(() => useViewStore.getState().setFocus('180688'));
+    grid().focus();
+    await user.keyboard('{Enter}');
+    expect(status()).toHaveTextContent(
+      'Cannot place at 180688. Stack limit: 96.4 t of 90.0 t. Still holding NSPU 551208 4.',
+    );
+    expect(usePlacementStore.getState().shake?.key).toBe('180688');
+    expect(usePlacementStore.getState().placement.kind).toBe('over');
+  });
+
+  it('shows the reason on the target under the pointer (FR-34)', () => {
+    render(<BayView />);
+    act(() => dispatch({ type: 'pickFromList', containerId: 'NSPU 551208 4', via: 'pointer' }));
+    act(() => dispatch({ type: 'hover', key: '180688' }));
+    const tip = within(cellByKey('180688')).getByRole('tooltip');
+    expect(tip).toHaveTextContent('Stack limit: 96.4 t of 90.0 t');
+    expect(tip).toHaveTextContent('Drop disabled at 180688');
+  });
+
+  it('places with a click while holding', async () => {
+    const user = userEvent.setup();
+    render(<BayView />);
+    await user.click(cellByKey('180488'));
+    await user.keyboard('{Enter}');
+    await user.click(cellByKey('180688'));
+    expect(usePlanStore.getState().state.placements.get('180688')?.containerId).toBe(
+      'NSPU 771032 1',
+    );
+  });
+
+  it('swaps with a click while swapping', async () => {
+    const user = userEvent.setup();
+    useViewStore.getState().setBay(46);
+    render(<BayView />);
+    act(() => dispatch({ type: 'startSwap', key: '460612' }));
+    await user.click(cellByKey('460610'));
+    expect(usePlanStore.getState().state.placements.get('460610')?.containerId).toBe(
+      'NSPU 813350 9',
+    );
   });
 });
