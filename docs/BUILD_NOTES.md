@@ -472,6 +472,68 @@ AT-04 (Apply fix: 7 to 6 violations, 18-04 at 79.3 t, Undo gives 7) and AT-07 (C
 | Oct 8, 2026 | Bundles | main 433.27 kB, 133.62 kB gzip; 3D chunk 984.70 kB, 265.00 kB gzip (limit 350 kB) | same | Vite 8.3.3 |
 | Oct 8, 2026 | Tests | 410 unit and component tests in 40 files, domain lines 99.45%; 50 end to end | same | Vitest 5.0.3, Playwright 1.63 |
 
+## M6 Plans and workflow (Oct 8, 2026)
+
+### What was decided while building
+
+| Topic | Decision |
+| --- | --- |
+| Dependency | `msw` 3.0.2 (on the approved list). `public/mockServiceWorker.js` is the file `msw init` writes; Prettier and ESLint skip it. |
+| Domain first | `domain/workflow/permissions.ts`: roles, who may edit, send, approve, return, revise and export, and one `transition` function the mock and the screens both use. `domain/loadlist/import.ts`: the load list file checks of the SRS, with a property test that any JSON, and any text, parses without throwing and never lets a bad ID through. Both with tests before the UI. |
+| Contract | `src/api/types.ts` holds the wire types for the ten endpoints, used by the client and by the mock. Every error has `{ code, message, details? }`. A 409 on save carries the current version, who saved and when. |
+| Mock | `src/api/mock`: handlers for the ten endpoints (plus `GET /api/vessels`, which the SRS table lacks and New plan needs), a database that keeps the plans in IndexedDB and works out each summary with the domain functions (violations, stability, bay fill), and a seed of the 12 voyages of design 07. Every request waits 150 to 400 ms. The browser starts it before the app renders; the tests use the same handlers with no delay, through MSW in Node. `window.__stowMock` gives the developer switches to a person or a test. |
+| Seed | Only 042W has vessel geometry and placements (D11): its numbers are computed from the plan and are the golden ones (312 of 1,240, 6 errors, 1 warning). The other eleven keep the design's numbers, with a synthetic bay fill from the design's own generator; Open plan is off for them and says why. IMO numbers are fictional (D13): 9000000 for the sample vessel, then steps of 137. |
+| Overstow count | The preview says "Overstow 2" as the design does: one per violation. The two restow moves at Colombo and the one at Jebel Ali are on the port timeline. |
+| Save | The history in the plan store is "the commands since the base version". Save sends them with the base version; on success the history is cleared and the base is the new version. The server replays the commands with the rule check, so a command that breaks a rule gives a 422 and saves nothing. |
+| Unsaved work | After every command, undo and redo, the commands and the base version are written to `localStorage` per plan. Opening the plan puts them back on top of the loaded plan, and a message says how many came back, and if any could not be applied. |
+| Conflict | A refused save shows a message with who saved and when, and "Your 1 change is kept here and not saved", with Review changes and Retry. Review changes lists the server version and the kept changes, and "Apply my changes to version N" loads the newest plan and puts the changes on top, each checked against the rules, then Save works. Retry sends the same base again, so it is refused again until the changes are reviewed. The developer switch is in the account menu: it makes a colleague (Dimas Hartono) save first, once. |
+| Roles | Four, in the account menu: Vessel planner (Rina Adiputri), Senior planner (Hendra Wirawan), Terminal planner and Chief officer, the last two read only (the PRD roles with no FR, D7). The role is kept in the browser and sent as a header; the mock enforces it. |
+| Workflow | Send for review (planner roles, on a Draft), Approve (senior only, only in review: not offered to anyone else, disabled with "N errors remain" while errors remain), Return (senior, needs a comment), Revise (planner roles, on an approved plan: a new Draft, version + 1), Export (anyone, on an approved plan). In the workspace they are in the top bar; in the plans list, in the preview. Send for review and Approve save first, because the server decides on what it has saved. |
+| Read only | An approved plan, or a read only role, refuses commands, undo, redo, pick-up and swap in the store itself (not only by disabling buttons), disables Save, Import and Apply fix, and the Inspector offers no actions. The live region says why when a pick-up is refused. |
+| Plans list | Design 07 without the Vessels, Port rotations and Rule library tabs, the Vessel and Port filter buttons, the ⌘K hint and Import BAPLIE (D6). The search placeholder drops "container ID" (D12). The grid is narrower than the design's so that the Updated column fits at 1440 px (the design clips it). The status badge sits on the surface color so its tint does not lower the contrast in the light theme. |
+| New plan | A dialog built from the tokens (D7): vessel, voyage, port, ETD, with the server's message under the field it concerns. It starts from the vessel's arrival condition: the containers on board from earlier ports, an empty load list. |
+| Import | The file goes to the server as text and every row is checked there. The result is a dialog: "N rows accepted · M rejected from file", and a table of row, ID and reason. A file that is not JSON gives "The file is not valid JSON." The ID in the table is cut at 40 characters and shown as text. |
+| Failed requests | One place turns a failed request into a message with Retry (`state/api.ts`); calls that have their own flow for some codes (409, 422, 403) handle those and use the message for the rest. The plan route has a full-page version with Retry and "All plans". |
+| Top bar at narrow widths | The new buttons did not fit at 1280 and 1440. Below 1600 px the progress bar is hidden (the count stays), Validate shows its icon and count, and "Send for review" reads "Review" with its full name kept for screen readers; below 1360 the version number is hidden. At 1600 and up, everything is as designed. |
+| Dialogs | One `Dialog` for the review, import, return and new plan dialogs: modal, Tab stays inside, Esc closes from anywhere, the focus goes back. |
+
+### Gate result
+
+**The business process test passes** (`e2e/business-process.spec.ts`, 3 runs in a row, 12 to 16 s each). In one run, with three roles: 1 the plans list with ETD, progress, violations and status; 2 open 042W, 312 of 1,240 planned, 2,740 on board; 3 import a file of 10 rows, 7 accepted and 3 listed with a reason; 4 place an imported container with the keyboard onto a marked slot; 5 seven violations listed; 6 Show, then Apply fix six times, one warning left; 7 the stability drawer; 8 the port timeline; 9 Send for review (saves version 15 and sets In review); 10 the senior planner approves and the plan is read only; 11 the terminal planner exports the plan from the list, and the file has the schema, version 15 and 2,740 placements.
+
+Also passing: AT-01, AT-03 in full (keyboard only, version 14 to 15), AT-05 (conflict message, history kept, review, apply, save), AT-06 (not offered, disabled, approved and read only), AT-10. The plans list, the dialogs, the account menu, the conflict and the import report pass axe in both themes.
+
+### NFR-06 is not met: the plans route is 288.8 kB gzip, the target is 200 kB
+
+Measured on the production build with `npm run measure:js` (the scripts the plans route loads): 288.8 kB. Mock Service Worker is 156.1 kB of it, the app 117.7 kB, the plans page 6.1 kB. The workspace route is now lazy loaded too (it was in the main bundle), which took the main bundle from 137.6 to 117.7 kB, but msw cannot be left out: it answers the API. Options, for you to choose:
+1. Raise the plans route limit to 300 kB gzip with the mock, and keep 200 kB for the app alone (117.7 + 6.1 + about 10 kB = about 135 kB, under 200). The SRS says the mock is for version 1; with a real server the msw chunk goes away.
+2. Keep 200 kB for the whole route, and load msw only on the first API call, in parallel with the page. It does not change the bytes, only when they arrive.
+3. Replace msw with a small `fetch` wrapper that answers the same contract. It meets 200 kB, but the stack in CLAUDE.md says Mock Service Worker.
+I recommend 1.
+
+### New UI for review (D7)
+
+These have no design and are built from the tokens and existing components: the account menu with the role switcher and the developer switch, the New plan dialog, the Review changes dialog, the conflict message, the Return dialog, the import report, the Revise, Return, Approve and Export buttons, and the short "Review" label of Send for review on a narrow top bar. Please look at them; screenshots of the plans list are in the baselines, the dialogs are checked by axe and by tests.
+
+New copy (my wording, to confirm): "Draft saved" with "Plan 042W-SGSIN · 313 of 1,240 planned · version 15" (the design's text, now real); "Sent for review", "Approved", "Returned to Draft", "Revised" with "Version N is a new Draft"; "Can't save", "Can't change the status", "Can't import the file", "Can't export", "Plan exported", "Plan created"; "Request failed"; "Unsaved changes restored"; "Your changes are on the newest version"; "{name} saved version N at HH:MM"; "Your N changes are kept here and not saved."; "This plan is approved and read only. Revise it to make changes."; "Your role cannot change plans."
+
+### Not done in M6
+
+- Step 12 of the process (Sail) has no requirement and is not built.
+- Only 042W can be opened (D11). The other eleven voyages are summaries.
+- The mock has one vessel. A second vessel for New plan would need its own geometry.
+- A save that is refused with a 422 keeps the changes but does not say which one broke the rule beyond its number; the message holds the reason.
+- The workspace's own header does not show who has the plan or when it was last saved.
+- No test of the real service worker in the production build; the end-to-end tests run on the dev server.
+
+### M6 measurements
+
+| Date | What | Result | Machine | Runtime |
+| --- | --- | --- | --- | --- |
+| Oct 8, 2026 | NFR-06 JavaScript of the plans route, production build (`npm run measure:js`) | 288.8 kB gzip: msw 156.1, app 117.7, plans page 6.1, other 8.9. Target 200 kB: not met | MacBook Pro Mac14,9, Apple M2 Pro, 32 GB | Chrome for Testing 153, Vite 8.3.3 |
+| Oct 8, 2026 | Bundles | 3D chunk 984.76 kB, 265.03 kB gzip (limit 350 kB); workspace route 33.4 kB gzip on top of the main bundle | same | Vite 8.3.3 |
+| Oct 8, 2026 | Tests | 469 unit and component tests in 46 files, domain lines 99.39%; 71 end to end, 3 full runs | same | Vitest 5.0.3, Playwright 1.63 |
+
 ## Measurements
 
 | Date | What | Result | Machine | Runtime |

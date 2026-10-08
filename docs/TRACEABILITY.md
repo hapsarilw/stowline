@@ -2,21 +2,21 @@
 
 One row per requirement in docs/SRS.md: 66 functional and 25 non-functional. Status is one of: not started, in progress, done, blocked. The Test column names the test file or scenario that covers the requirement. Milestone follows the PRD release plan and the decisions in docs/BUILD_NOTES.md.
 
-Last updated: Oct 8, 2026, after M5.
+Last updated: Oct 8, 2026, after M6.
 
 ## Functional requirements
 
 | ID | Requirement | Pri | PRD | Milestone | Status | Test |
 | --- | --- | --- | --- | --- | --- | --- |
-| FR-01 | Plans list: one row per port call with vessel, voyage, port, ETD, progress, violations, status, planner, last update | M | F-01 | M6 | not started | — |
-| FR-02 | Filter by status, Assigned to me, Has violations; search vessel, voyage, port; sort by ETD | M | F-01 | M6 | not started | — |
-| FR-03 | Row selection opens a preview: bay fill, stability, open violations by rule, recent activity | S | F-01 | M6 | not started | — |
-| FR-04 | Open plan loads the plan into the workspace at its own URL | M | F-01 | M6 | not started | — |
-| FR-05 | New plan creates a Draft for a chosen vessel, voyage and port from the arrival condition | S | F-01 | M6 | not started | — |
+| FR-01 | Plans list: one row per port call with vessel, voyage, port, ETD, progress, violations, status, planner, last update | M | F-01 | M6 | done | `plans/model.test.ts` (ETD, due days, violations, progress, updated), `api.test.ts` (12 voyages from the design), `e2e/plans-workflow.spec.ts` (columns), `e2e/screenshots.spec.ts` (plans, both themes) |
+| FR-02 | Filter by status, Assigned to me, Has violations; search vessel, voyage, port; sort by ETD | M | F-01 | M6 | done | `api.test.ts` (status, mine, hasViolations, q, sort), `e2e/plans-workflow.spec.ts` (tabs, toggles, search, empty state, ETD sort with `aria-sort`) |
+| FR-03 | Row selection opens a preview: bay fill, stability, open violations by rule, recent activity | S | F-01 | M6 | done | `plans/model.test.ts` (stability cards, activity times), `e2e/plans-workflow.spec.ts` (preview: bay fill, stability, violations by rule, activity) |
+| FR-04 | Open plan loads the plan into the workspace at its own URL | M | F-01 | M6 | done | `e2e/plans-workflow.spec.ts` AT-01 (Open plan at its own URL), `api.test.ts` (GET plan, 404 for a plan without geometry, D11) |
+| FR-05 | New plan creates a Draft for a chosen vessel, voyage and port from the arrival condition | S | F-01 | M6 | done | `api.test.ts` (create from the arrival condition, 422 with the field), `e2e/plans-workflow.spec.ts` (New plan dialog, opens the new plan) |
 | FR-06 | Workspace shows top bar, load list, center view, details, bay navigator, stability strip at 1440 × 900 and 1920 × 1080; side panels 320 px | M | F-02 | M2 | done | `e2e/screenshots.spec.ts` (1440 and 1920, both themes), `e2e/layout.spec.ts` (top bar fits at 1280, 1440, 1920), `Workspace.test.tsx` |
 | FR-07 | Each side panel collapses to a 40 px rail and expands again | M | F-02 | M2 | done | `Workspace.test.tsx` (both panels to 40 px rails and back), `LoadList.test.tsx`; `stores.test.ts` (the Bay tab collapses both panels, as screen 03, and restores them) |
 | FR-08 | Center view switches 3D, Bay, Split; Split is resizable | M | F-02 | M2 | done | `Workspace.test.tsx` (tabs, arrow keys, split resize by keyboard and pointer). The 3D view is a placeholder until M3 |
-| FR-09 | Top bar: vessel and voyage, port rotation with current port, status, planned count, Undo, Redo, Validate, Save | M | F-02 | M2 | in progress | `Workspace.test.tsx` (TopBar). Save is off until the mock API in M6 |
+| FR-09 | Top bar: vessel and voyage, port rotation with current port, status, planned count, Undo, Redo, Validate, Save | M | F-02 | M2, M6 | done | `Workspace.test.tsx` (TopBar), `e2e/layout.spec.ts` (fits at 1280, 1440 and 1920 with the workflow buttons), `e2e/plans-workflow.spec.ts` (Save with the base version) |
 | FR-10 | Bay navigator: deck and hold fill per bay, bays with violations marked, jump on click | M | F-02 | M2 | done | `BayView.test.tsx` (bay navigator: fill, jump, current bay), `e2e/screenshots.spec.ts` |
 | FR-11 | Dark and light theme switch; the choice persists | S | F-16 | M6 | done | `e2e/tokens.spec.ts` (switch and persist across reload), `stores.test.ts` |
 | FR-12 | Load list shows ID, type, weight, POD, reefer and DG flags in 32 px rows | M | F-03 | M2 | done | `LoadList.test.tsx`, `e2e/screenshots.spec.ts` |
@@ -65,14 +65,14 @@ Last updated: Oct 8, 2026, after M5.
 | FR-55 | Port timeline: one stop per port with discharge count and restow moves | S | F-10 | M5 | done | `plan/ports.test.ts` (counts and restows per port from the overstow check), `playback/model.test.ts`, `PortTimeline.test.tsx`, `e2e/violations-stability-playback.spec.ts` AT-07 |
 | FR-56 | Selecting a stop hides discharged containers and lifts that port's containers 20 ms apart, deck before hold; Play steps through | S | F-10 | M5 | done | `plan/ports.test.ts` (lift order: deck before hold), `playback/model.test.ts` (20 ms apart, 500 ms each, none with reduced motion), `ContainerLayer.test.ts` (lift, fade, hide, restore), `PortTimeline.test.tsx` (Play steps through the ports and stops), `e2e/screenshots.spec.ts` (playback at Jebel Ali) |
 | FR-57 | Place, move, unplace, swap, lock and apply fix are each one command with an inverse; Ctrl/Cmd+Z undo, plus Shift redo | M | F-11 | M4 | done | Domain inverses (`commands/commands.test.ts`). `placement-store.test.ts` (Undo, Redo, messages), `Inspector.test.tsx` (Undo offered), `e2e/placement.spec.ts` AT-04 undo (toast Undo, Ctrl+Shift+Z, Ctrl+Z). Apply fix: M5 |
-| FR-58 | Each command adds an entry to the plan's activity log | S | F-11 | M4, M6 | in progress | Every command, undo and redo adds an entry (`plan-store.ts`, `messages.test.ts`, `placement-store.test.ts`). Showing the log: M6 |
-| FR-59 | Save sends the plan with its base version; on success the version rises by one | M | F-12 | M6 | not started | — |
-| FR-60 | If the server holds a newer version, Save is refused, local commands kept, user reviews or retries | M | F-12 | M6 | not started | — |
-| FR-61 | Unsaved commands are kept in the browser and restored after a reload | S | F-12 | M6 | not started | — |
-| FR-62 | Send for review sets In review; Approve only for senior planner with zero errors; Return sets Draft and needs a comment | S | F-13 | M6 | not started | — |
-| FR-63 | An approved plan is read only; Revise creates a new Draft version | S | F-13 | M6 | not started | — |
-| FR-64 | Import load list reads JSON, checks each row, lists rejected rows with the reason | S | F-14 | M6 | not started | — |
-| FR-65 | Export downloads an approved plan as JSON (required for the M6 gate, decision D10) | C | F-15 | M6 | not started | — |
+| FR-58 | Each command adds an entry to the plan's activity log | S | F-11 | M4, M6 | done | Every command, undo and redo adds an entry (`plan-store.ts`, `messages.test.ts`, `placement-store.test.ts`). Saved commands reach the server's log (`api.test.ts`), and the plans preview shows it (`e2e/plans-workflow.spec.ts`) |
+| FR-59 | Save sends the plan with its base version; on success the version rises by one | M | F-12 | M6 | done | `api.test.ts` (save applies the commands and raises the version by one, 422 on a rule break), `workflow-state.test.ts` (history starts again from the new version), `e2e/plans-workflow.spec.ts` AT-03 in full (v14 to v15) |
+| FR-60 | If the server holds a newer version, Save is refused, local commands kept, user reviews or retries | M | F-12 | M6 | done | `api.test.ts` (409 with the current version, who and when; the developer switch), `e2e/plans-workflow.spec.ts` AT-05 (message, history kept, Review changes, Apply my changes, Save; Retry) |
+| FR-61 | Unsaved commands are kept in the browser and restored after a reload | S | F-12 | M6 | done | `workflow-state.test.ts` (kept with the base version, cleared when empty, damaged or blocked storage), `e2e/plans-workflow.spec.ts` (restored after a reload, saved, then nothing to restore) |
+| FR-62 | Send for review sets In review; Approve only for senior planner with zero errors; Return sets Draft and needs a comment | S | F-13 | M6 | done | `workflow/permissions.test.ts`, `Workflow.test.tsx` (buttons per role and status), `api.test.ts` (403, 409, 422), `e2e/plans-workflow.spec.ts` AT-06 and Return with a comment |
+| FR-63 | An approved plan is read only; Revise creates a new Draft version | S | F-13 | M6 | done | `workflow-state.test.ts` (an approved plan refuses commands, undo and pick-up), `api.test.ts` (403 on save, Revise gives a new Draft version), `e2e/plans-workflow.spec.ts` AT-06 (read only after approval) |
+| FR-64 | Import load list reads JSON, checks each row, lists rejected rows with the reason | S | F-14 | M6 | done | `loadlist/import.test.ts` (every row check, fast-check on hostile files), `api.test.ts` (accepted and rejected rows), `e2e/plans-workflow.spec.ts` AT-10 |
+| FR-65 | Export downloads an approved plan as JSON (required for the M6 gate, decision D10) | C | F-15 | M6 | done | `api.test.ts` (409 until approved), `e2e/business-process.spec.ts` step 11 (download, schema, version, placements) |
 | FR-66 | With reduced motion, every animation is instant or a 100 ms fade | M | F-17 | M2, M4 | done | `ui/motion.ts` (shake, settle and ghost become a 100 ms fade), toast fades, skeleton stops, looping animations run once; `e2e/placement.spec.ts` AT-09 (no animation over 100 ms). Other routes: M6, M7 |
 
 ## Non-functional requirements
@@ -84,7 +84,7 @@ Last updated: Oct 8, 2026, after M5.
 | NFR-03 | Rule check after one command | Under 10 ms | M1 | done | `src/domain/rules/rules.bench.ts`: 1.68 ms mean, 2.48 ms p99 at 10,000 containers (BUILD_NOTES) |
 | NFR-04 | Full validation in the worker | Under 200 ms, no main thread task over 50 ms | M1 | done | `e2e/worker.spec.ts`: 18 to 28 ms round trip at 10,000 containers, no long task (BUILD_NOTES) |
 | NFR-05 | Draw calls for the ship scene | Under 50 | M3 | done | `e2e/viewport3d.spec.ts` (/bench under 50), BUILD_NOTES: 10 to 12 draw calls |
-| NFR-06 | JavaScript size | Plans route 200 kB gzip or less; 3D chunk 350 kB gzip or less | M0 | in progress | 3D chunk 265.00 kB gzip after M5 (limit 350). Plans route and the CI check: M6, M7 |
+| NFR-06 | JavaScript size | Plans route 200 kB gzip or less; 3D chunk 350 kB gzip or less | M0 | in progress | **Plans route is over its limit: 288.8 kB gzip against 200 kB** (`npm run measure:js`; Mock Service Worker alone is 156 kB). 3D chunk 265.03 kB gzip (limit 350). See BUILD_NOTES M6 for the options. CI check: M7 |
 | NFR-07 | First load of the plans route | LCP under 2.5 s on fast 4G, Lighthouse performance 90 or more | M7 | not started | — |
 | NFR-08 | Memory | Heap grows less than 10% after 200 commands and 200 undos | M7 | not started | — |
 | NFR-09 | Accessibility standard | WCAG 2.2 AA, no critical or serious axe findings, both routes and themes | M7 | in progress | `e2e/a11y.spec.ts`: no critical or serious axe findings on the workspace with the 3D view loaded, both themes, with the bay view, violations tab and collapsed panels. A held container (marks, tooltip, Inspector, refusal) in both themes, no exclusions (BUILD_NOTES M4, A1 and A2 decided). The violations panel with Show, the stability drawer and port playback in both themes (M5). Plans route and manual checklist: M6, M7 |
@@ -94,10 +94,10 @@ Last updated: Oct 8, 2026, after M5.
 | NFR-13 | Target size | 24 × 24 px or more | M2 | in progress | `e2e/target-size.spec.ts`: every workspace target is 24 px or more, including every cell in the Bay view. Other routes: M6 |
 | NFR-14 | Announcements | Slot descriptions polite, refused drops assertive; 3D canvas text alternative points to the bay grid | M4 | in progress | Slot descriptions in a polite live region (one at a time: the workspace region speaks only when the bay view is hidden); refused drops in an alert (`placement-store.test.ts`, `e2e/placement.spec.ts` AT-02); 3D canvas text alternative points to the bay grid. Screen reader check: M7 |
 | NFR-15 | Motion | Reduced motion setting honored everywhere | M7 | not started | — |
-| NFR-16 | Unsaved work | Survives a reload or a crash | M6 | not started | — |
+| NFR-16 | Unsaved work | Survives a reload or a crash | M6 | done | `workflow-state.test.ts`, `e2e/plans-workflow.spec.ts` (reload restores the unsaved commands, with the mock plans in IndexedDB) |
 | NFR-17 | 3D failure | An error in the 3D view does not break the workspace | M3 | done | `Viewport3D.test.tsx` (error boundary keeps the error inside the 3D view), lost WebGL context shows the fallback |
-| NFR-18 | Request failure | Every failed request shows a message with Retry | M6 | not started | — |
-| NFR-19 | Imported files | Parsed as data only; file text shown as text, never markup | M6 | not started | — |
+| NFR-18 | Request failure | Every failed request shows a message with Retry | M6 | done | `api.test.ts` (every error has a code and a message; status 0 when unreachable), `e2e/plans-workflow.spec.ts` (forced 503 shows the message with Retry; Retry loads again); the plan route has its own Retry |
+| NFR-19 | Imported files | Parsed as data only; file text shown as text, never markup | M6 | done | `loadlist/import.test.ts` (hostile text, extra and inherited keys, any JSON), `e2e/plans-workflow.spec.ts` (markup stays text, no element is made, nothing runs) |
 | NFR-20 | Secrets | None in the client bundle | M7 | not started | — |
 | NFR-21 | Types | TypeScript strict, no `any` in the domain layer | M0 | done | `tsconfig.json` strict, `tsconfig.domain.json`, `@typescript-eslint/no-explicit-any` in `eslint.config.js`; `tools/layering.test.ts` |
 | NFR-22 | Layering | Domain imports nothing from React, three.js or the DOM | M0 | done | `tools/layering.test.ts` (lint rule), `tsconfig.domain.json` (no DOM types) |
