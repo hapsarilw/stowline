@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "build:e2e": "vite build --mode e2e --outDir dist-e2e",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.domain.json --noEmit",
@@ -15,7 +16,10 @@
     "test:coverage": "vitest run --coverage",
     "bench:3d": "node tools/bench-3d.mjs",
     "bench:pickup": "node tools/bench-pickup.mjs",
-    "measure:js": "node tools/measure-js.mjs"
+    "measure:js": "node tools/measure-js.mjs",
+    "lighthouse": "npx -y @lhci/cli@0.15.1 autorun",
+    "check:secrets": "node tools/check-secrets.mjs",
+    "profile": "node tools/profile.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { installTestHooks } from './app/test-hooks';
 import './styles/index.css';
 
 const root = document.getElementById('root');
@@ -15,6 +16,7 @@ async function start(): Promise<void> {
     // The app still opens; its requests will fail with a message and Retry (NFR-18).
     console.error('The mock API could not start', e);
   }
+  void installTestHooks();
   createRoot(root!).render(
     <StrictMode>
       <App />

@@ -66,6 +66,8 @@ export default defineConfig(
   {
     ignores: [
       'dist',
+      'dist-e2e',
+      '.lighthouseci',
       'coverage',
       'design',
       'playwright-report',

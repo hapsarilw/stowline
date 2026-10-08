@@ -5,6 +5,7 @@ import { bay40Of, parseKey, PODS, fmt1, type SlotKey } from '@/domain';
 import { dispatch, usePlacementStore } from '@/state/placement-store';
 import { usePlanStore } from '@/state/plan-store';
 import { useViewStore } from '@/state/view-store';
+import { TEST_HOOKS } from '@/app/test-hooks';
 import { setDropPicker } from '../bridge';
 import type { ContainerLayer } from './ContainerLayer';
 import type { TargetLayer } from './targets';
@@ -72,7 +73,7 @@ export function showTooltip(
 
 declare global {
   interface Window {
-    /** Dev builds only: lets end-to-end tests find a container on screen. */
+    /** Test hooks only (TEST_HOOKS): lets end-to-end tests find a container on screen. */
     __stowViewport?: {
       findPickable: () => { key: SlotKey; id: string; x: number; y: number } | null;
       /** A point on screen where a drop target is drawn and picks back to itself. */
@@ -83,7 +84,7 @@ declare global {
   }
 }
 
-/** Frames drawn, for the dev test hook. The scene renders on demand, so a still count is rest. */
+/** Frames drawn, for the test hook. The scene renders on demand, so a still count is rest. */
 let framesDrawn = 0;
 
 /** A pointer up within this many pixels of the pointer down is a click, not an orbit. */
@@ -102,7 +103,7 @@ export function Picking({
   const camera = useThree((s) => s.camera);
   const invalidate = useThree((s) => s.invalidate);
   useFrame(() => {
-    if (import.meta.env.DEV) framesDrawn++;
+    if (TEST_HOOKS) framesDrawn++;
   });
 
   useEffect(() => {
@@ -188,7 +189,7 @@ export function Picking({
       hover(null);
     };
 
-    if (import.meta.env.DEV) {
+    if (TEST_HOOKS) {
       // The first deck container whose top face, on screen, picks back to itself.
       window.__stowViewport = {
         frames: () => framesDrawn,

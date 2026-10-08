@@ -7,3 +7,5 @@ design
 **/*.md
 package-lock.json
 public/mockServiceWorker.js
+.lighthouseci
+dist-e2e
