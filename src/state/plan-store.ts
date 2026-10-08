@@ -8,6 +8,7 @@ import {
   generateSampleCall,
   indexViolations,
   revalidate,
+  toPlacements,
   validateAll,
   type CommandResult,
   type Command,
@@ -21,7 +22,10 @@ import {
   type Violation,
   type ViolationIndex,
 } from '@/domain';
+import { canEditPlan } from '@/domain';
 import { activityText } from './messages';
+import { useSessionStore } from './session-store';
+import { writeUnsaved } from './unsaved';
 
 // The plan store holds the plan being edited. Every change goes through a command: it passes
 // the placement check, has an inverse, and re-checks only the stacks it touched.
@@ -60,6 +64,8 @@ export interface PlanStore extends PlanData {
   activity: ActivityEntry[];
   /** When the whole plan was last checked (Date.now()): at load and on Validate. */
   checkedAt: number;
+  /** The version on the server that the history starts from (FR-59). */
+  baseVersion: number;
   apply: (command: Command) => CommandResult;
   undo: () => boolean;
   redo: () => boolean;
@@ -67,7 +73,19 @@ export interface PlanStore extends PlanData {
   setViolations: (violations: Violation[]) => void;
   /** Replaces the whole plan, such as the benchmark vessel on /bench. Clears history. */
   load: (data: PlanData, state: StowState) => void;
+  /** After a save: the history is what the server has now, and starts again from here. */
+  markSaved: (version: number) => void;
+  /** After a status change on the server. */
+  setStatus: (status: PlanHeader['status'], version: number) => void;
+  /** Adds containers to the load list, after an import (FR-64). */
+  addToLoadList: (containers: Container[]) => void;
 }
+
+/** Whether this role can change this plan now: not when approved, not for a read only role. */
+export const canEditNow = (status: PlanHeader['status']): boolean =>
+  canEditPlan(useSessionStore.getState().role, status);
+
+export const READ_ONLY_REASON = 'This plan is read only.';
 
 export function createPlanData(): { data: PlanData; state: StowState } {
   const call = generateSampleCall();
@@ -100,7 +118,7 @@ export function derive(data: PlanData, state: StowState, violations: Violation[]
 
 export function initialPlanStore(): Omit<
   PlanStore,
-  'apply' | 'undo' | 'redo' | 'setViolations' | 'load'
+  'apply' | 'undo' | 'redo' | 'setViolations' | 'load' | 'markSaved' | 'setStatus' | 'addToLoadList'
 > {
   const { data, state } = createPlanData();
   return {
@@ -110,6 +128,7 @@ export function initialPlanStore(): Omit<
     future: [],
     activity: [],
     checkedAt: Date.now(),
+    baseVersion: data.header.version,
   };
 }
 
@@ -120,11 +139,18 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
     const s = get();
     const violations = revalidate(s.violations, state, s.ctx, touched);
     set({ ...derive(s, state, violations), ...extra });
+    // Every change is kept in the browser, so a reload or a crash loses nothing (FR-61).
+    const after = get();
+    writeUnsaved(after.header.id, {
+      baseVersion: after.baseVersion,
+      commands: after.history.map((h) => h.command),
+    });
   };
   return {
     ...initialPlanStore(),
     apply(command) {
       const s = get();
+      if (!canEditNow(s.header.status)) return { ok: false, reason: READ_ONLY_REASON };
       const r = applyCommand(s.state, s.ctx, command);
       if (!r.ok) return r;
       const text = activityText(command, s.state);
@@ -137,6 +163,7 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
     },
     undo() {
       const s = get();
+      if (!canEditNow(s.header.status)) return false;
       const last = s.history[s.history.length - 1];
       if (!last) return false;
       const r = applyCommand(s.state, s.ctx, last.inverse, { check: false });
@@ -150,6 +177,7 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
     },
     redo() {
       const s = get();
+      if (!canEditNow(s.header.status)) return false;
       const command = s.future[s.future.length - 1];
       if (!command) return false;
       const r = applyCommand(s.state, s.ctx, command, { check: false });
@@ -173,7 +201,28 @@ export const usePlanStore = create<PlanStore>()((set, get) => {
         future: [],
         activity: [],
         checkedAt: Date.now(),
+        baseVersion: data.header.version,
       });
+    },
+    markSaved(version) {
+      const s = get();
+      set({ header: { ...s.header, version }, baseVersion: version, history: [], future: [] });
+      writeUnsaved(s.header.id, null);
+    },
+    setStatus(status, version) {
+      const s = get();
+      set({ header: { ...s.header, status, version } });
+      if (s.history.length === 0) set({ baseVersion: version });
+    },
+    addToLoadList(containers) {
+      const s = get();
+      if (containers.length === 0) return;
+      const ctx = createStowContext({
+        vessel: s.ctx.vessel,
+        containers: [...s.ctx.containers.values(), ...containers],
+        placements: toPlacements(s.state),
+      });
+      set({ ctx, loadList: [...s.loadList, ...containers] });
     },
   };
 });

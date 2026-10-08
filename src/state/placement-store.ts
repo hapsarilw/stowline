@@ -16,7 +16,7 @@ import {
   type PlacementEvent,
   type PlacementState,
 } from './placement';
-import { usePlanStore } from './plan-store';
+import { canEditNow, usePlanStore } from './plan-store';
 import { useViewStore } from './view-store';
 
 // Runs the placement controller: keeps its state, and carries out what step() asks for through
@@ -105,6 +105,20 @@ function firstValidTarget(containerId: string, from: SlotKey | null): SlotKey | 
 export function dispatch(event: PlacementEvent): void {
   const plan = usePlanStore.getState();
   const view = useViewStore.getState();
+  // A read only plan (approved, or a role that cannot edit) lifts nothing (FR-63).
+  if (
+    (event.type === 'pickFromList' ||
+      event.type === 'pickFromSlot' ||
+      event.type === 'startSwap') &&
+    !canEditNow(plan.header.status)
+  ) {
+    view.announce(
+      plan.header.status === 'approved'
+        ? 'This plan is approved and read only. Revise it to make changes.'
+        : 'Your role cannot change plans.',
+    );
+    return;
+  }
   const prev = usePlacementStore.getState().placement;
   const out = step(prev, event, { state: plan.state, ctx: plan.ctx, bay: view.bay });
   const patch: Partial<PlacementStore> = { placement: out.next };
