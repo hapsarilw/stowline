@@ -54,3 +54,26 @@ test('keyboard only: arrow keys move through the bay grid and the Inspector foll
     '180488, NSPU 771032 1, Colombo, 17.1 tonnes',
   );
 });
+
+for (const [width, height] of [
+  [1280, 720],
+  [1440, 900],
+  [1920, 1080],
+] as const) {
+  test(`nothing overflows the workspace, so nothing can scroll it, at ${width} x ${height}`, async ({
+    page,
+  }) => {
+    // M7: the footer overflowed by 1.9 px, so a focus could scroll the whole workspace by 2 px.
+    await page.setViewportSize({ width, height });
+    await openWorkspace(page);
+    const root = page.locator('main, [class*="min-h-[640px]"]').first();
+    const size = await root.evaluate((el) => [
+      el.scrollHeight,
+      el.clientHeight,
+      el.scrollWidth,
+      el.clientWidth,
+    ]);
+    expect(size[0]).toBe(size[1]);
+    expect(size[2]).toBe(size[3]);
+  });
+}

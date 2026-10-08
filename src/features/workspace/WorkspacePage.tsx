@@ -131,7 +131,10 @@ export function WorkspacePage() {
       <LoadList />
       <Center />
       <DetailsPanel />
-      <footer className="col-span-full row-start-4 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] border-t border-border bg-surface">
+      {/* The bay navigator is 64.9 px tall in a 63 px row: clip the 1.9 px here, where it was
+          hidden anyway, so it cannot make the workspace scrollable (a focus then shifted the
+          whole page by 2 px; M7). */}
+      <footer className="col-span-full row-start-4 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] overflow-clip border-t border-border bg-surface">
         <BayNavigator />
         <StabilityStrip />
       </footer>
