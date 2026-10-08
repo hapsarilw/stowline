@@ -73,4 +73,22 @@ describe('CSS colors for the scene', () => {
     expect(parseCssColor('rgb(255, 255, 255)')).toEqual({ rgb: [1, 1, 1], alpha: 1 });
     expect(parseCssColor('bogus')).toEqual({ rgb: [0, 0, 0], alpha: 1 });
   });
+
+  it('reads the hex forms the production CSS minifier writes, alpha included (M7)', () => {
+    // tokens.css says rgba(14, 23, 38, 0.45); the built CSS says #0e172673.
+    const e = parseCssColor('#0e172673');
+    expect(e.rgb.map((v) => Math.round(v * 255))).toEqual([14, 23, 38]);
+    expect(e.alpha).toBeCloseTo(0x73 / 255, 9);
+    expect(parseCssColor('#080d1899').alpha).toBeCloseTo(0.6, 2);
+    expect(parseCssColor('#f00')).toEqual({ rgb: [1, 0, 0], alpha: 1 });
+    const short = parseCssColor('#f008');
+    expect(short.rgb).toEqual([1, 0, 0]);
+    expect(short.alpha).toBeCloseTo(0x88 / 255, 9);
+  });
+
+  it('reads the space-separated rgb() form too', () => {
+    const e = parseCssColor('rgb(14 23 38 / 0.45)');
+    expect(e.rgb.map((v) => Math.round(v * 255))).toEqual([14, 23, 38]);
+    expect(e.alpha).toBe(0.45);
+  });
 });

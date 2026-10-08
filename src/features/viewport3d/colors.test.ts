@@ -48,6 +48,10 @@ describe('color modes (FR-20)', () => {
     // 0x2a * 0.55 + 0x0b * 0.45 = 28 (0x1c), 0x36 * 0.55 + 0x12 * 0.45 = 38 (0x26), 0x50 * 0.55 + 0x20 * 0.45 = 58 (0x3a).
     expect(dimmedColor(palette)).toBe('#1c263a');
   });
+
+  it('reads the short hex the production CSS minifier writes (M7)', () => {
+    expect(dimmedColor({ ...palette, dim: '#fff', bg: '#000' })).toBe('#8c8c8c');
+  });
 });
 
 describe('legends (FR-20)', () => {

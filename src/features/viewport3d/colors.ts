@@ -66,8 +66,10 @@ export function containerColor(
   }
 }
 
+/** '#rrggbb' or the '#rgb' the production CSS minifier writes for some tokens. */
 const hex = (h: string): [number, number, number] => {
-  const s = h.replace('#', '');
+  let s = h.trim().replace('#', '');
+  if (s.length === 3 || s.length === 4) s = [...s].map((c) => c + c).join('');
   return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16)) as [number, number, number];
 };
 

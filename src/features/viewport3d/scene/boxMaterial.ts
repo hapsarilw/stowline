@@ -80,21 +80,25 @@ export function createBoxMaterial(color = '#ffffff'): BoxMaterial {
   return m;
 }
 
-/** Parses '#rrggbb' or 'rgba(r, g, b, a)' into sRGB channels from 0 to 1 and an alpha. */
+/**
+ * Parses a CSS color into sRGB channels from 0 to 1 and an alpha: '#rgb', '#rgba', '#rrggbb',
+ * '#rrggbbaa', 'rgb(r, g, b)', 'rgba(r, g, b, a)' and 'rgb(r g b / a)'. The production CSS
+ * minifier turns rgba() tokens into 8-digit hex, so the alpha is read from hex too.
+ */
 export function parseCssColor(css: string): { rgb: [number, number, number]; alpha: number } {
   const s = css.trim();
   if (s.startsWith('#')) {
-    const h = s.slice(1);
-    const v = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as [
-      number,
-      number,
-      number,
-    ];
-    return { rgb: v, alpha: 1 };
+    let h = s.slice(1);
+    if (h.length === 3 || h.length === 4) h = [...h].map((c) => c + c).join('');
+    const byte = (i: number) => parseInt(h.slice(i, i + 2), 16) / 255;
+    return { rgb: [byte(0), byte(2), byte(4)], alpha: h.length === 8 ? byte(6) : 1 };
   }
   const m = /rgba?\(([^)]+)\)/.exec(s);
   if (!m) return { rgb: [0, 0, 0], alpha: 1 };
-  const parts = m[1]!.split(',').map((x) => parseFloat(x));
+  const parts = m[1]!
+    .split(/[\s,/]+/)
+    .filter(Boolean)
+    .map((x) => parseFloat(x));
   return {
     rgb: [(parts[0] ?? 0) / 255, (parts[1] ?? 0) / 255, (parts[2] ?? 0) / 255],
     alpha: parts[3] ?? 1,
