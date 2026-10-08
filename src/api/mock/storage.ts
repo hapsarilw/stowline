@@ -17,6 +17,8 @@ export interface PlanRecord {
   planner: string | null;
   updatedAt: string | null;
   updatedBy: string | null;
+  statusBy?: string | null;
+  statusAt?: string | null;
   activity: ActivityEntry[];
   /** Plans with geometry and placements (decision D11). The others only have their summary. */
   data: {

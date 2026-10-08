@@ -66,6 +66,10 @@ export interface PlanDetail extends Plan {
   stabilityBase: StabilityBase;
   updatedAt: string;
   updatedBy: string;
+  planner: string | null;
+  /** Who last changed the status, and when. */
+  statusBy: string | null;
+  statusAt: string | null;
 }
 
 export interface NewPlanRequest {

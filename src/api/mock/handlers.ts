@@ -4,6 +4,7 @@ import {
   createStowState,
   parseLoadListFile,
   plural,
+  readOnlyReason,
   ROLES,
   ROTATION,
   roleInfo,
@@ -21,7 +22,7 @@ import type {
   SaveRequest,
   StatusRequest,
 } from '../types';
-import { takeFailure, takeForce409 } from './control';
+import { takeFailure, takeForce409, useMockControl } from './control';
 import type { MockDb } from './db';
 import type { PlanRecord } from './storage';
 
@@ -57,11 +58,11 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
   const wait = options.delayMs ?? (() => 150 + Math.random() * 250);
 
   /** Waits, then answers with a forced failure when the developer switch asks for one. */
-  const gate = async (): Promise<Response | null> => {
+  const gate = async (request?: Request): Promise<Response | null> => {
     await db.ready;
-    const ms = wait();
+    const ms = wait() + useMockControl.getState().extraDelayMs;
     if (ms > 0) await delay(ms);
-    const status = takeFailure();
+    const status = takeFailure(request?.url);
     return status
       ? fail(
           status,
@@ -77,7 +78,7 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
 
   return [
     http.get('*/api/plans', async ({ request }) => {
-      const failed = await gate();
+      const failed = await gate(request);
       if (failed) return failed;
       const url = new URL(request.url);
       const { user } = who(request);
@@ -106,7 +107,7 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
     }),
 
     http.post('*/api/plans', async ({ request }) => {
-      const failed = await gate();
+      const failed = await gate(request);
       if (failed) return failed;
       const { user } = who(request);
       let body: Partial<NewPlanRequest>;
@@ -124,6 +125,7 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
         fields.port = 'Choose a port from the rotation.';
       if (typeof body.etd !== 'string' || Number.isNaN(Date.parse(body.etd)))
         fields.etd = 'Give the departure as a date and time.';
+      else if (Date.parse(body.etd) < Date.now()) fields.etd = "ETD can't be in the past.";
       if (Object.keys(fields).length || !vessel)
         return fail(422, 'invalid_input', Object.values(fields)[0] ?? 'The plan is not valid.', {
           fields,
@@ -167,8 +169,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       return HttpResponse.json(db.summary(rec), { status: 201 });
     }),
 
-    http.get('*/api/plans/:id', async ({ params }) => {
-      const failed = await gate();
+    http.get('*/api/plans/:id', async ({ params, request }) => {
+      const failed = await gate(request);
       if (failed) return failed;
       const id = String(params.id);
       const rec = db.plan(id);
@@ -189,12 +191,15 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
         stabilityBase: rec.data.stabilityBase,
         updatedAt: rec.updatedAt ?? now(),
         updatedBy: rec.updatedBy ?? 'Unassigned',
+        planner: rec.planner,
+        statusBy: rec.statusBy ?? null,
+        statusAt: rec.statusAt ?? null,
       };
       return HttpResponse.json(detail);
     }),
 
     http.put('*/api/plans/:id', async ({ params, request }) => {
-      const failed = await gate();
+      const failed = await gate(request);
       if (failed) return failed;
       const id = String(params.id);
       const rec = db.plan(id);
@@ -209,14 +214,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       }
       if (typeof body.baseVersion !== 'number' || !Array.isArray(body.commands))
         return fail(422, 'invalid_input', 'A save needs a base version and a list of commands.');
-      if (!roleInfo(role).canEdit || rec.status === 'approved')
-        return fail(
-          403,
-          'read_only',
-          rec.status === 'approved'
-            ? 'An approved plan is read only. Revise it to make changes.'
-            : 'Your role cannot change plans.',
-        );
+      const why = readOnlyReason(role, rec.status);
+      if (why) return fail(403, 'read_only', why);
 
       // A conflict: a newer version exists. The developer switch makes one happen: a colleague
       // saves first, then this save is refused (SRS "Mock behavior").
@@ -265,7 +264,7 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
     }),
 
     http.post('*/api/plans/:id/status', async ({ params, request }) => {
-      const failed = await gate();
+      const failed = await gate(request);
       if (failed) return failed;
       const id = String(params.id);
       const rec = db.plan(id);
@@ -293,6 +292,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       if (from === 'approved' && body.to === 'draft') rec.version += 1; // Revise: a new Draft version
       rec.updatedAt = now();
       rec.updatedBy = user;
+      rec.statusBy = user;
+      rec.statusAt = rec.updatedAt;
       const text =
         body.to === 'in_review'
           ? `${user} sent the plan for review`
@@ -306,8 +307,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       return HttpResponse.json(db.summary(rec));
     }),
 
-    http.get('*/api/plans/:id/load-list', async ({ params }) => {
-      const failed = await gate();
+    http.get('*/api/plans/:id/load-list', async ({ params, request }) => {
+      const failed = await gate(request);
       if (failed) return failed;
       const id = String(params.id);
       const rec = db.plan(id);
@@ -323,15 +324,15 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
     }),
 
     http.post('*/api/plans/:id/load-list/import', async ({ params, request }) => {
-      const failed = await gate();
+      const failed = await gate(request);
       if (failed) return failed;
       const id = String(params.id);
       const rec = db.plan(id);
       if (!rec) return NOT_FOUND(id);
       if (!rec.data) return NO_GEOMETRY(id);
       const { role, user } = who(request);
-      if (!roleInfo(role).canEdit || rec.status === 'approved')
-        return fail(403, 'read_only', 'This plan is read only, so a load list cannot be imported.');
+      const why = readOnlyReason(role, rec.status);
+      if (why) return fail(403, 'read_only', `${why} A load list cannot be imported.`);
       const text = await request.text();
       const existing = new Set([...rec.data.containers, ...rec.data.loadList].map((c) => c.id));
       const r = parseLoadListFile(text, { port: rec.port, existingIds: existing });
@@ -347,8 +348,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       return HttpResponse.json({ accepted: r.accepted.length, rejected: r.rejected });
     }),
 
-    http.get('*/api/plans/:id/activity', async ({ params }) => {
-      const failed = await gate();
+    http.get('*/api/plans/:id/activity', async ({ params, request }) => {
+      const failed = await gate(request);
       if (failed) return failed;
       const id = String(params.id);
       const rec = db.plan(id);
@@ -357,8 +358,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       return HttpResponse.json(entries);
     }),
 
-    http.get('*/api/plans/:id/export', async ({ params }) => {
-      const failed = await gate();
+    http.get('*/api/plans/:id/export', async ({ params, request }) => {
+      const failed = await gate(request);
       if (failed) return failed;
       const id = String(params.id);
       const rec = db.plan(id);
@@ -395,8 +396,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       });
     }),
 
-    http.get('*/api/vessels', async () => {
-      const failed = await gate();
+    http.get('*/api/vessels', async ({ request }) => {
+      const failed = await gate(request);
       if (failed) return failed;
       return HttpResponse.json(
         db
@@ -405,8 +406,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       );
     }),
 
-    http.get('*/api/vessels/:id', async ({ params }) => {
-      const failed = await gate();
+    http.get('*/api/vessels/:id', async ({ params, request }) => {
+      const failed = await gate(request);
       if (failed) return failed;
       const id = String(params.id);
       const v = db.vessel(id);

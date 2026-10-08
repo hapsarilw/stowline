@@ -1,5 +1,5 @@
 import type { LoadListItem } from '@/domain';
-import { ApiError } from './errors';
+import { ApiError, requestLine } from './errors';
 import type {
   ActivityEntry,
   ErrorBody,
@@ -49,7 +49,11 @@ export function createApi(session: () => Session, baseUrl = '/api'): Api {
           body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
       });
     } catch {
-      throw new ApiError(0, { code: 'network', message: 'The server could not be reached.' });
+      throw new ApiError(
+        0,
+        { code: 'network', message: 'The server could not be reached.' },
+        requestLine(method, path, 0),
+      );
     }
     if (!res.ok) {
       let err: ErrorBody;
@@ -59,7 +63,7 @@ export function createApi(session: () => Session, baseUrl = '/api'): Api {
       } catch {
         err = { code: 'server', message: `The server answered with an error (${res.status}).` };
       }
-      throw new ApiError(res.status, err);
+      throw new ApiError(res.status, err, requestLine(method, path, res.status));
     }
     return (raw ? await res.text() : await res.json()) as T;
   }
