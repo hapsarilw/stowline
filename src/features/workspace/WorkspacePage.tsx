@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useParams } from 'react-router';
 import { BayView } from '@/features/bay-view/BayView';
 import { LoadList, SEARCH_ID } from '@/features/load-list/LoadList';
+import { StabilityDrawer } from '@/features/stability/StabilityDrawer';
 import { StabilityStrip } from '@/features/stability/StabilityStrip';
 import { Viewport3D } from '@/features/viewport3d/Viewport3D';
 import { inspectorActions } from '@/features/inspector/Inspector';
@@ -84,9 +85,14 @@ export function WorkspacePage() {
         requestAnimationFrame(() => document.getElementById(SEARCH_ID)?.focus());
         return;
       }
-      if (e.key === 'Escape' && usePlacementStore.getState().placement.kind !== 'idle') {
+      // Esc, as the design's cancel: a container in hand, then a violation in focus, then the drawer.
+      if (e.key === 'Escape') {
+        const view = useViewStore.getState();
+        if (usePlacementStore.getState().placement.kind !== 'idle') dispatch({ type: 'cancel' });
+        else if (view.focusedViolation || view.highlight) view.clearViolationFocus();
+        else if (view.drawerOpen) view.setDrawerOpen(false);
+        else return;
         e.preventDefault();
-        dispatch({ type: 'cancel' });
         return;
       }
       const key = e.key.toUpperCase();
@@ -126,6 +132,7 @@ export function WorkspacePage() {
         <BayNavigator />
         <StabilityStrip />
       </footer>
+      <StabilityDrawer />
       <ToastHost />
       {/* The bay view has its own live region. This one speaks when the bay view is hidden. */}
       <div aria-live="polite" role="status" className="sr-only">

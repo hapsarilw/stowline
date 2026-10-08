@@ -1,6 +1,14 @@
 import { usePlanStore } from '@/state/plan-store';
 import { cn } from '@/ui/cn';
-import { IconCheckCircle, IconChevronUp, IconError, IconWarning } from '@/ui/icons';
+import { useViewStore } from '@/state/view-store';
+import {
+  IconCheckCircle,
+  IconChevronDown,
+  IconChevronUp,
+  IconError,
+  IconWarning,
+} from '@/ui/icons';
+import { DRAWER_ID } from './StabilityDrawer';
 import { buildGauges, type GaugeModel } from './gauges';
 import { deltaLabels, useStabilityPreview } from './preview';
 import { useTween } from './useTween';
@@ -66,6 +74,7 @@ export function StabilityStrip() {
   const [gm, trim, list, bmPct, sfPct] = useTween(target);
   // FR-51: while a container is held over a slot, the change it would make.
   const preview = useStabilityPreview();
+  const drawerOpen = useViewStore((s) => s.drawerOpen);
   const gauges = buildGauges(
     { gm: gm!, trim: trim!, list: list!, bmPct: bmPct!, sfPct: sfPct! },
     {
@@ -86,11 +95,20 @@ export function StabilityStrip() {
       ))}
       <button
         type="button"
-        disabled
-        aria-label="Stability details"
-        className="flex w-[72px] flex-col items-center justify-center gap-[3px] border-0 bg-transparent text-[11px] text-text2 disabled:opacity-45"
+        aria-expanded={drawerOpen}
+        aria-controls={DRAWER_ID}
+        onClick={() => useViewStore.getState().setDrawerOpen(!drawerOpen)}
+        className={cn(
+          'flex w-[72px] cursor-pointer flex-col items-center justify-center gap-[3px] border-0 text-[11px] hover:text-text',
+          // Open: the accent background with the normal text color (the M3 and M4 contrast decisions).
+          drawerOpen ? 'bg-accentbg text-text' : 'bg-transparent text-text2',
+        )}
       >
-        <IconChevronUp size={14} strokeWidth={1.6} />
+        {drawerOpen ? (
+          <IconChevronDown size={14} strokeWidth={1.6} />
+        ) : (
+          <IconChevronUp size={14} strokeWidth={1.6} />
+        )}
         <span>Stability</span>
       </button>
     </section>
