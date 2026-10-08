@@ -1,27 +1,31 @@
 import { delay, http, HttpResponse, type HttpHandler } from 'msw';
 import {
   applyCommand,
+  canEdit,
   createStowState,
   parseLoadListFile,
   plural,
-  readOnlyReason,
   ROLES,
   ROTATION,
   roleInfo,
   toPlacements,
   transition,
+  type Command,
   type PlanStatus,
   type Role,
 } from '@/domain';
 import { activityText } from '@/state/messages';
 import type {
   ActivityEntry,
+  ConflictDetails,
   ErrorBody,
   NewPlanRequest,
   PlanDetail,
   SaveRequest,
+  ServerChange,
   StatusRequest,
 } from '../types';
+import { colleagueChanges } from './colleague';
 import { takeFailure, takeForce409, useMockControl } from './control';
 import type { MockDb } from './db';
 import type { PlanRecord } from './storage';
@@ -74,6 +78,18 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
 
   const log = (rec: PlanRecord, user: string, text: string): void => {
     rec.activity = [{ at: now(), user, text }, ...rec.activity].slice(0, 200);
+  };
+
+  /** Records a saved version with its commands; the last 50 are kept. */
+  const keep = (rec: PlanRecord, commands: Command[], lines: string[]): void => {
+    const entry: ServerChange = {
+      version: rec.version,
+      savedBy: rec.updatedBy ?? 'Someone',
+      savedAt: rec.updatedAt ?? now(),
+      commands,
+      lines,
+    };
+    rec.versions = [...(rec.versions ?? []), entry].slice(-50);
   };
 
   return [
@@ -214,28 +230,43 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       }
       if (typeof body.baseVersion !== 'number' || !Array.isArray(body.commands))
         return fail(422, 'invalid_input', 'A save needs a base version and a list of commands.');
-      const why = readOnlyReason(role, rec.status);
-      if (why) return fail(403, 'read_only', why);
+      const gateSave = canEdit(rec, role, 'save');
+      if (!gateSave.ok) return fail(403, 'read_only', gateSave.reason);
 
       // A conflict: a newer version exists. The developer switch makes one happen: a colleague
-      // saves first, then this save is refused (SRS "Mock behavior").
+      // saves valid changes first, then this save is refused (SRS "Mock behavior", decision 6).
       if (takeForce409()) {
+        const { ctx, state: start } = db.computed(rec);
+        const theirs = colleagueChanges(start, ctx, rec.data.loadList);
+        let s = start;
+        const lines: string[] = [];
+        for (const cmd of theirs) {
+          const r = applyCommand(s, ctx, cmd);
+          if (!r.ok) break;
+          lines.push(activityText(cmd, s));
+          s = r.state;
+        }
+        rec.data.placements = toPlacements(s);
+        rec.data.shiftCount = s.shiftCount;
         rec.version += 1;
         rec.updatedAt = now();
         rec.updatedBy = 'Dimas Hartono';
-        log(rec, 'Dimas Hartono', 'Dimas Hartono updated the plan');
+        for (const t of lines) log(rec, 'Dimas Hartono', `Dimas Hartono: ${t}`);
+        keep(rec, theirs.slice(0, lines.length), lines);
         await db.put(rec);
       }
       if (body.baseVersion !== rec.version) {
+        const details: ConflictDetails = {
+          currentVersion: rec.version,
+          savedBy: rec.updatedBy ?? 'Someone',
+          savedAt: rec.updatedAt ?? now(),
+          changes: (rec.versions ?? []).filter((v) => v.version > (body.baseVersion ?? 0)),
+        };
         return fail(
           409,
           'conflict',
-          `${rec.updatedBy ?? 'Someone'} saved version ${rec.version} first.`,
-          {
-            currentVersion: rec.version,
-            savedBy: rec.updatedBy ?? 'Someone',
-            savedAt: rec.updatedAt ?? now(),
-          },
+          `${details.savedBy} saved version ${rec.version} first.`,
+          details as unknown as Record<string, unknown>,
         );
       }
 
@@ -259,6 +290,7 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       rec.updatedBy = user;
       for (const t of texts) log(rec, user, `${user}: ${t}`);
       if (texts.length === 0) log(rec, user, `${user} saved version ${rec.version}`);
+      keep(rec, body.commands, texts);
       await db.put(rec);
       return HttpResponse.json({ version: rec.version, updatedAt: rec.updatedAt, updatedBy: user });
     }),
@@ -331,8 +363,9 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       if (!rec) return NOT_FOUND(id);
       if (!rec.data) return NO_GEOMETRY(id);
       const { role, user } = who(request);
-      const why = readOnlyReason(role, rec.status);
-      if (why) return fail(403, 'read_only', `${why} A load list cannot be imported.`);
+      const gateImport = canEdit(rec, role, 'import');
+      if (!gateImport.ok)
+        return fail(403, 'read_only', `${gateImport.reason} A load list cannot be imported.`);
       const text = await request.text();
       const existing = new Set([...rec.data.containers, ...rec.data.loadList].map((c) => c.id));
       const r = parseLoadListFile(text, { port: rec.port, existingIds: existing });
@@ -391,7 +424,8 @@ export function createHandlers(db: MockDb, options: HandlerOptions = {}): HttpHa
       return new HttpResponse(JSON.stringify(file, null, 2), {
         headers: {
           'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="stowline-plan-${rec.id}.json"`,
+          // Decision 7: named by plan and version, like 042W-SGSIN-v15.json.
+          'Content-Disposition': `attachment; filename="${rec.id}-v${rec.version}.json"`,
         },
       });
     }),

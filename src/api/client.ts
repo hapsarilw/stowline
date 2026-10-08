@@ -65,7 +65,10 @@ export function createApi(session: () => Session, baseUrl = '/api'): Api {
       }
       throw new ApiError(res.status, err, requestLine(method, path, res.status));
     }
-    return (raw ? await res.text() : await res.json()) as T;
+    if (!raw) return (await res.json()) as T;
+    // A file: its text, and its name from Content-Disposition (decision 7).
+    const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1];
+    return { text: await res.text(), filename: name ?? '' } as T;
   }
 
   const q = (query: PlansQuery = {}) => {
@@ -91,8 +94,13 @@ export function createApi(session: () => Session, baseUrl = '/api'): Api {
       request('POST', `/plans/${enc(id)}/load-list/import`, fileText),
     getActivity: (id) => request('GET', `/plans/${enc(id)}/activity`),
     async exportPlan(id) {
-      const text = await request<string>('GET', `/plans/${enc(id)}/export`, undefined, true);
-      return { filename: `stowline-plan-${id}.json`, text };
+      const file = await request<{ text: string; filename: string }>(
+        'GET',
+        `/plans/${enc(id)}/export`,
+        undefined,
+        true,
+      );
+      return { text: file.text, filename: file.filename || `${id}.json` };
     },
     getVessel: (id) => request('GET', `/vessels/${enc(id)}`),
     listVessels: () => request('GET', '/vessels'),

@@ -135,10 +135,23 @@ export interface ErrorBody {
   details?: Record<string, unknown>;
 }
 
+/** One version saved on the server: who, when, and its commands (decision 6). */
+export interface ServerChange {
+  version: number;
+  savedBy: string;
+  savedAt: string;
+  commands: Command[];
+  /** One line per command, for people. */
+  lines: string[];
+}
+
+/** The body of a 409 on save (decision 6). */
 export interface ConflictDetails {
   currentVersion: number;
   savedBy: string;
   savedAt: string;
+  /** Every version saved after the base version of the refused save, oldest first. */
+  changes: ServerChange[];
 }
 
 export interface Session {

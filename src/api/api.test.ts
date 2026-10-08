@@ -150,6 +150,20 @@ describe('PUT /api/plans/:id: save (FR-59, FR-60)', () => {
     expect(e).toMatchObject({ status: 409, code: 'conflict' });
     expect(e.details).toMatchObject({ currentVersion: 15, savedBy: 'Rina Adiputri' });
     expect(typeof e.details?.savedAt).toBe('string');
+    // Decision 6: the commands saved since the base version come with it.
+    expect(e.details?.changes).toEqual([
+      expect.objectContaining({
+        version: 15,
+        savedBy: 'Rina Adiputri',
+        commands: [FIX],
+        lines: ['Moved NSPU 771032 1 from 180488 to 180688'],
+      }),
+    ]);
+    // Nothing is newer than version 15.
+    const none = await fails(api.savePlan('042W-SGSIN', { baseVersion: 13, commands: [] }));
+    expect(
+      (none.details?.changes as unknown[]).map((c) => (c as { version: number }).version),
+    ).toEqual([15]);
   });
 
   it('the developer switch forces one conflict: a colleague saves first', async () => {
@@ -157,6 +171,19 @@ describe('PUT /api/plans/:id: save (FR-59, FR-60)', () => {
     const e = await fails(api.savePlan('042W-SGSIN', { baseVersion: 14, commands: [FIX] }));
     expect(e.status).toBe(409);
     expect(e.details).toMatchObject({ currentVersion: 15, savedBy: 'Dimas Hartono' });
+    // The colleague's save is real: a place, a move and a lock, in the plan and in the 409.
+    const changes = e.details?.changes as {
+      version: number;
+      commands: { kind: string }[];
+      lines: string[];
+    }[];
+    expect(changes).toHaveLength(1);
+    expect(changes[0]!.version).toBe(15);
+    expect(changes[0]!.commands.map((c) => c.kind)).toEqual(['place', 'move', 'lock']);
+    expect(changes[0]!.lines).toHaveLength(3);
+    const p = await api.getPlan('042W-SGSIN');
+    expect(p.placements.find((x) => x.slotKey === '300188')?.locked).toBe(true);
+    expect((await api.listPlans()).plans[0]).toMatchObject({ errors: 6, warnings: 1 });
     expect(useMockControl.getState().force409).toBe(false);
     // The same base is still stale; on the new version it saves.
     expect(
@@ -216,6 +243,8 @@ describe('POST /api/plans/:id/status (FR-62, FR-63, AT-06)', () => {
     await status('in_review');
     session = { role: 'senior', user: 'Hendra Wirawan' };
     expect((await status('approved')).status).toBe('approved');
+    // Decision 7: the export is named by plan and version.
+    expect((await api.exportPlan('042W-SGSIN')).filename).toBe('042W-SGSIN-v15.json');
     expect(
       await fails(api.savePlan('042W-SGSIN', { baseVersion: 15, commands: [] })),
     ).toMatchObject({ status: 403, code: 'read_only' });

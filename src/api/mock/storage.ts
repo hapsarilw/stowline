@@ -1,5 +1,5 @@
 import type { Container, Placement, StabilityBase, Vessel } from '@/domain';
-import type { ActivityEntry, PlanPreview } from '../types';
+import type { ActivityEntry, PlanPreview, ServerChange } from '../types';
 
 // What the mock keeps. Plans are kept in IndexedDB, so saved work survives a reload (SRS).
 
@@ -20,6 +20,8 @@ export interface PlanRecord {
   statusBy?: string | null;
   statusAt?: string | null;
   activity: ActivityEntry[];
+  /** The saved versions with their commands, newest last, so a 409 can carry them (decision 6). */
+  versions?: ServerChange[];
   /** Plans with geometry and placements (decision D11). The others only have their summary. */
   data: {
     placements: Placement[];
